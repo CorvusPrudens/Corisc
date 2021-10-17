@@ -1,3 +1,5 @@
+`ifndef TIMER_GUARD
+`define TIMER_GUARD
 
 module timer(
     input wire clk_i,
@@ -46,3 +48,4 @@ module timer(
   end
 
 endmodule
+`endif // TIMER_GUARD

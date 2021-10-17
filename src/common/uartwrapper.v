@@ -1,3 +1,6 @@
+`ifndef UARTWRAPPER_GUARD
+`define UARTWRAPPER_GUARD
+
 `include "uart.v"
 `include "fifo.v"
 
@@ -95,3 +98,4 @@ module uartwrapper(
     );
 
 endmodule
+`endif // UARTWRAPPER_GUARD

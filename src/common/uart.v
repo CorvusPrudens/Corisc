@@ -1,3 +1,5 @@
+`ifndef UART_GUARD
+`define UART_GUARD
 // 8 data bits, 1 stop bit, no parity
 
 module uart(
@@ -99,3 +101,4 @@ module uart(
   end
 
 endmodule
+`endif // UART_GUARD

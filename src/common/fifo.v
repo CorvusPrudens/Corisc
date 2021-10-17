@@ -1,3 +1,5 @@
+`ifndef FIFO_GUARD
+`define FIFO_GUARD
 module fifo #(
     memSize_p = 8,
     dataWidth_p = 16
@@ -49,3 +51,4 @@ module fifo #(
   );
 
 endmodule
+`endif // FIFO_GUARD

@@ -1,3 +1,5 @@
+`ifndef INIT_BRAM_GUARD
+`define INIT_BRAM_GUARD
 
 module init_bram
   #(
@@ -28,3 +30,4 @@ module init_bram
   end
 
 endmodule
+`endif // INIT_BRAM_GUARD

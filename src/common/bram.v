@@ -1,3 +1,5 @@
+`ifndef BRAM_GUARD
+`define BRAM_GUARD
 module bram
   #(
     parameter memSize_p = 8,
@@ -27,3 +29,4 @@ module bram
   // end
 
 endmodule
+`endif // BRAM_GUARD

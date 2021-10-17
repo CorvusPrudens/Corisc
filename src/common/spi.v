@@ -1,3 +1,5 @@
+`ifndef SPI_GUARD
+`define SPI_GUARD
 
 module spi(
     input wire clk_i,
@@ -58,3 +60,4 @@ module spi(
   // assign cs_o   = spiState == 0;
 
 endmodule
+`endif // SPI_GUARD

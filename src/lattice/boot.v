@@ -1,3 +1,5 @@
+`ifndef BOOT_GUARD
+`define BOOT_GUARD
 
 module boot(
     input wire clk_i,
@@ -30,3 +32,4 @@ module boot(
   end
 
 endmodule
+`endif // BOOT_GUARD
