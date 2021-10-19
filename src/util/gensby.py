@@ -11,6 +11,7 @@ def usage():
   print("\n\t-h\n\t   print this usage message")
   print("\n\t-d depth\n\t   create sby file with given depth")
   print("\n\t-p\n\t   create sby file with default mode set to prove")
+  print("\n\t-f\n\t   do not prompt for file overwrite")
   print()
   exit(0)
 
@@ -41,7 +42,7 @@ def main(argv):
 
   infile = ''
   options_args = {'-d': -1}
-  options_noargs = {'-p': False}
+  options_noargs = {'-p': False, '-f': False}
 
   if len(argv) < 2:
     usage()
@@ -70,7 +71,7 @@ def main(argv):
       options_noargs[tempargs[i]] = True
       tempargs.pop(i)
 
-  if len(tempargs) > 2:
+  if len(tempargs) > 3:
     print(f'Error: undefined option \"{tempargs[2]}\"\n')
     exit(3)
 
@@ -95,7 +96,7 @@ def main(argv):
   isprove = '# ' if not options_noargs['-p'] else ''
   sbypath = directory[:directory.rfind('.')] + '.sby'
 
-  if os.path.isfile(sbypath):
+  if os.path.isfile(sbypath) and not options_noargs['-f']:
     if prompt("Do you want to overwrite \"{}\"?".format(sbypath)):
       pass
     else:
@@ -121,7 +122,7 @@ def main(argv):
 
   [files]
   {}
-    """.format(isbmc, isbmc, depth, isprove, noslashy, noext, noslashy))
+    """.format(isbmc, isbmc, depth, isprove, noslashy, noext, directory))
 
   print("Generated \"{}\"!".format(sbypath))
 

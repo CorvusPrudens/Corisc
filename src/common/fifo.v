@@ -1,5 +1,8 @@
 `ifndef FIFO_GUARD
 `define FIFO_GUARD
+
+`include "bram.v"
+
 module fifo #(
     memSize_p = 8,
     dataWidth_p = 16
