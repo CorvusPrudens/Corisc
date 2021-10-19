@@ -50,5 +50,10 @@ module fifo #(
     .data_o(bramOut)
   );
 
+  `ifdef FORMAL
+    // FORMAL prove
+    
+  `endif
+
 endmodule
 `endif // FIFO_GUARD
