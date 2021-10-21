@@ -1,7 +1,7 @@
 `ifndef RV32I_REGISTERS_GUARD
 `define RV32I_REGISTERS_GUARD
 
-`include "common/bram.v"
+`include "bram.v"
 
 // NOTE -- address setup needs at least half a clock!
 module rv32i_registers 
@@ -46,8 +46,8 @@ module rv32i_registers
     .read_i(1'b1),
     .data_i(data_i),
 
-    .waddr_i(rs1_addr_i),
-    .raddr_i(rd_addr_i),
+    .waddr_i(rd_addr_i),
+    .raddr_i(rs1_addr_i),
 
     .data_o(rs1_o)
   );
@@ -61,10 +61,26 @@ module rv32i_registers
     .read_i(1'b1),
     .data_i(data_i),
 
-    .waddr_i(rs1_addr_i),
-    .raddr_i(rd_addr_i),
+    .waddr_i(rd_addr_i),
+    .raddr_i(rs2_addr_i),
 
     .data_o(rs2_o)
   );
+
+  `ifdef FORMAL
+    // TODO -- find way to set initial BRAM values to zero
+    // FORMAL prove
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    always @(*)
+        assume(rs1_addr_i == rs2_addr_i);
+    
+    // TODO -- how to detect two-clock delayed events?
+    always @(posedge clk_i) begin
+      if (timeValid_f && $past(write_i))
+        assert(rs1_o == rs2_o);
+    end
+  `endif
 
 endmodule`endif // RV32I_REGISTERS_GUARD
