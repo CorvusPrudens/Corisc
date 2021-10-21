@@ -36,12 +36,12 @@ module rv32i_alu
   assign equal_o = operand1_i == operand2_i;
 
   assign less_o = operand1_i < operand2_i;
-  signed wire [XLEN-1:0] operand1_signed = operand1_i;
-  signed wire [XLEN-1:0] operand2_signed = operand2_i;
+  wire signed [XLEN-1:0] operand1_signed = operand1_i;
+  wire signed [XLEN-1:0] operand2_signed = operand2_i;
   assign less_signed_o = operand1_signed < operand2_signed;
 
-  wire [XLEN-1:0] slt = {(XLEN-1){1'b0}, less_o};
-  wire [XLEN-1:0] sltu = {(XLEN-1){1'b0}, less_signed_o};
+  wire [XLEN-1:0] slt = {{XLEN-1{1'b0}}, less_o};
+  wire [XLEN-1:0] sltu = {{XLEN-1{1'b0}}, less_signed_o};
 
   wire [XLEN-1:0] and_ = operand1_i & operand2_i;
   wire [XLEN-1:0] or_ = operand1_i | operand2_i;
@@ -84,6 +84,24 @@ module rv32i_alu
         assert(result_o == op1_val + op2_val);
       if (operation_i == OP_SUB)
         assert(result_o == op1_val - op2_val);
+      if (operation_i == OP_SLT)
+        assert(result_o == op1_val < op2_val);
+      if (operation_i == OP_SLTU)
+        assert(result_o == op1_val < op2_val);
+      if (operation_i == OP_AND)
+        assert(result_o == op1_val & op2_val);
+      if (operation_i == OP_OR)
+        assert(result_o == op1_val | op2_val);
+      if (operation_i == OP_XOR)
+        assert(result_o == op1_val ^ op2_val);
+      if (operation_i == OP_SLL)
+        assert(result_o == op1_val << op2_val[4:0]);
+      if (operation_i == OP_SRL)
+        assert(result_o == op1_val >> op2_val[4:0]);
+      if (operation_i == OP_SRA)
+        assert(result_o == op1_val >>> op2_val[4:0]);
+      
+      assert(less_o == op1_val < op2_val);
     end
 
   `endif
