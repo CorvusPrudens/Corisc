@@ -85,9 +85,9 @@ def main(argv):
   ##############################################################
 
 
-
   slash = directory.rfind('/')
   noslashy = directory if slash == -1 else directory[slash + 1:]
+  location = '.' if slash == -1 else directory[:slash]
 
   noext = noslashy[:noslashy.rfind('.')]
 
@@ -102,6 +102,21 @@ def main(argv):
     else:
       print("Exiting...")
       exit(420)
+
+  files = [directory]
+  has_formal = False
+  with open(directory, 'r') as file:
+    for line in file:
+      if '`include' in line:
+        target = line.split(' ')[1]
+        target = target.replace('"', '')
+        files.append(os.path.join(location, target))
+      if '`ifdef FORMAL' in line:
+        has_formal = True
+  
+  if not has_formal:
+    print(f'File "{directory}" has no formal section, no files generated.')
+    return
 
   with open(sbypath, 'w') as sbyfile:
     sbyfile.write("""
@@ -122,7 +137,7 @@ def main(argv):
 
   [files]
   {}
-    """.format(isbmc, isbmc, depth, isprove, noslashy, noext, directory))
+    """.format(isbmc, isbmc, depth, isprove, noslashy, noext, '\n'.join(files)))
 
   print("Generated \"{}\"!".format(sbypath))
 
