@@ -29,9 +29,15 @@ module fifo #(
   always @(posedge clk_i) begin
     if (write_i) begin
       index_write <= index_write + 1'b1;
+
+      // data not read fast enough is ejected
+      if (index_write + 1'b1 == index_read)
+        index_read <= index_read + 1'b1;
     end
     if (read_i) begin
-      index_read <= index_read + 1'b1;
+      // The address is only incremented if the FIFO isn't empty
+      if (!empty_o)
+        index_read <= index_read + 1'b1;
       // WARNING -- this cannot be read immediately on the next clock
       data_o <= bramOut;
     end
@@ -55,6 +61,20 @@ module fifo #(
 
   `ifdef FORMAL
     // FORMAL prove
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    always @(posedge clk_i) begin
+      // Ensure FIFO cannot be both full and empty
+      if (full_o)
+        assert(!empty_o);
+      if (empty_o)
+        assert(!full_o);
+      
+      // Only increment read address if there's data to be read
+      if ($past(empty_o) && read_i && timeValid_f)
+        assert($past(index_read) == index_read);
+    end
     
   `endif
 
