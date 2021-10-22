@@ -8,7 +8,7 @@ module rv32i_alu
   (
     input wire clk_i,
     
-    input wire [9:0] operation_i,
+    input wire [3:0] operation_i,
     input wire [XLEN-1:0] operand1_i,
     input wire [XLEN-1:0] operand2_i,
 
@@ -18,16 +18,16 @@ module rv32i_alu
     output reg [XLEN-1:0] result_o
   );
 
-  localparam OP_ADD  = 10'b00_0000_0001;
-  localparam OP_SUB  = 10'b00_0000_0010;
-  localparam OP_SLT  = 10'b00_0000_0100;
-  localparam OP_SLTU = 10'b00_0000_1000;
-  localparam OP_AND  = 10'b00_0001_0000;
-  localparam OP_OR   = 10'b00_0010_0000;
-  localparam OP_XOR  = 10'b00_0100_0000;
-  localparam OP_SLL  = 10'b00_1000_0000;
-  localparam OP_SRL  = 10'b01_0000_0000;
-  localparam OP_SRA  = 10'b10_0000_0000;
+  localparam OP_ADD  = 4'b0000;
+  localparam OP_SUB  = 4'b1000;
+  localparam OP_SLT  = 4'b0010;
+  localparam OP_SLTU = 4'b0011;
+  localparam OP_AND  = 4'b0111;
+  localparam OP_OR   = 4'b0110;
+  localparam OP_XOR  = 4'b0100;
+  localparam OP_SLL  = 4'b0001;
+  localparam OP_SRL  = 4'b0101;
+  localparam OP_SRA  = 4'b1101;
 
   // TODO -- a combinational and gated version should be tested for speed!
   wire [XLEN-1:0] add = operand1_i + operand2_i;
@@ -54,16 +54,16 @@ module rv32i_alu
   always @(*) begin
     case (operation_i)
       default: result_o = 0;
-      OP_ADD: result_o = add;
-      OP_SUB: result_o = sub;
-      OP_SLT: result_o = slt;
+      OP_ADD:  result_o = add;
+      OP_SUB:  result_o = sub;
+      OP_SLT:  result_o = slt;
       OP_SLTU: result_o = sltu;
-      OP_AND: result_o = and_;
-      OP_OR: result_o = or_;
-      OP_XOR: result_o = xor_;
-      OP_SLL: result_o = sll;
-      OP_SRL: result_o = srl;
-      OP_SRA: result_o = sra;
+      OP_AND:  result_o = and_;
+      OP_OR:   result_o = or_;
+      OP_XOR:  result_o = xor_;
+      OP_SLL:  result_o = sll;
+      OP_SRL:  result_o = srl;
+      OP_SRA:  result_o = sra;
     endcase
   end
 
