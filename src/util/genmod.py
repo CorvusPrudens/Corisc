@@ -9,8 +9,8 @@ NOTE -- this utility makes a few assumptions
 4. The search space isn't very big (careful with large submodules)
 """
 
-param_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(#\((.|[\r\n\t])+?\))( |[\r\n\t])*(\((.|[\r\n\t])+?\))')
-noparam_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(\((.|[\r\n\t])+?\))')
+param_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(#\((.|[\r\n\t])+?\))( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
+noparam_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
 param_item_regex = compile(r'([A-Za-z_][A-Za-z_0-9]*) *(=.*)')
 item_regex = compile(r'(input|output|parameter) +(wire|reg)? *(\[.+?\])? *([A-Za-z_][A-Za-z_0-9]*)')
 multiline_regex = compile(r'/\*(.|[\n\t\r])*?\*/')
