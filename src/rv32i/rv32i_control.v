@@ -34,6 +34,18 @@ module rv32i_control
 
   );
 
+  localparam OP_LUI   = 7'b0110111;
+  localparam OP_AUIPC = 7'b0010111;
+  localparam OP_JAL   = 7'b1101111;
+  localparam OP_JALR  = 7'b1100111;
+  localparam OP_B     = 7'b1100011;
+  localparam OP_L     = 7'b0000011;
+  localparam OP_S     = 7'b0100011;
+  localparam OP_AI    = 7'b0010011; // arithmetic immediate
+  localparam OP_A     = 7'b0110011; // arithmetic 
+  localparam OP_FENCE = 7'b0001111;
+  localparam OP_E     = 7'b1110011; // EBREAK / ECALL
+
   reg [5:0] trap_vector = 0;
   reg [31:0] control_vector = 0;
 
