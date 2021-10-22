@@ -15,6 +15,7 @@ module rv32i_control
     input wire [XLEN-1:0] program_counter_i,
 
     output reg [XLEN-1:0] memory_addr_o,
+    output wire [2:0] word_size_o,
 
     output wire [REG_BITS-1:0] rs1_addr_o,
     output wire [REG_BITS-1:0] rs2_addr_o,
@@ -30,7 +31,10 @@ module rv32i_control
     input wire [INST_BITS-1:0] instruction_i,
 
     output wire memory_read_o,
-    output wire memory_write_o
+    output wire memory_write_o,
+
+    output wire increment_pc_o,
+    output wire increment_pc2_o
 
   );
 
@@ -47,7 +51,7 @@ module rv32i_control
   localparam OP_E     = 7'b1110011; // EBREAK / ECALL
 
   reg [5:0] trap_vector = 0;
-  reg [31:0] control_vector = 0;
+  wire [15:0] control_vector;
 
   reg [ILEN-1:0] instruction = 0;
 
@@ -87,9 +91,54 @@ module rv32i_control
     endcase 
   end
 
-  wire 
+  // Not sure whether this will actually be used, since the
+  // memory handling should all be handled in the micro code
+  // (might be useful for detecting errors tho)
+  wire word_size_src = control_vector[5];
+  assign word_size_o = word_size_src ? funct3_o : 0b001;
+
+  wire immediate_src = control_vector[7:6];
+  always @(*) begin
+    case (immediate_src)
+      default: immediate_o = 0;
+      2'b00: immediate_o = load_offset;
+      2'b01: immediate_o = {20'b0, i_immediate};
+      2'b10: immediate_o = {u_immediate, 12'b0};
+    endcase
+  end
+  assign immediate_o = unsigned_immediate ? {i_immediate} : load_offset;
+
+  assign increment_pc_o = control_vector[8];
+  assign increment_pc2_o = control_vector[9];
 
   // We'll use a reg array here to store microinstruction steps
+  reg [3:0] microcode_step = 0;
+  wire microcode_reset = control_vector[10];
+
+  always @(posedge clk_i) begin
+    if (~microcode_reset)
+      microcode_step <= microcode_step + 1'b1;
+    else
+      microcode_step <= 4'b0;
+  end
+
+  // for the fetch cycles, the address should
+  // always point to the beginning of the memory,
+  // so some logic is needed (e.g. if (microcode_step < 3) then microcde_addr is just the step)
+  reg [9:0] microcode_addr = 0;
+  init_bram #(
+    .memSize_p(10),
+    .dataWidth_p(16),
+    .initFile_p("microcode.hex")
+  ) INIT_BRAM (
+    .clk_i(clk_i),
+    .write_i(1'b0),
+    .read_i(1'b1),
+    .data_i(0),
+    .waddr_i(0),
+    .raddr_i(microcode_addr),
+    .data_o(control_vector)
+  );
 
 endmodule
 
