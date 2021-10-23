@@ -24,6 +24,10 @@ fetch = [
   ['write_upper_instr', ]
 ]
 
+op_fence = [
+  ['micro_reset']
+]
+
 op_ai = [
   ['op2_immediate', 'registers_write', 'micro_reset']
 ]
@@ -32,11 +36,12 @@ op_a = [
   ['registers_write', 'micro_reset']
 ]
 
+op_lui = [
+  ['register_input_imm', 'register_write', 'micro_reset']
+]
+
 # These two are just nops
 op_e = [
   ['micro_reset']
 ]
 
-op_fence = [
-  ['micro_reset']
-]
