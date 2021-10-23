@@ -23,6 +23,11 @@ module rv32i_control
     output wire [2:0] funct3_o,
     output wire [6:0] funct7_o,
 
+    output wire registers_write,
+    output wire [XLEN-1:0] registers_in_o,
+    input wire [XLEN-1:0] alu_out_i,
+
+    output wire [XLEN-1:0] alu_operand2_o,
     output wire [XLEN-1:0] immediate_o,
 
     input wire [XLEN-1:0] rs1_i,
@@ -35,20 +40,19 @@ module rv32i_control
 
     output wire increment_pc_o,
     output wire increment_pc2_o
-
   );
 
-  localparam OP_LUI   = 7'b0110111;
-  localparam OP_AUIPC = 7'b0010111;
-  localparam OP_JAL   = 7'b1101111;
-  localparam OP_JALR  = 7'b1100111;
-  localparam OP_B     = 7'b1100011;
-  localparam OP_L     = 7'b0000011;
-  localparam OP_S     = 7'b0100011;
-  localparam OP_AI    = 7'b0010011; // arithmetic immediate
-  localparam OP_A     = 7'b0110011; // arithmetic 
-  localparam OP_FENCE = 7'b0001111;
-  localparam OP_E     = 7'b1110011; // EBREAK / ECALL
+  localparam OP_L     = 5'b00000;
+  localparam OP_FENCE = 5'b00011;
+  localparam OP_AI    = 5'b00100; // arithmetic immediate
+  localparam OP_AUIPC = 5'b00101;
+  localparam OP_S     = 5'b01000;
+  localparam OP_A     = 5'b01100; // arithmetic 
+  localparam OP_LUI   = 5'b01101;
+  localparam OP_B     = 5'b11000;
+  localparam OP_JALR  = 5'b11001;
+  localparam OP_JAL   = 5'b11011;
+  localparam OP_E     = 5'b11100; // EBREAK / ECALL
 
   reg [5:0] trap_vector = 0;
   wire [15:0] control_vector;
@@ -122,10 +126,14 @@ module rv32i_control
       microcode_step <= 4'b0;
   end
 
+  localparam FETCH_SIZE = 3;
+  reg [9:0] operand_offset = 0;
+
   // for the fetch cycles, the address should
-  // always point to the beginning of the memory,
-  // so some logic is needed (e.g. if (microcode_step < 3) then microcde_addr is just the step)
-  reg [9:0] microcode_addr = 0;
+  // always point to the beginning of the memory
+  wire [9:0] microcode_addr = microcode_step < FETCH_SIZE ? 
+    microcode_step : microcode_step + operand_offset;
+
   init_bram #(
     .memSize_p(10),
     .dataWidth_p(16),
@@ -139,6 +147,45 @@ module rv32i_control
     .raddr_i(microcode_addr),
     .data_o(control_vector)
   );
+
+  wire write_lower_instr = control_vector[11];
+  wire write_upper_instr = control_vector[12];
+
+  always @(posedge clk_i) begin
+    if (write_lower_instr)
+      instruction[15:0] <= instruction_i;
+    if (write_upper_instr)
+      instruction[31:16] <= instruction_i;
+  end
+
+  // TODO -- need to fill this in with the
+  // actual sizes ofc
+  always @(posedge clk_i) begin
+    if (write_lower_instr) begin
+      case (instruction_i[6:2])
+          OP_L:     operand_offset <= 3;
+          OP_FENCE: operand_offset <= 10;
+          OP_AI:    operand_offset <= 10;
+          OP_AUIPC: operand_offset <= 10;
+          OP_S:     operand_offset <= 10;
+          OP_A:     operand_offset <= 10;
+          OP_LUI:   operand_offset <= 10;
+          OP_B:     operand_offset <= 10;
+          OP_JALR:  operand_offset <= 10;
+          OP_JAL:   operand_offset <= 10;
+          OP_E:     operand_offset <= 10;
+      endcase
+    end
+  end
+
+  wire registers_input_imm = control_vector[13];
+  assign registers_in_o = registers_input_imm ? {u_immediate, 12'b0} : alu_out_i;
+
+  wire [1:0] alu_op2_immediate = control_vector[14];
+  wire [XLEN-1:0] op2_immediate = funct3 == 3'b011 ? {20'b0, i_immediate} : store_offset;
+  assign alu_operand2_o = alu_op2_immediate ? op2_immediate : rs2_i;
+
+  assign registers_write = control_vector[15];
 
 endmodule
 
