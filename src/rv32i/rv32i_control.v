@@ -32,14 +32,15 @@ module rv32i_control
 
     input wire [XLEN-1:0] rs1_i,
     input wire [XLEN-1:0] rs2_i,
+    input wire [XLEN-1:0] pc_i,
+
+    output reg [XLEN-1:0] pc_o,
+    output wire pc_write_o,
 
     input wire [INST_BITS-1:0] instruction_i,
 
     output wire memory_read_o,
-    output wire memory_write_o,
-
-    output wire increment_pc_o,
-    output wire increment_pc2_o
+    output wire memory_write_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -63,8 +64,30 @@ module rv32i_control
   wire [11:0] s_immediate = {instruction[31:25], instruction[11:7]};
   wire [19:0] u_immediate = instruction[31:12];
 
-  wire [11:0] b_immediate = {instruction[31], instruction[7], instruction[30:25], instruction[11:8]};
-  wire [19:0] j_immediate = {instruction[31], instruction[19:12], instruction[20], instruction[30:21]};
+  // wire [11:0] b_immediate = {instruction[31], instruction[7], instruction[30:25], instruction[11:8]};
+  // wire [19:0] j_immediate = {instruction[31], instruction[19:12], instruction[20], instruction[30:21]};
+
+  wire [20:0] j_immediate_u = {instruction[31], instruction[19:12], instruction[20], instruction[30:21], 1'b0};
+  wire [XLEN-1:0] j_immediate;
+
+  sign_ext #(
+    .XLEN(XLEN),
+    .INPUT_LEN(21)
+  ) SIGN_EXT1 (
+    .data_i(j_immediate_u),
+    .data_o(j_immediate)
+  );
+
+  wire [12:0] b_immediate_u = {instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
+  wire [XLEN-1:0] b_immediate;
+
+  sign_ext #(
+    .XLEN(XLEN),
+    .INPUT_LEN(13)
+  ) SIGN_EXT2 (
+    .data_i(b_immediate_u),
+    .data_o(b_immediate)
+  );
 
   wire [6:0] opcode = instruction[6:0];
   funct3_o = instruction[14:12];
@@ -80,10 +103,10 @@ module rv32i_control
   wire [2:0] mem_addr_src = control_vector[4:2];
 
   wire [XLEN-1:0] load_offset;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT ( .data_i(i_immediate), .data_o(load_offset) );
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT3 ( .data_i(i_immediate), .data_o(load_offset) );
   wire [XLEN-1:0] load_offset_add = load_offset + rs1_i;
   wire [XLEN-1:0] store_offset;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT ( .data_i(s_immediate), .data_o(store_offset) );
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT4 ( .data_i(s_immediate), .data_o(store_offset) );
   wire [XLEN-1:0] store_offset_add = store_offset + rs1_i;
 
   always @(*) begin
@@ -112,8 +135,10 @@ module rv32i_control
   end
   assign immediate_o = unsigned_immediate ? {i_immediate} : load_offset;
 
-  assign increment_pc_o = control_vector[8];
-  assign increment_pc2_o = control_vector[9];
+  // assign increment_pc_o = control_vector[8];
+  // assign increment_pc2_o = control_vector[9];
+
+  assign pc_write_o = control_vector[8];
 
   // We'll use a reg array here to store microinstruction steps
   reg [3:0] microcode_step = 0;
@@ -179,13 +204,38 @@ module rv32i_control
   end
 
   wire registers_input_imm = control_vector[13];
-  assign registers_in_o = registers_input_imm ? {u_immediate, 12'b0} : alu_out_i;
+  wire add_pc_upper = control_vector[16];
+
+  wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i : {u_immediate, 12'b0};
+  assign registers_in_o = registers_input_imm ? upper_immediate : alu_out_i;
 
   wire [1:0] alu_op2_immediate = control_vector[14];
   wire [XLEN-1:0] op2_immediate = funct3 == 3'b011 ? {20'b0, i_immediate} : store_offset;
   assign alu_operand2_o = alu_op2_immediate ? op2_immediate : rs2_i;
 
   assign registers_write = control_vector[15];
+  wire [2:0] pc_src = control_vector[19:17];
+
+  wire [XLEN-1:0] j_reg = load_offset + rs1_i;
+  wire [XLEN-1:0] instruction_addr = (pc_i - 3'b100);
+
+  always @(*) begin
+    case (pc_src)
+      default: pc_o = pc_i + (INST_BITS / 8);
+      3'b001: pc_o = j_immediate + instruction_addr;
+      3'b010: pc_o = {j_reg[XLEN-1:1], 1'b0};
+      3'b100: pc_o = b_immediate + instruction_addr;
+    endcase
+  end
+
+  wire register_input_pc = control_vector[20];
+  wire load_byte = control_vector[21];
+  wire load_half = control_vector[22];
+  wire store_byte = control_vector[23];
+  wire store_half = control_vector[24];
+  wire add_mem_addr = control_vector[25];
+
+  
 
 endmodule
 
