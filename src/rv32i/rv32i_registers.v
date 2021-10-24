@@ -13,7 +13,6 @@ module rv32i_registers
     input wire clk_i,
     input wire write_i,
     input wire write_pc_i,
-    input wire increment_pc_i,
 
     input wire [XLEN-1:0] data_i,
     input wire [XLEN-1:0] data_pc_i,
@@ -33,8 +32,6 @@ module rv32i_registers
   always @(posedge clk_i) begin
     if (write_pc_i)
       pc <= data_pc_i;
-    else if (increment_pc_i)
-      pc <= pc + 1'b1;
   end
 
   // Register 0 can't be written to
