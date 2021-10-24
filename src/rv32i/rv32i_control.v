@@ -56,7 +56,7 @@ module rv32i_control
   localparam OP_E     = 5'b11100; // EBREAK / ECALL
 
   reg [5:0] trap_vector = 0;
-  wire [15:0] control_vector;
+  wire [31:0] control_vector;
 
   reg [ILEN-1:0] instruction = 0;
 
@@ -152,17 +152,17 @@ module rv32i_control
   end
 
   localparam FETCH_SIZE = 3;
-  reg [9:0] operand_offset = 0;
+  reg [4:0] operand_offset = 0;
 
   // for the fetch cycles, the address should
   // always point to the beginning of the memory
-  wire [9:0] microcode_addr = microcode_step < FETCH_SIZE ? 
+  wire [4:0] microcode_addr = microcode_step < FETCH_SIZE ? 
     microcode_step : microcode_step + operand_offset;
 
   init_bram #(
-    .memSize_p(10),
-    .dataWidth_p(16),
-    .initFile_p("microcode.hex")
+    .memSize_p(5),
+    .dataWidth_p(32),
+    .initFile_p("include/microcode.hex")
   ) INIT_BRAM (
     .clk_i(clk_i),
     .write_i(1'b0),
@@ -188,17 +188,24 @@ module rv32i_control
   always @(posedge clk_i) begin
     if (write_lower_instr) begin
       case (instruction_i[6:2])
-          OP_L:     operand_offset <= 3;
+          OP_L:     
+            begin
+              case (funct3[1:0])
+                default: operand_offset <= 3;
+                2'b01: operand_offset <= 5;
+                2'b10: operand_offset <= 7;
+              endcase 
+            end
           OP_FENCE: operand_offset <= 10;
-          OP_AI:    operand_offset <= 10;
-          OP_AUIPC: operand_offset <= 10;
-          OP_S:     operand_offset <= 10;
-          OP_A:     operand_offset <= 10;
-          OP_LUI:   operand_offset <= 10;
-          OP_B:     operand_offset <= 10;
-          OP_JALR:  operand_offset <= 10;
-          OP_JAL:   operand_offset <= 10;
-          OP_E:     operand_offset <= 10;
+          OP_AI:    operand_offset <= 11;
+          OP_AUIPC: operand_offset <= 12;
+          OP_S:     operand_offset <= 13;
+          OP_A:     operand_offset <= 14;
+          OP_LUI:   operand_offset <= 15;
+          OP_B:     operand_offset <= 16;
+          OP_JALR:  operand_offset <= 17;
+          OP_JAL:   operand_offset <= 18;
+          OP_E:     operand_offset <= 19;
       endcase
     end
   end

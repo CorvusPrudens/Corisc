@@ -32,81 +32,107 @@ operation_bits = {
   'add_mem_addr': 25,
   'build_temp': 26,
   'register_input_temp': 27,
+  'cond_write_pc': 28,
 }
 
-fetch = [
-  ['mem_addr_pc', 'increment_pc2'],
-  ['mem_addr_pc', 'write_lower_instr', 'increment_pc2'],
-  ['write_upper_instr', ]
-]
+operations = {
+  'fetch': [
+    ['mem_addr_pc', 'write_pc'],
+    ['mem_addr_pc', 'write_lower_instr', 'write_pc'],
+    ['write_upper_instr'],
+  ],
 
-# funct3 is in the first half word, so we can load seperate 
-# microcode for lb, lh, and lw
-# loading the address first like this is necessary for reading
-# from bram :c
-op_lb = [
-  ['memory_read', 'mem_addr_load']
-  ['load_byte', 'register_write', 'micro_reset']
-]
+  # funct3 is in the first half word, so we can load seperate 
+  # microcode for lb, lh, and lw
+  # loading the address first like this is necessary for reading
+  # from bram :c
+  'op_lb' : [
+    ['memory_read', 'mem_addr_load'],
+    ['load_byte', 'registers_write', 'micro_reset'],
+  ],
 
-op_lh = [
-  ['memory_read', 'mem_addr_load']
-  ['load_half', 'register_write', 'micro_reset']
-]
+  'op_lh' : [
+    ['memory_read', 'mem_addr_load'],
+    ['load_half', 'registers_write', 'micro_reset'],
+  ],
 
-op_lw = [
-  ['memory_read', 'mem_addr_load']
-  ['memory_read', 'mem_addr_load', 'load_half', 'build_temp']
-  ['load_half', 'register_input_temp', 'register_write', 'micro_reset']
-]
+  'op_lw' : [
+    ['memory_read', 'mem_addr_load'],
+    ['memory_read', 'mem_addr_load', 'load_half', 'build_temp'],
+    ['load_half', 'register_input_temp', 'registers_write', 'micro_reset'],
+  ],
 
-op_fence = [
-  ['micro_reset']
-]
+  'op_fence' : [
+    ['micro_reset'],
+  ],
 
-op_ai = [
-  ['op2_immediate', 'registers_write', 'micro_reset']
-]
+  'op_ai' : [
+    ['op2_immediate', 'registers_write', 'micro_reset'],
+  ],
 
-op_auipc = [
-  ['register_input_imm', 'add_pc_upper', 'register_write', 'micro_reset']
-]
+  'op_auipc' : [
+    ['register_input_imm', 'add_pc_upper', 'registers_write', 'micro_reset'],
+  ],
 
-# remember to preserve other byte when doing byte-writes
-op_sb = [
-  ['memory_write', 'mem_addr_store', 'load_byte', 'register_write', 'micro_reset']
-]
+  # remember to preserve other byte when doing byte-writes
+  'op_sb' : [
+    ['memory_write', 'mem_addr_store', 'load_byte', 'registers_write', 'micro_reset'],
+  ],
 
-op_sh = [
+  'op_sh' : [
 
-]
+  ],
 
-op_sw = [
+  'op_sw' : [
 
-]
+  ],
 
-op_a = [
-  ['registers_write', 'micro_reset']
-]
+  'op_a' : [
+    ['registers_write', 'micro_reset'],
+  ],
 
-op_lui = [
-  ['register_input_imm', 'register_write', 'micro_reset']
-]
+  'op_lui' : [
+    ['register_input_imm', 'registers_write', 'micro_reset'],
+  ],
 
-op_b = [
-  ['pc_src_b', 'cond_write_pc' 'micro_reset']
-]
+  'op_b' : [
+    ['pc_src_b', 'cond_write_pc', 'micro_reset'],
+  ],
 
-op_jalr = [
-  ['register_input_pc', 'register_write', 'pc_src_jr', 'write_pc' 'micro_reset']
-]
+  'op_jalr' : [
+    ['register_input_pc', 'registers_write', 'pc_src_jr', 'write_pc', 'micro_reset'],
+  ],
 
-op_jal = [
-  ['register_input_pc', 'register_write', 'pc_src_j', 'write_pc' 'micro_reset']
-]
+  'op_jal' : [
+    ['register_input_pc', 'registers_write', 'pc_src_j', 'write_pc', 'micro_reset'],
+  ],
 
-# These two are just nops
-op_e = [
-  ['micro_reset']
-]
+  # These two are just nops
+  'op_e' : [
+    ['micro_reset'],
+  ],
+}
 
+def translate_opcode(operation_name, bits, bit_shifts):
+  lines = [f'// {operation_name}\n']
+  for step in bits:
+    word = 0
+    for item in step:
+      try:
+        word |= 1 << bit_shifts[item]
+      except KeyError:
+        print(f'oh nu, you tried to add "{item}" in "{operation_name}"! did u really mean that?')
+        exit(1)
+    lines.append('{:08X}'.format(word)[2:])
+  if len(lines) == 0:
+    lines.append('{:08X}'.format(0)[2:])
+  return ' '.join(lines)
+
+
+def write_micro(micro_dict, shifts, outfile):
+
+  with open(outfile, 'w') as file:
+    [file.write(translate_opcode(key, item, shifts) + '\n') for key, item in micro_dict.items()]
+
+if __name__ == '__main__':
+  write_micro(operations, operation_bits, 'microcode.hex')
