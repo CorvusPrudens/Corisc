@@ -43,13 +43,14 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
 int main(int argc, char** argv) 
 {
   Verilated::commandArgs(argc, argv);
+  Verilated::traceEverOn(true);
 
   Vrv32i *tb = new Vrv32i;
+  VerilatedVcdC* tfp = new VerilatedVcdC;
+
   unsigned logicStep = 0;
 
   #ifdef TRACE
-    Verilated::traceEverOn(true);
-    VerilatedVcdC* tfp = new VerilatedVcdC;
     tb->trace(tfp, 99);
     tfp->open("trace.vcd");
   #endif
@@ -61,7 +62,7 @@ int main(int argc, char** argv)
 
   for (size_t i = 0; i < clock_count; i++)
   {
-    tick(tb, nullptr, logicStep++);
+    tick(tb, tfp, logicStep++);
   }
 
 }
