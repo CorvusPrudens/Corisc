@@ -82,9 +82,11 @@ class Elf
         for (size_t j = 0; j < 8; j++)
         {
           if (index < length)
-            file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << (int) outdata[index++] << " ";
+            file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << (int) outdata[index++];
           else
-            file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << 0 << " ";
+            file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << 0;
+          if (index & 1)
+            file << " ";
         }
         file << "\n";
       }

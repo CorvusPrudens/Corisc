@@ -1,10 +1,17 @@
 #include <cstring>
 
-#include "Vtop.h"
+#ifndef TARGET
+#define TARGET top
+#endif
+
+#define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
+#define CLK_I clk_i
+
+#include "Vrv32i.h"
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
-void tick(Vtop *tb, VerilatedVcdC *tfp, unsigned logicStep)
+void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
 {
   tb->eval();
 
@@ -37,7 +44,7 @@ int main(int argc, char** argv)
 {
   Verilated::commandArgs(argc, argv);
 
-  Vtop *tb = new Vtop;
+  Vrv32i *tb = new Vrv32i;
   unsigned logicStep = 0;
 
   #ifdef TRACE
@@ -54,7 +61,7 @@ int main(int argc, char** argv)
 
   for (size_t i = 0; i < clock_count; i++)
   {
-    tick(tb, nullptr, logicstep++);
+    tick(tb, nullptr, logicStep++);
   }
 
 }
