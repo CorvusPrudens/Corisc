@@ -7,6 +7,8 @@
 .DS_Store
 *.sby
 formal
+*.bin
+*.out
 
 # User-specific files
 *.rsuser
