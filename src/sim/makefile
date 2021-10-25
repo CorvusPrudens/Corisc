@@ -3,6 +3,7 @@ CC = g++
 BUILD = build
 VERILATOR = verilator 
 VERILATOR_FLAGS = -Wall -cc -O3 --x-assign fast --x-initial fast --noassert -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(BUILD)
+VERILATOR_FLAGS_TRACE = -Wall -cc --trace --trace-max-array 64 -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(BUILD)
 VERILOG_INCLUDES = \
 -I../rv32i \
 -I../rv32i/include \
@@ -55,7 +56,7 @@ compile:
 	cp microcode.hex $(BUILD)
 
 verilate_trace:
-	$(VERILATOR) --trace --trace-max-array 64 $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
+	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
 	$(MAKE) -f V$(TARGET).mk -C $(BUILD)
 
 compile_trace:
@@ -63,6 +64,12 @@ compile_trace:
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp microcode.hex $(BUILD)
+
+run:
+	cd $(BUILD); ./run
+
+view:
+	gtkwave $(BUILD)/trace.vcd
 
 clean:
 	if [ -f "$(ELF_UTIL)" ]; then rm $(ELF_UTIL); fi
