@@ -4,8 +4,8 @@ module rv32i_memory
     XLEN = 32,
     PORT_LEN = 32,
     MAP_SIZE = 4,
-    REGION_1_B = 0,          // Memory Mapped modules
-    REGION_1_E = 64,
+    REGION_1_B = 32'd0,        // Memory Mapped modules
+    REGION_1_E = 32'd64,
     REGION_2_B = 32'h00010000, // RAM
     REGION_2_E = 32'h00010800,
     REGION_3_B = 32'h00020000, // ROM

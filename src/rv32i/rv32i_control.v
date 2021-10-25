@@ -88,8 +88,8 @@ module rv32i_control
   );
 
   wire [6:0] opcode = instruction[6:0];
-  funct3_o = instruction[14:12];
-  funct7_o = instruction[31:25];
+  assign funct3_o = instruction[14:12];
+  assign funct7_o = instruction[31:25];
 
   assign rd_addr_o = instruction[11:7];
   assign rs1_addr_o = instruction[19:15];
@@ -120,11 +120,11 @@ module rv32i_control
   // memory handling should all be handled in the micro code
   // (might be useful for detecting errors tho)
   wire word_size_src = control_vector[5];
-  wire [2:0] word_size_o = word_size_src ? funct3_o : 0b001;
+  wire [2:0] word_size_o = word_size_src ? funct3_o : 3'b001;
 
   reg [XLEN-1:0] immediate_switch;
 
-  wire immediate_src = control_vector[7:6];
+  wire [1:0] immediate_src = control_vector[7:6];
   always @(*) begin
     case (immediate_src)
       default: immediate_switch = 0;
@@ -134,7 +134,7 @@ module rv32i_control
     endcase
   end
 
-  assign immediate_o = unsigned_immediate ? {i_immediate} : load_offset;
+  // assign immediate_o = unsigned_immediate ? {i_immediate} : load_offset;
 
   // assign increment_pc_o = control_vector[8];
   // assign increment_pc2_o = control_vector[9];
@@ -142,14 +142,14 @@ module rv32i_control
   assign pc_write_o = control_vector[8];
 
   // We'll use a reg array here to store microinstruction steps
-  reg [3:0] microcode_step = 0;
+  reg [4:0] microcode_step = 0;
   wire microcode_reset = control_vector[10];
 
   always @(posedge clk_i) begin
     if (~microcode_reset)
       microcode_step <= microcode_step + 1'b1;
     else
-      microcode_step <= 4'b0;
+      microcode_step <= 5'b0;
   end
 
   localparam FETCH_SIZE = 3;
@@ -163,7 +163,7 @@ module rv32i_control
   init_bram #(
     .memSize_p(5),
     .dataWidth_p(32),
-    .initFile_p("include/microcode.hex")
+    .initFile_p("microcode.hex")
   ) INIT_BRAM (
     .clk_i(clk_i),
     .write_i(1'b0),
@@ -191,7 +191,7 @@ module rv32i_control
       case (instruction_i[6:2])
           OP_L:     
             begin
-              case (funct3[1:0])
+              case (funct3_o[1:0])
                 default: operand_offset <= 3;
                 2'b01: operand_offset <= 5;
                 2'b10: operand_offset <= 7;
@@ -207,6 +207,7 @@ module rv32i_control
           OP_JALR:  operand_offset <= 17;
           OP_JAL:   operand_offset <= 18;
           OP_E:     operand_offset <= 19;
+          default:  operand_offset <= 19;
       endcase
     end
   end
@@ -217,15 +218,15 @@ module rv32i_control
   wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i : {u_immediate, 12'b0};
   assign registers_in_o = registers_input_imm ? upper_immediate : alu_out_i;
 
-  wire [1:0] alu_op2_immediate = control_vector[14];
-  wire [XLEN-1:0] op2_immediate = funct3 == 3'b011 ? {20'b0, i_immediate} : store_offset;
+  wire alu_op2_immediate = control_vector[14];
+  wire [XLEN-1:0] op2_immediate = funct3_o == 3'b011 ? {20'b0, i_immediate} : store_offset;
   assign alu_operand2_o = alu_op2_immediate ? op2_immediate : rs2_i;
 
   assign registers_write = control_vector[15];
   wire [2:0] pc_src = control_vector[19:17];
 
   wire [XLEN-1:0] j_reg = load_offset + rs1_i;
-  wire [XLEN-1:0] instruction_addr = (pc_i - 3'b100);
+  wire [XLEN-1:0] instruction_addr = (pc_i - 32'd4);
 
   always @(*) begin
     case (pc_src)

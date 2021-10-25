@@ -69,28 +69,28 @@ module rv32i(
 
   wire memory_write;
   wire memory_read;
-  wire memory_reset;
-  wire memory_addr;
-  wire [MEM_LEN-1:0] memory_in;
+  wire memory_reset = 1'b0;
+  wire [XLEN-1:0] memory_addr;
+  wire [MEM_LEN-1:0] memory_in = 16'b0;
   wire [MEM_LEN-1:0] memory_out;
   wire illegal_memory_access;
 
   wire [3:0] memory_region;
-  wire [XLEN-1:0] ram_out;
-  wire [XLEN-1:0] rom_out;
+  wire [MEM_LEN-1:0] ram_out;
+  wire [MEM_LEN-1:0] rom_out;
   
   rv32i_memory #(
     .XLEN(XLEN),
-    .PORT_LEN(MEM_LEN)
+    .PORT_LEN(MEM_LEN),
     .MAP_SIZE(4),
-    .REGION_1_B(0),
-    .REGION_1_E(1024),
-    .REGION_2_B(1024),
-    .REGION_2_E(2048),
-    .REGION_3_B(4096),
-    .REGION_3_E(4096),
-    .REGION_4_B(4096),
-    .REGION_4_E(4096)
+    .REGION_1_B(32'd0),
+    .REGION_1_E(32'd1024),
+    .REGION_2_B(32'd1024),
+    .REGION_2_E(32'd2048),
+    .REGION_3_B(32'd4096),
+    .REGION_3_E(32'd4096),
+    .REGION_4_B(32'd4096),
+    .REGION_4_E(32'd4096)
   ) RV32I_MEMORY (
     .clk_i(clk_i),
     .write_i(memory_write),
@@ -120,8 +120,8 @@ module rv32i(
     .write_i(memory_region[0] & memory_write),
     .read_i(memory_region[0] & memory_read),
     .data_i(memory_in),
-    .waddr_i(memory_addr[10:1]),
-    .raddr_i(memory_addr[10:1]),
+    .waddr_i(memory_addr[9:1]),
+    .raddr_i(memory_addr[9:1]),
     .data_o(rom_out)
   );
 
@@ -133,8 +133,8 @@ module rv32i(
     .write_i(memory_region[1] & memory_write),
     .read_i(memory_region[1] & memory_read),
     .data_i(memory_in),
-    .waddr_i({memory_addr[11], memory_addr[9:1]}),
-    .raddr_i({memory_addr[11], memory_addr[9:1]}),
+    .waddr_i({memory_addr[10], memory_addr[8:1]}),
+    .raddr_i({memory_addr[10], memory_addr[8:1]}),
     .data_o(ram_out)
   );
 
