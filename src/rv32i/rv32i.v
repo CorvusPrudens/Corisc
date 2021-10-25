@@ -5,6 +5,7 @@
 `include "rv32i_alu.v"
 `include "rv32i_memory.v"
 `include "rv32i_control.v"
+`include "bram.v"
 
 module rv32i(
     input clk_i
@@ -12,6 +13,7 @@ module rv32i(
 
   localparam XLEN = 32;
   localparam REG_BITS = 5;
+  localparam MEM_LEN = 16;
 
   wire registers_write;
   wire registers_pc_write;
@@ -44,6 +46,12 @@ module rv32i(
   wire [2:0] funct3;
   wire [6:0] funct7;
 
+  wire [XLEN-1:0] alu_operand2;
+  wire aly_equal;
+  wire alu_less;
+  wire alu_less_signed;
+  wire [XLEN-1:0] alu_result;
+
   rv32i_alu #(
     .XLEN(XLEN)
   ) RV32I_ALU (
@@ -51,70 +59,112 @@ module rv32i(
     // TODO -- this doesn't quite work, since it will
     // be messed up by immediates in funct7!!
     .operation_i({funct7[5], funct3}),
-    .operand1_i(),
-    .operand2_i(),
-    .equal_o(),
-    .less_o(),
-    .less_signed_o(),
-    .result_o()
+    .operand1_i(rs1),
+    .operand2_i(alu_operand2),
+    .equal_o(aly_equal),
+    .less_o(alu_less),
+    .less_signed_o(alu_less_signed),
+    .result_o(alu_result)
   );
+
+  wire memory_write;
+  wire memory_read;
+  wire memory_reset;
+  wire memory_addr;
+  wire [MEM_LEN-1:0] memory_in;
+  wire [MEM_LEN-1:0] memory_out;
+  wire illegal_memory_access;
+
+  wire [3:0] memory_region;
+  wire [XLEN-1:0] ram_out;
+  wire [XLEN-1:0] rom_out;
   
   rv32i_memory #(
     .XLEN(XLEN),
-    .MAP_SIZE(),
-    .REGION_1_B(),
-    .REGION_1_E(),
-    .REGION_2_B(),
-    .REGION_2_E(),
-    .REGION_3_B(),
-    .REGION_3_E(),
-    .REGION_4_B(),
-    .REGION_4_E()
+    .PORT_LEN(MEM_LEN)
+    .MAP_SIZE(4),
+    .REGION_1_B(0),
+    .REGION_1_E(1024),
+    .REGION_2_B(1024),
+    .REGION_2_E(2048),
+    .REGION_3_B(4096),
+    .REGION_3_E(4096),
+    .REGION_4_B(4096),
+    .REGION_4_E(4096)
   ) RV32I_MEMORY (
     .clk_i(clk_i),
-    .write_i(),
-    .read_i(),
-    .reset_i(),
-    .addr_i(),
-    .data_i(),
-    .data1_i(),
-    .data2_i(),
-    .data3_i(),
-    .data4_i(),
-    .data_region_o(),
-    .data_o(),
-    .illegal_access_o()
+    .write_i(memory_write),
+    .read_i(memory_read),
+    .reset_i(memory_reset),
+    .addr_i(memory_addr),
+    .data_i(memory_in),
+
+    .data1_i(rom_out),
+    .data2_i(ram_out),
+    .data3_i(16'b0),
+    .data4_i(16'b0),
+
+    .data_region_o(memory_region),
+    .data_o(memory_out),
+    .illegal_access_o(illegal_memory_access)
+  );
+
+  // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
+  // of 16 will actually ignore the lsb of the address
+  init_bram #(
+    .memSize_p(9),
+    .dataWidth_p(MEM_LEN),
+    .initFile_p("program.hex")
+  ) INIT_BRAM (
+    .clk_i(clk_i),
+    .write_i(memory_region[0] & memory_write),
+    .read_i(memory_region[0] & memory_read),
+    .data_i(memory_in),
+    .waddr_i(memory_addr[10:1]),
+    .raddr_i(memory_addr[10:1]),
+    .data_o(rom_out)
+  );
+
+  bram #(
+    .memSize_p(9),
+    .dataWidth_p(MEM_LEN)
+  ) BRAM (
+    .clk_i(clk_i),
+    .write_i(memory_region[1] & memory_write),
+    .read_i(memory_region[1] & memory_read),
+    .data_i(memory_in),
+    .waddr_i({memory_addr[11], memory_addr[9:1]}),
+    .raddr_i({memory_addr[11], memory_addr[9:1]}),
+    .data_o(ram_out)
   );
 
   rv32i_control #(
     .XLEN(XLEN),
     .ILEN(XLEN),
     .REG_BITS(REG_BITS),
-    .INST_BITS()
+    .INST_BITS(MEM_LEN)
   ) RV32I_CONTROL (
     .clk_i(clk_i),
-    .reset_i(),
+    .reset_i(1'b0),
     .program_counter_i(pc),
-    .memory_addr_o(),
-    .word_size_o(),
+    .memory_addr_o(memory_addr),
     .rs1_addr_o(rs1_addr),
     .rs2_addr_o(rs2_addr),
     .rd_addr_o(rd_addr),
-    .funct3_o(),
-    .funct7_o(),
+    .funct3_o(funct3),
+    .funct7_o(funct7),
     .registers_write(registers_write),
     .registers_in_o(registers_data),
-    .alu_out_i(),
-    .alu_operand2_o(),
-    .immediate_o(),
+    .alu_out_i(alu_result),
+    .alu_operand2_o(alu_operand2),
     .rs1_i(rs1),
     .rs2_i(rs2),
     .pc_i(pc),
     .pc_o(registers_pc_data),
     .pc_write_o(registers_pc_write),
-    .instruction_i(),
-    .memory_read_o(),
-    .memory_write_o()
+    .instruction_i(memory_out),
+    .memory_read_o(memory_read),
+    .memory_write_o(memory_write)
   );
 
 endmodule

@@ -15,7 +15,6 @@ module rv32i_control
     input wire [XLEN-1:0] program_counter_i,
 
     output reg [XLEN-1:0] memory_addr_o,
-    output wire [2:0] word_size_o,
 
     output wire [REG_BITS-1:0] rs1_addr_o,
     output wire [REG_BITS-1:0] rs2_addr_o,
@@ -28,7 +27,6 @@ module rv32i_control
     input wire [XLEN-1:0] alu_out_i,
 
     output wire [XLEN-1:0] alu_operand2_o,
-    output wire [XLEN-1:0] immediate_o,
 
     input wire [XLEN-1:0] rs1_i,
     input wire [XLEN-1:0] rs2_i,
@@ -122,17 +120,20 @@ module rv32i_control
   // memory handling should all be handled in the micro code
   // (might be useful for detecting errors tho)
   wire word_size_src = control_vector[5];
-  assign word_size_o = word_size_src ? funct3_o : 0b001;
+  wire [2:0] word_size_o = word_size_src ? funct3_o : 0b001;
+
+  reg [XLEN-1:0] immediate_switch;
 
   wire immediate_src = control_vector[7:6];
   always @(*) begin
     case (immediate_src)
-      default: immediate_o = 0;
-      2'b00: immediate_o = load_offset;
-      2'b01: immediate_o = {20'b0, i_immediate};
-      2'b10: immediate_o = {u_immediate, 12'b0};
+      default: immediate_switch = 0;
+      2'b00: immediate_switch = load_offset;
+      2'b01: immediate_switch = {20'b0, i_immediate};
+      2'b10: immediate_switch = {u_immediate, 12'b0};
     endcase
   end
+
   assign immediate_o = unsigned_immediate ? {i_immediate} : load_offset;
 
   // assign increment_pc_o = control_vector[8];
