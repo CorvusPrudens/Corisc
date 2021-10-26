@@ -11,6 +11,8 @@ read_elf
 formal
 *.bin
 *.out
+settings.json
+tasks.json
 
 # User-specific files
 *.rsuser
