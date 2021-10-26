@@ -53,8 +53,12 @@ module rv32i_control
   localparam OP_JAL   = 5'b11011;
   localparam OP_E     = 5'b11100; // EBREAK / ECALL
 
+  reg initial_reset = 0;
+  wire [INST_BITS-1:0] instruction_unmixed = {instruction_i[7:0], instruction_i[15:8]};
+
   reg [5:0] trap_vector = 0;
-  wire [31:0] control_vector;
+  wire [31:0] control_vector_raw;
+  wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
   reg [ILEN-1:0] instruction = 0;
 
@@ -146,8 +150,10 @@ module rv32i_control
   wire microcode_reset = control_vector[10];
 
   always @(posedge clk_i) begin
-    if (~microcode_reset)
+    if (~microcode_reset & initial_reset)
       microcode_step <= microcode_step + 1'b1;
+    else if (microcode_reset & initial_reset)
+      microcode_step <= 5'b1;
     else
       microcode_step <= 5'b0;
   end
@@ -157,8 +163,9 @@ module rv32i_control
 
   // for the fetch cycles, the address should
   // always point to the beginning of the memory
-  wire [4:0] microcode_addr = microcode_step < FETCH_SIZE ? 
+  wire [4:0] microcode_mux = microcode_step < FETCH_SIZE ? 
     microcode_step : microcode_step + operand_offset;
+  wire [4:0] microcode_addr = microcode_reset ? 5'b0 : microcode_mux;
 
   init_bram #(
     .memSize_p(5),
@@ -167,11 +174,14 @@ module rv32i_control
   ) INIT_BRAM (
     .clk_i(clk_i),
     .write_i(1'b0),
-    .read_i(1'b1),
+    // TODO -- This isn't an ideal solution... we need to figure out how to solve the 
+    // two-clock same-instruction issue we get at the beginning without this
+    // initial read hack
+    .read_i(initial_reset),
     .data_i(0),
     .waddr_i(0),
     .raddr_i(microcode_addr),
-    .data_o(control_vector)
+    .data_o(control_vector_raw)
   );
 
   wire write_lower_instr = control_vector[11];
@@ -179,16 +189,16 @@ module rv32i_control
 
   always @(posedge clk_i) begin
     if (write_lower_instr)
-      instruction[15:0] <= instruction_i;
+      instruction[15:0] <= instruction_unmixed;
     if (write_upper_instr)
-      instruction[31:16] <= instruction_i;
+      instruction[31:16] <= instruction_unmixed;
   end
 
   // TODO -- need to fill this in with the
   // actual sizes ofc
   always @(posedge clk_i) begin
     if (write_lower_instr) begin
-      case (instruction_i[6:2])
+      case (instruction_unmixed[6:2])
           OP_L:     
             begin
               case (funct3_o[1:0])
@@ -244,7 +254,19 @@ module rv32i_control
   wire store_half = control_vector[24];
   wire add_mem_addr = control_vector[25];
 
-  
+  // TODO -- the intial reset should probably also hold the control vector to zero
+  reg [2:0] reset_delay = 0;
+  always @(posedge clk_i) begin
+    if (~reset_delay[2])
+      reset_delay <= reset_delay + 1'b1;
+    else begin
+      if (reset_i) begin
+        initial_reset <= 1'b0;
+        reset_delay <= 3'b0;
+      end else
+        initial_reset <= 1'b1;
+    end
+  end
 
 endmodule
 
