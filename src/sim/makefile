@@ -10,11 +10,12 @@ VERILOG_INCLUDES = \
 -I../lattice \
 -I../common
 TARGET = rv32i
+MICROCODE = ../rv32i/include/microcode.hex
 
 ELF_UTIL = ../util/read_elf
 RCC = ~/Applications/riscv/bin/riscv32-unknown-elf-gcc
 RLD = ~/Applications/riscv/bin/riscv32-unknown-elf-ld
-LDSCRIPT = rv32i.lds
+LDSCRIPT = ../util/rv32i.lds
 EXAMPLES = examples
 TEST_TARGET = startup
 
@@ -55,7 +56,7 @@ compile:
 	$(CC) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES)
 	$(CC) *.o $(BUILD)/Vrv32i__ALL.o -o $(BUILD)/run
 	rm *.o
-	cp microcode.hex $(BUILD)
+	cp $(MICROCODE) $(BUILD)
 
 verilate_trace:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
@@ -65,7 +66,7 @@ compile_trace:
 	$(CC) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
-	cp microcode.hex $(BUILD)
+	cp $(MICROCODE) $(BUILD)
 
 verilate_debug:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
@@ -75,7 +76,7 @@ compile_debug:
 	$(CC) -O0 -c -g $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
-	cp microcode.hex $(BUILD)
+	cp $(MICROCODE) $(BUILD)
 
 run:
 	cd $(BUILD); ./run
@@ -86,5 +87,5 @@ view:
 clean:
 	if [ -d "$(BUILD)" ]; then rm -rf $(BUILD); fi
 
-clean_all:
+clean_all: clean
 	if [ -f "$(ELF_UTIL)" ]; then rm $(ELF_UTIL); fi
