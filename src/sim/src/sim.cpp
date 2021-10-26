@@ -55,7 +55,7 @@ int main(int argc, char** argv)
     tfp->open("trace.vcd");
   #endif
 
-  unsigned clock_count = 10;
+  unsigned clock_count = 20;
   if (argc >= 2) {
     clock_count = atoi(argv[1]);
   }
