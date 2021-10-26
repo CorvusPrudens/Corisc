@@ -202,22 +202,22 @@ module rv32i_control
           OP_L:     
             begin
               case (funct3_o[1:0])
-                default: operand_offset <= 3;
-                2'b01: operand_offset <= 5;
-                2'b10: operand_offset <= 7;
+                default: operand_offset <= 0;
+                2'b01: operand_offset <= 2;
+                2'b10: operand_offset <= 4;
               endcase 
             end
-          OP_FENCE: operand_offset <= 10;
-          OP_AI:    operand_offset <= 11;
-          OP_AUIPC: operand_offset <= 12;
-          OP_S:     operand_offset <= 13;
-          OP_A:     operand_offset <= 14;
-          OP_LUI:   operand_offset <= 15;
-          OP_B:     operand_offset <= 16;
-          OP_JALR:  operand_offset <= 17;
-          OP_JAL:   operand_offset <= 18;
-          OP_E:     operand_offset <= 19;
-          default:  operand_offset <= 19;
+          OP_FENCE: operand_offset <= 7;
+          OP_AI:    operand_offset <= 8;
+          OP_AUIPC: operand_offset <= 9;
+          OP_S:     operand_offset <= 10;
+          OP_A:     operand_offset <= 11;
+          OP_LUI:   operand_offset <= 12;
+          OP_B:     operand_offset <= 13;
+          OP_JALR:  operand_offset <= 14;
+          OP_JAL:   operand_offset <= 15;
+          OP_E:     operand_offset <= 16;
+          default:  operand_offset <= 16;
       endcase
     end
   end
