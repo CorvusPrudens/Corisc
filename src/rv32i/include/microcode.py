@@ -37,8 +37,8 @@ operation_bits = {
 
 operations = {
   'fetch': [
-    ['mem_addr_pc', 'write_pc'],
-    ['mem_addr_pc', 'write_lower_instr', 'write_pc'],
+    ['mem_addr_pc', 'memory_read', 'write_pc'],
+    ['mem_addr_pc', 'memory_read', 'write_lower_instr', 'write_pc'],
     ['write_upper_instr'],
   ],
 
