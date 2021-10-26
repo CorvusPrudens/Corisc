@@ -55,14 +55,17 @@ int main(int argc, char** argv)
     tfp->open("trace.vcd");
   #endif
 
-  unsigned clock_count = 100;
+  unsigned clock_count = 10;
   if (argc >= 2) {
     clock_count = atoi(argv[1]);
   }
 
   for (size_t i = 0; i < clock_count; i++)
   {
-    tick(tb, tfp, logicStep++);
+    tick(tb, tfp, ++logicStep);
   }
 
+  tb->final();
+  delete tb;
+  delete tfp;
 }
