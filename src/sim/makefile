@@ -13,7 +13,7 @@ TARGET = rv32i
 
 ELF_UTIL = ../util/read_elf
 RCC = ~/Applications/riscv/bin/riscv32-unknown-elf-gcc
-RLD = /home/corvus/Applications/riscv/bin/riscv32-unknown-elf-ld
+RLD = ~/Applications/riscv/bin/riscv32-unknown-elf-ld
 LDSCRIPT = rv32i.lds
 EXAMPLES = examples
 TEST_TARGET = startup
@@ -28,11 +28,13 @@ CPP_INCLUDES = \
 -I$(BUILD) \
 -I/usr/local/share/verilator/include
 
-.PHONY: all compile_example clean verilate compile verilate_trace compile_trace trace
+.PHONY: all compile_example clean verilate compile verilate_trace compile_trace trace debug verilate_debug compile_debug
 
 all: $(ELF_UTIL) $(BUILD) compile_example verilate compile
 
 trace: $(ELF_UTIL) $(BUILD) compile_example verilate_trace compile_trace
+
+debug: $(ELF_UTIL) $(BUILD) compile_example verilate_debug compile_debug
 
 $(BUILD):
 	mkdir $(BUILD)
@@ -57,10 +59,20 @@ compile:
 
 verilate_trace:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) -f V$(TARGET).mk -C $(BUILD)
+	$(MAKE) OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(BUILD)
 
 compile_trace:
 	$(CC) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
+	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
+	rm *.o
+	cp microcode.hex $(BUILD)
+
+verilate_debug:
+	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
+	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(BUILD) -CFLAGS="-g"
+
+compile_debug:
+	$(CC) -O0 -c -g $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp microcode.hex $(BUILD)
@@ -72,5 +84,7 @@ view:
 	gtkwave $(BUILD)/trace.vcd
 
 clean:
-	if [ -f "$(ELF_UTIL)" ]; then rm $(ELF_UTIL); fi
 	if [ -d "$(BUILD)" ]; then rm -rf $(BUILD); fi
+
+clean_all:
+	if [ -f "$(ELF_UTIL)" ]; then rm $(ELF_UTIL); fi
