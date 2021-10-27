@@ -37,13 +37,12 @@ module rv32i_registers
   // Register 0 can't be written to
   wire reg_write = rd_addr_i == 0 ? 1'b0 : write_i;
 
-  bram #(
+  bram_dual #(
     .memSize_p(REG_BITS),
     .dataWidth_p(XLEN)
   ) RS1 (
     .clk_i(clk_i),
     .write_i(reg_write),
-    .read_i(1'b1),
     .data_i(data_i),
 
     .waddr_i(rd_addr_i),
@@ -52,13 +51,12 @@ module rv32i_registers
     .data_o(rs1_o)
   );
 
-  bram #(
+  bram_dual #(
     .memSize_p(REG_BITS),
     .dataWidth_p(XLEN)
   ) RS2 (
     .clk_i(clk_i),
     .write_i(reg_write),
-    .read_i(1'b1),
     .data_i(data_i),
 
     .waddr_i(rd_addr_i),

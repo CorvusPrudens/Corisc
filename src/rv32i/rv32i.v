@@ -71,13 +71,15 @@ module rv32i(
   wire memory_read;
   wire memory_reset = 1'b0;
   wire [XLEN-1:0] memory_addr;
-  wire [MEM_LEN-1:0] memory_in = 16'b0;
+  wire [MEM_LEN-1:0] memory_in;
   wire [MEM_LEN-1:0] memory_out;
   wire illegal_memory_access;
 
   wire [3:0] memory_region;
   wire [MEM_LEN-1:0] ram_out;
   wire [MEM_LEN-1:0] rom_out;
+
+  wire [MEM_LEN-1:0] write_mask;
   
   rv32i_memory #(
     .XLEN(XLEN),
@@ -111,30 +113,27 @@ module rv32i(
 
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
   // of 16 will actually ignore the lsb of the address
-  init_bram #(
+  bram_init #(
     .memSize_p(9),
     .dataWidth_p(MEM_LEN),
     .initFile_p("program.hex")
   ) INIT_BRAM (
     .clk_i(clk_i),
     .write_i(memory_region[0] & memory_write),
-    .read_i(memory_region[0] & memory_read),
     .data_i(memory_in),
-    .waddr_i(memory_addr[9:1]),
-    .raddr_i(memory_addr[9:1]),
+    .addr_i(memory_addr[9:1]),
     .data_o(rom_out)
   );
 
-  bram #(
-    .memSize_p(9),
-    .dataWidth_p(MEM_LEN)
-  ) BRAM (
+  bram_mask #(
+    .MEMORY_SIZE(9),
+    .XLEN(MEM_LEN)
+  ) BRAM_MASK (
     .clk_i(clk_i),
     .write_i(memory_region[1] & memory_write),
-    .read_i(memory_region[1] & memory_read),
     .data_i(memory_in),
-    .waddr_i({memory_addr[10], memory_addr[8:1]}),
-    .raddr_i({memory_addr[10], memory_addr[8:1]}),
+    .write_mask_i(),
+    .addr_i({memory_addr[10], memory_addr[8:1]}),
     .data_o(ram_out)
   );
 
@@ -164,7 +163,9 @@ module rv32i(
     .pc_write_o(registers_pc_write),
     .instruction_i(memory_out),
     .memory_read_o(memory_read),
-    .memory_write_o(memory_write)
+    .memory_write_o(memory_write),
+    .memory_write_mask_o(write_mask),
+    .memory_in_o(memory_in)
   );
 
 endmodule
