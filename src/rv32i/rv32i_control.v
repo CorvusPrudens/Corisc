@@ -1,6 +1,11 @@
 `ifndef RV32I_CONTROL_GUARD
 `define RV32I_CONTROL_GUARD
 
+// TODO -- we could make a little baby instruction prefetch that just grabs one
+// of the two next instruction bytes so that the fetch is only one cycle O.O
+// This ^ would work on every instruction that's not a jump or load / store, speeding
+// up execution by literally 50%!!!
+
 module rv32i_control
   #(
     XLEN = 32,
@@ -23,7 +28,7 @@ module rv32i_control
     output wire [6:0] funct7_o,
 
     output wire registers_write,
-    output wire [XLEN-1:0] registers_in_o,
+    output reg [XLEN-1:0] registers_in_o,
     input wire [XLEN-1:0] alu_out_i,
 
     output wire [XLEN-1:0] alu_operand2_o,
@@ -35,10 +40,12 @@ module rv32i_control
     output reg [XLEN-1:0] pc_o,
     output wire pc_write_o,
 
-    input wire [INST_BITS-1:0] instruction_i,
+    input wire [INST_BITS-1:0] memory_i,
 
     output wire memory_read_o,
-    output wire memory_write_o
+    output wire memory_write_o,
+    output reg [INST_BITS-1:0] memory_write_mask_o,
+    output wire [INST_BITS-1:0] memory_in_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -53,8 +60,17 @@ module rv32i_control
   localparam OP_JAL   = 5'b11011;
   localparam OP_E     = 5'b11100; // EBREAK / ECALL
 
+  wire register_input_pc = control_vector[20];
+  wire load_byte = control_vector[21];
+  wire load_half = control_vector[27];
+  wire load_word = control_vector[22];
+  wire store_byte = control_vector[23];
+  wire store_upper = control_vector[24];
+  wire add_mem_addr = control_vector[25];
+  wire build_temp = control_vector[26];
+
   reg initial_reset = 0;
-  wire [INST_BITS-1:0] instruction_unmixed = {instruction_i[7:0], instruction_i[15:8]};
+  wire [INST_BITS-1:0] instruction_unmixed = {memory_i[7:0], memory_i[15:8]};
 
   reg [5:0] trap_vector = 0;
   wire [31:0] control_vector_raw;
@@ -115,8 +131,8 @@ module rv32i_control
     case (mem_addr_src)
       default: memory_addr_o = 0;
       3'b001: memory_addr_o = program_counter_i;
-      3'b010: memory_addr_o = load_offset_add;
-      3'b100: memory_addr_o = store_offset_add;
+      3'b010: memory_addr_o = add_mem_addr ? load_offset_add + 32'd2 : load_offset_add;
+      3'b100: memory_addr_o = add_mem_addr ? store_offset_add + 32'd2 : store_offset_add;
     endcase 
   end
 
@@ -167,20 +183,15 @@ module rv32i_control
     microcode_step : microcode_step + operand_offset;
   wire [4:0] microcode_addr = microcode_reset ? 5'b0 : microcode_mux;
 
-  init_bram #(
+  bram_init #(
     .memSize_p(5),
     .dataWidth_p(32),
     .initFile_p("microcode.hex")
   ) INIT_BRAM (
     .clk_i(clk_i),
     .write_i(1'b0),
-    // TODO -- This isn't an ideal solution... we need to figure out how to solve the 
-    // two-clock same-instruction issue we get at the beginning without this
-    // initial read hack
-    .read_i(initial_reset),
     .data_i(0),
-    .waddr_i(0),
-    .raddr_i(microcode_addr),
+    .addr_i(microcode_addr),
     .data_o(control_vector_raw)
   );
 
@@ -194,8 +205,6 @@ module rv32i_control
       instruction[31:16] <= instruction_unmixed;
   end
 
-  // TODO -- need to fill this in with the
-  // actual sizes ofc
   always @(posedge clk_i) begin
     if (write_lower_instr) begin
       case (instruction_unmixed[6:2])
@@ -203,14 +212,21 @@ module rv32i_control
             begin
               case (funct3_o[1:0])
                 default: operand_offset <= 0;
-                2'b01: operand_offset <= 2;
-                2'b10: operand_offset <= 4;
+                2'b01: operand_offset <= 1;
+                2'b10: operand_offset <= 2;
               endcase 
             end
-          OP_FENCE: operand_offset <= 7;
-          OP_AI:    operand_offset <= 8;
-          OP_AUIPC: operand_offset <= 9;
-          OP_S:     operand_offset <= 10;
+          OP_FENCE: operand_offset <= 4;
+          OP_AI:    operand_offset <= 5;
+          OP_AUIPC: operand_offset <= 6;
+          OP_S:
+            begin
+              case (funct3_o[1:0])
+                default: operand_offset <= 7;
+                2'b01: operand_offset <= 8;
+                2'b10: operand_offset <= 9;
+              endcase 
+            end
           OP_A:     operand_offset <= 11;
           OP_LUI:   operand_offset <= 12;
           OP_B:     operand_offset <= 13;
@@ -224,9 +240,16 @@ module rv32i_control
 
   wire registers_input_imm = control_vector[13];
   wire add_pc_upper = control_vector[16];
-
   wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i - 32'd4 : {u_immediate, 12'b0};
-  assign registers_in_o = registers_input_imm ? upper_immediate : alu_out_i;
+
+  wire [1:0] registers_in_state = {(load_word | load_half | load_byte), register_input_imm};
+  always @(*) begin
+    case (registers_in_state)
+      default: registers_in_o = alu_out_i;
+      2'b01: registers_in_o = upper_immediate;
+      2'b10: registers_in_o = load_mux;
+    endcase
+  end
 
   wire alu_op2_immediate = control_vector[14];
   wire [XLEN-1:0] op2_immediate = funct3_o == 3'b011 ? {20'b0, i_immediate} : load_offset;
@@ -247,14 +270,30 @@ module rv32i_control
     endcase
   end
 
-  wire register_input_pc = control_vector[20];
-  wire load_byte = control_vector[21];
-  wire load_half = control_vector[22];
-  wire store_byte = control_vector[23];
-  wire store_half = control_vector[24];
-  wire add_mem_addr = control_vector[25];
+  wire [XLEN-1:0] load_mux;
+  reg [INST_BITS-1:0] load_temp = 0;
 
-  // TODO -- the intial reset should probably also hold the control vector to zero
+  always @(posedge clk_i) begin
+    if (build_temp) load_temp <= memory_i;
+  end
+
+  wire [7:0] byte_offst = memory_addr_o[0] ? memory_i[7:0] : memory_i[15:8];
+  wire [XLEN-1:0] signed_byte;
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(8) ) SIGN_EXT5 ( .data_i(byte_offst), .data_o(signed_byte) );
+  wire [XLEN-1:0] byte_mux = funct3[2] ? {24'b0, byte_offset} : signed_byte;
+
+  wire [XLEN-1:0] memory_signed;
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT5 ( .data_i(memory_i), .data_o(memory_signed) );
+
+  wire [1:0] load_state = {load_byte, load_word};
+  always @(*) begin
+    case (load_state)
+      default: load_mux = funct3[2] ? {16'b0, memory_i} : memory_signed;
+      2'b01: load_mux = {memory_i, load_temp};
+      2'b10: load_mux = byte_mux;
+    endcase
+  end
+
   reg [2:0] reset_delay = 0;
   always @(posedge clk_i) begin
     if (~reset_delay[2])
@@ -267,6 +306,24 @@ module rv32i_control
         initial_reset <= 1'b1;
     end
   end
+
+  wire [1:0] mask_state = {memory_addr_o[0], store_byte};
+  always @(*) begin
+    case (mask_state)
+      default: memory_write_mask_o = 16'h0;
+      2'b01: memory_write_mask_o = 16'hFF00;
+      2'b11: memory_write_mask_o = 16'h00FF;
+    endcase
+  end 
+
+  wire [2:0] store_state = {store_upper, store_byte};
+  always @(*) begin
+    case (mask_state)
+      default: memory_in_o = rs1_i[15:0];
+      2'b01: memory_in_o = memory_addr_o[0] ? {8'b0, rs1_i[7:0]} : {rs1_i[7:0], 8'b0};
+      2'b10: memory_in_o = rs1_i[31:16];
+    endcase
+  end 
 
 endmodule
 
