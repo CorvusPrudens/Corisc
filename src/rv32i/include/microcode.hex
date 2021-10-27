@@ -1,32 +1,32 @@
-// fetch
- 000105 000905 001000
-// op_lb
- 000009 208400
-// op_lh
- 000009 408400
-// op_lw
- 000009 400009 408400
-// op_fence
+// fetch (offset: 0 words)
+ 000905 001105
+// op_lb (offset: 0 words)
+ 208409
+// op_lh (offset: 1 words)
+ 008409
+// op_lw (offset: 2 words)
+ 000009 408409
+// op_fence (offset: 4 words)
  000400
-// op_ai
+// op_ai (offset: 5 words)
  00C400
-// op_auipc
+// op_auipc (offset: 6 words)
  01A400
-// op_sb
- 208412
-// op_sh
-
-// op_sw
-
-// op_a
+// op_sb (offset: 7 words)
+ 800412
+// op_sh (offset: 8 words)
+ 000412
+// op_sw (offset: 9 words)
+ 000012 000412
+// op_a (offset: 11 words)
  008400
-// op_lui
+// op_lui (offset: 12 words)
  00A400
-// op_b
+// op_b (offset: 13 words)
  080400
-// op_jalr
+// op_jalr (offset: 14 words)
  148500
-// op_jal
+// op_jal (offset: 15 words)
  128500
-// op_e
+// op_e (offset: 16 words)
  000400

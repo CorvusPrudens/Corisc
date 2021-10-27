@@ -26,41 +26,35 @@ operation_bits = {
   'pc_src_b': 19,
   'register_input_pc': 20,
   'load_byte': 21,
-  'load_half': 22,
+  'load_word': 22,
   'store_byte': 23,
-  'store_half': 24,
+  'store_word': 24,
   'add_mem_addr': 25,
   'build_temp': 26,
-  'register_input_temp': 27,
+  'load_half': 27,
   'cond_write_pc': 28,
   'mem_word_offset': 29,
 }
 
 operations = {
   'fetch': [
-    ['mem_addr_pc', 'memory_read', 'write_pc'],
-    ['mem_addr_pc', 'memory_read', 'write_lower_instr', 'write_pc'],
-    ['write_upper_instr'],
+    ['mem_addr_pc', 'memory_read', 'write_pc', 'write_lower_instr'],
+    ['mem_addr_pc', 'memory_read', 'write_pc', 'write_upper_instr'],
   ],
 
   # funct3 is in the first half word, so we can load seperate 
   # microcode for lb, lh, and lw
-  # loading the address first like this is necessary for reading
-  # from bram :c
   'op_lb' : [
-    ['memory_read', 'mem_addr_load'],
-    ['load_byte', 'registers_write', 'micro_reset'],
+    ['memory_read', 'mem_addr_load', 'load_byte', 'registers_write', 'micro_reset'],
   ],
 
   'op_lh' : [
-    ['memory_read', 'mem_addr_load'],
-    ['load_half', 'registers_write', 'micro_reset'],
+    ['memory_read', 'mem_addr_load', 'load_half', 'registers_write', 'micro_reset'],
   ],
 
   'op_lw' : [
-    ['memory_read', 'mem_addr_load'],
-    ['memory_read', 'mem_addr_load', 'mem_word_offset', 'load_half', 'build_temp'],
-    ['load_half', 'register_input_temp', 'registers_write', 'micro_reset'],
+    ['memory_read', 'mem_addr_load', 'build_temp'],
+    ['memory_read', 'mem_addr_load', 'mem_word_offset', 'load_word', 'registers_write', 'micro_reset'],
   ],
 
   'op_fence' : [
@@ -81,11 +75,12 @@ operations = {
   ],
 
   'op_sh' : [
-    ['memory_write', 'mem_addr_store', 'store_half', 'micro_reset'],
+    ['memory_write', 'mem_addr_store', 'micro_reset'],
   ],
 
   'op_sw' : [
-
+    ['memory_write', 'mem_addr_store'],
+    ['memory_write', 'mem_addr_store', 'add_mem_addr', 'store_word', 'micro_reset']
   ],
 
   'op_a' : [
@@ -114,8 +109,8 @@ operations = {
   ],
 }
 
-def translate_opcode(operation_name, bits, bit_shifts):
-  lines = [f'// {operation_name}\n']
+def translate_opcode(operation_name, bits, bit_shifts, word_offset):
+  lines = [f'// {operation_name} (offset: {word_offset} words)\n']
   for step in bits:
     word = 0
     for item in step:
@@ -133,7 +128,11 @@ def translate_opcode(operation_name, bits, bit_shifts):
 def write_micro(micro_dict, shifts, outfile):
 
   with open(outfile, 'w') as file:
-    [file.write(translate_opcode(key, item, shifts) + '\n') for key, item in micro_dict.items()]
+    offsets = 0
+    for key, item in micro_dict.items():
+      file.write(translate_opcode(key, item, shifts, offsets) + '\n')
+      if (key != 'fetch'):
+        offsets += len(item)
 
 if __name__ == '__main__':
   write_micro(operations, operation_bits, 'microcode.hex')
