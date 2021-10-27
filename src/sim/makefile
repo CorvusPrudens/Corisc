@@ -13,23 +13,26 @@ TARGET = rv32i
 MICROCODE = ../rv32i/include/microcode.hex
 
 ELF_UTIL = ../util/read_elf
-RCC = ~/Applications/riscv/bin/riscv32-unknown-elf-gcc
-RLD = ~/Applications/riscv/bin/riscv32-unknown-elf-ld
-ROBJ = ~/Applications/riscv/bin/riscv32-unknown-elf-objdump
+RCC = riscv32-unknown-elf-gcc
+RLD = riscv32-unknown-elf-ld
+ROBJ = riscv32-unknown-elf-objdump
 LDSCRIPT = ../util/rv32i.lds
 EXAMPLES = examples
 TEST_TARGET = startup
 
 
 CPP_SOURCES = src/sim.cpp \
-/usr/local/share/verilator/include/verilated.cpp \
-/usr/local/share/verilator/include/verilated_vcd_c.cpp 
+${VERILATOR_INCL}/include/verilated.cpp \
+${VERILATOR_INCL}/include/verilated_vcd_c.cpp 
 
 CPP_INCLUDES = \
 -Isrc \
 -Isrc/modules \
 -I$(BUILD) \
--I/usr/local/share/verilator/include 
+-I${VERILATOR_INCL}/include 
+
+CPP_FLAGS = \
+-std=c++17
 
 EXAMPLE_CPP_SOURCES = examples/test.c \
 examples/startup.c
@@ -58,14 +61,14 @@ compile_example: $(EXAMPLES)/$(TEST_TARGET).c
 	$(ELF_UTIL) $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
 
 $(ELF_UTIL): $(ELF_UTIL).cpp
-	$(CC) -std=c++17 -O3 $(ELF_UTIL).cpp -o $(ELF_UTIL) -I../util
+	$(CC) $(CPP_FLAGS) -O3 $(ELF_UTIL).cpp -o $(ELF_UTIL) -I../util
 
 verilate: src/sim.cpp
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
 	$(MAKE) -f V$(TARGET).mk -C $(BUILD)
 
 compile:
-	$(CC) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES)
+	$(CC) $(CPP_FLAGS) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES)
 	$(CC) *.o $(BUILD)/Vrv32i__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)
@@ -85,7 +88,7 @@ verilate_debug:
 	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(BUILD) -CFLAGS="-g"
 
 compile_debug:
-	$(CC) -O0 -c -g $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
+	$(CC) $(CPP_FLAGS) -O0 -c -g $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)

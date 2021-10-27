@@ -1,4 +1,3 @@
-#include <elf.h>
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
@@ -8,6 +7,7 @@
 #include <string>
 #include <sstream>
 
+#include "elf.h"
 #include "CLI11.hpp"
 
 using std::cout;
