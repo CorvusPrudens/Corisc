@@ -12,10 +12,10 @@ MEMORY
 
 SECTIONS
 {
-  .isr_vector :
+  .vector_table :
 	{
 		. = ALIGN(4);
-		KEEP(*(.isr_vector))
+		KEEP(*(.vector_table))
 		. = ALIGN(4);
 	} > ROM
 
@@ -58,6 +58,22 @@ SECTIONS
 
 	} > ROM
 
+	.sdata :
+	{
+		. = ALIGN(4);
+		_ssdata = .;
+
+		PROVIDE(__sdata_start__ = _sdata);
+		*(.sdata)
+		*(.sdata*)
+		. = ALIGN(4);
+		_esdata = .;
+
+		PROVIDE(__sdata_end__ = _esdata);
+	} > SRAM AT > ROM
+
+	_sisdata = LOADADDR(.sdata);
+
   .data :
 	{
 		. = ALIGN(4);
@@ -72,21 +88,7 @@ SECTIONS
 		PROVIDE(__data_end__ = _edata);
 	} > SRAM AT > ROM
 
-  .sdata :
-	{
-		. = ALIGN(4);
-		_ssdata = .;
-
-		PROVIDE(__sdata_start__ = _sdata);
-		*(.sdata)
-		*(.sdata*)
-		. = ALIGN(4);
-		_esdata = .;
-
-		PROVIDE(__sdata_end__ = _esdata);
-	} > SRAM AT > ROM
-
-	/* _sidata = LOADADDR(.data); */
+	_sidata = LOADADDR(.data);
 
 	.sbss (NOLOAD) :
 	{

@@ -1,7 +1,7 @@
 `ifndef RV32I_REGISTERS_GUARD
 `define RV32I_REGISTERS_GUARD
 
-`include "bram.v"
+`include "bram_dual.v"
 
 // NOTE -- address setup needs at least half a clock!
 module rv32i_registers 

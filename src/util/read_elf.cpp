@@ -64,34 +64,51 @@ class Elf
       fclose(file);
     }
 
-    void WriteSectionToHex(const char* section, const char* outfile, size_t padding)
+    void WriteSectionsToHex(vector<string> sections, const char* outfile, size_t padding)
     {
-      Elf32_Shdr* output_section = getSectionByName((char*) section);
-
+      size_t index = 0;
       std::ofstream file(outfile);
 
-      uint8_t* outdata = bytes_ + output_section->sh_offset;
-      size_t length = output_section->sh_size;
-
-      if (length > padding)
-        throw 1;
-
-      size_t index = 0;
-      for (size_t i = 0; i < padding / 8; i++)
+      for (auto& section : sections)
       {
-        for (size_t j = 0; j < 8; j++)
+        try 
         {
-          if (index < length)
-            file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << (int) outdata[index];
-          else
-            file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << 0;
-          if (index & 1)
-            file << " ";
-          index++;
-        }
-        file << "\n";
-      }
+          Elf32_Shdr* output_section = getSectionByName((char*) section.c_str());
+          size_t section_index = 0;
+          uint8_t* outdata = bytes_ + output_section->sh_offset;
+          size_t length = output_section->sh_size;
 
+          if (index + length > padding)
+            throw 99;
+
+          size_t outer_loop = ceil((float) length / 8);
+          
+          for (size_t i = 0; i < outer_loop; i++)
+          {
+            for (size_t j = 0; j < 8; j++)
+            {
+              if (section_index < length)
+                file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << (int) outdata[section_index];
+              else
+                // file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << 0;
+                goto next;
+              if (index & 1)
+                file << " ";
+              index++;
+              section_index++;
+            }
+            file << "\n";
+          }
+          next:;
+        }
+        catch (int e)
+        {
+          if (e == 99)
+            throw 100;
+        }
+        
+      }
+      
       // FILE* file = fopen(outfile, "wb");
       // if (file==NULL) {fputs ("Unable to open output file!",stderr); exit (2);}
 
@@ -142,5 +159,9 @@ int main(int argc, char** argv)
   CLI11_PARSE(app, argc, argv);
 
   Elf elf(filename.c_str());
-  elf.WriteSectionToHex(".text", outfile.c_str(), 1024);
+  elf.WriteSectionsToHex(
+    {".vector_table", ".preinit_array", ".init_array", ".fini_array", ".text", ".sdata", ".data"}, 
+    outfile.c_str(), 
+    1024
+  );
 }

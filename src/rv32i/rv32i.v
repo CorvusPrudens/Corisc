@@ -5,10 +5,14 @@
 `include "rv32i_alu.v"
 `include "rv32i_memory.v"
 `include "rv32i_control.v"
-`include "bram.v"
+`include "bram_init.v"
+`include "bram_mask.v"
+`include "uartwrapper.v"
 
 module rv32i(
-    input clk_i
+    input clk_i,
+    input RX,
+    output TX
   );
 
   localparam XLEN = 32;
@@ -47,10 +51,11 @@ module rv32i(
   wire [6:0] funct7;
 
   wire [XLEN-1:0] alu_operand2;
-  wire aly_equal;
+  wire alu_equal;
   wire alu_less;
   wire alu_less_signed;
   wire [XLEN-1:0] alu_result;
+  wire immediate_arithmetic;
 
   rv32i_alu #(
     .XLEN(XLEN)
@@ -58,10 +63,10 @@ module rv32i(
     .clk_i(clk_i),
     // TODO -- this doesn't quite work, since it will
     // be messed up by immediates in funct7!!
-    .operation_i({funct7[5], funct3}),
+    .operation_i({funct7[5] & ~immediate_arithmetic, funct3}),
     .operand1_i(rs1),
     .operand2_i(alu_operand2),
-    .equal_o(aly_equal),
+    .equal_o(alu_equal),
     .less_o(alu_less),
     .less_signed_o(alu_less_signed),
     .result_o(alu_result)
@@ -78,6 +83,7 @@ module rv32i(
   wire [3:0] memory_region;
   wire [MEM_LEN-1:0] ram_out;
   wire [MEM_LEN-1:0] rom_out;
+  wire [MEM_LEN-1:0] uart_out;
 
   wire [MEM_LEN-1:0] write_mask;
   
@@ -90,9 +96,9 @@ module rv32i(
     .REGION_2_B(32'd1024),
     .REGION_2_E(32'd2048),
     .REGION_3_B(32'd4096),
-    .REGION_3_E(32'd4096),
-    .REGION_4_B(32'd4096),
-    .REGION_4_E(32'd4096)
+    .REGION_3_E(32'd4098),
+    .REGION_4_B(32'd8192),
+    .REGION_4_E(32'd8192)
   ) RV32I_MEMORY (
     .clk_i(clk_i),
     .write_i(memory_write),
@@ -103,12 +109,27 @@ module rv32i(
 
     .data1_i(rom_out),
     .data2_i(ram_out),
-    .data3_i(16'b0),
+    .data3_i(uart_out),
     .data4_i(16'b0),
 
     .data_region_o(memory_region),
     .data_o(memory_out),
     .illegal_access_o(illegal_memory_access)
+  );
+
+  ///////////////////////////////////////////////////////////////
+  // Memory mapped modules
+  ///////////////////////////////////////////////////////////////
+
+  uartwrapper UARTWRAPPER (
+    .clk_i(clk_i),
+    .data_i(memory_in[7:0]),
+    .write_i(memory_region[2] & memory_write & ~memory_addr[0]),
+    .read_i(memory_region[2] & memory_read & ~memory_addr[0]),
+    .data_o(uart_out[7:0]),
+    .status_o(uart_out[15:8]),
+    .RX(RX),
+    .TX(TX)
   );
 
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
@@ -132,10 +153,14 @@ module rv32i(
     .clk_i(clk_i),
     .write_i(memory_region[1] & memory_write),
     .data_i(memory_in),
-    .write_mask_i(),
+    .write_mask_i(write_mask),
     .addr_i({memory_addr[10], memory_addr[8:1]}),
     .data_o(ram_out)
   );
+
+  ///////////////////////////////////////////////////////////////
+  // Memory mapped modules end
+  ///////////////////////////////////////////////////////////////
 
   rv32i_control #(
     .XLEN(XLEN),
@@ -150,6 +175,9 @@ module rv32i(
     .rs1_addr_o(rs1_addr),
     .rs2_addr_o(rs2_addr),
     .rd_addr_o(rd_addr),
+    .alu_equal_i(alu_equal),
+    .alu_less_i(alu_less),
+    .alu_less_signed_i(alu_less_signed),
     .funct3_o(funct3),
     .funct7_o(funct7),
     .registers_write(registers_write),
@@ -161,11 +189,12 @@ module rv32i(
     .pc_i(pc),
     .pc_o(registers_pc_data),
     .pc_write_o(registers_pc_write),
-    .instruction_i(memory_out),
+    .memory_i(memory_out),
     .memory_read_o(memory_read),
     .memory_write_o(memory_write),
     .memory_write_mask_o(write_mask),
-    .memory_in_o(memory_in)
+    .memory_o(memory_in),
+    .immediate_arithmetic_o(immediate_arithmetic)
   );
 
 endmodule

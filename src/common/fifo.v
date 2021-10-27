@@ -1,7 +1,7 @@
 `ifndef FIFO_GUARD
 `define FIFO_GUARD
 
-`include "bram.v"
+`include "bram_dual.v"
 
 module fifo #(
     memSize_p = 8,
@@ -43,14 +43,13 @@ module fifo #(
     end
   end
 
-  bram #(
+  bram_dual #(
     // this equates to a single bram
     .memSize_p(memSize_p),
     .dataWidth_p(dataWidth_p)
   ) BRAM (
     .clk_i(clk_i),
     .write_i(write_i),
-    .read_i(1'b1),
     .data_i(data_i),
 
     .waddr_i(index_write),

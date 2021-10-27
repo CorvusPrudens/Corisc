@@ -1,32 +1,32 @@
 // fetch (offset: 0 words)
- 000905 001105
+ 00000905 00001105
 // op_lb (offset: 0 words)
- 208409
+ 00208409
 // op_lh (offset: 1 words)
- 008409
+ 08008409
 // op_lw (offset: 2 words)
- 000009 408409
+ 04000009 02408409
 // op_fence (offset: 4 words)
- 000400
+ 00000400
 // op_ai (offset: 5 words)
- 00C400
+ 0000C400
 // op_auipc (offset: 6 words)
- 01A400
+ 0001A400
 // op_sb (offset: 7 words)
- 800412
+ 00800412
 // op_sh (offset: 8 words)
- 000412
+ 00000412
 // op_sw (offset: 9 words)
- 000012 000412
+ 00000012 03000412
 // op_a (offset: 11 words)
- 008400
+ 00008400
 // op_lui (offset: 12 words)
- 00A400
+ 0000A400
 // op_b (offset: 13 words)
- 080400
+ 10080400
 // op_jalr (offset: 14 words)
- 148500
+ 00148500
 // op_jal (offset: 15 words)
- 128500
+ 00128500
 // op_e (offset: 16 words)
- 000400
+ 00000400

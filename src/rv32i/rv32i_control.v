@@ -6,6 +6,8 @@
 // This ^ would work on every instruction that's not a jump or load / store, speeding
 // up execution by literally 50%!!!
 
+`include "bram_init.v"
+
 module rv32i_control
   #(
     XLEN = 32,
@@ -37,15 +39,20 @@ module rv32i_control
     input wire [XLEN-1:0] rs2_i,
     input wire [XLEN-1:0] pc_i,
 
+    input wire alu_equal_i,
+    input wire alu_less_i,
+    input wire alu_less_signed_i,
+
     output reg [XLEN-1:0] pc_o,
-    output wire pc_write_o,
+    output reg pc_write_o,
 
     input wire [INST_BITS-1:0] memory_i,
 
     output wire memory_read_o,
     output wire memory_write_o,
     output reg [INST_BITS-1:0] memory_write_mask_o,
-    output wire [INST_BITS-1:0] memory_in_o
+    output reg [INST_BITS-1:0] memory_o,
+    output wire immediate_arithmetic_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -60,6 +67,25 @@ module rv32i_control
   localparam OP_JAL   = 5'b11011;
   localparam OP_E     = 5'b11100; // EBREAK / ECALL
 
+  reg [5:0] trap_vector = 0;
+  wire [31:0] control_vector_raw;
+  wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
+
+  assign memory_read_o = control_vector[0];
+  assign memory_write_o = control_vector[1];
+  wire [2:0] mem_addr_src = control_vector[4:2];
+  wire word_size_src = control_vector[5];
+  wire [1:0] immediate_src = control_vector[7:6];
+  wire pc_write = control_vector[8];
+  wire microcode_reset = control_vector[10];
+  wire write_lower_instr = control_vector[11];
+  wire write_upper_instr = control_vector[12];
+  wire registers_input_imm = control_vector[13];
+  wire add_pc_upper = control_vector[16];
+  wire alu_op2_immediate = control_vector[14];
+  assign immediate_arithmetic_o = alu_op2_immediate;
+  assign registers_write = control_vector[15];
+  wire [3:0] pc_src = {~initial_reset, control_vector[19:17]};
   wire register_input_pc = control_vector[20];
   wire load_byte = control_vector[21];
   wire load_half = control_vector[27];
@@ -68,13 +94,10 @@ module rv32i_control
   wire store_upper = control_vector[24];
   wire add_mem_addr = control_vector[25];
   wire build_temp = control_vector[26];
+  wire cond_write_pc = control_vector[28];
 
   reg initial_reset = 0;
   wire [INST_BITS-1:0] instruction_unmixed = {memory_i[7:0], memory_i[15:8]};
-
-  reg [5:0] trap_vector = 0;
-  wire [31:0] control_vector_raw;
-  wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
   reg [ILEN-1:0] instruction = 0;
 
@@ -114,11 +137,6 @@ module rv32i_control
   assign rd_addr_o = instruction[11:7];
   assign rs1_addr_o = instruction[19:15];
   assign rs2_addr_o = instruction[24:20];
-  
-  assign memory_read_o = control_vector[0];
-  assign memory_write_o = control_vector[1];
-  
-  wire [2:0] mem_addr_src = control_vector[4:2];
 
   wire [XLEN-1:0] load_offset;
   sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT3 ( .data_i(i_immediate), .data_o(load_offset) );
@@ -129,7 +147,7 @@ module rv32i_control
 
   always @(*) begin
     case (mem_addr_src)
-      default: memory_addr_o = 0;
+      default: memory_addr_o = {30'b0, reset_delay[0], 1'b0}; // for reading the entry point
       3'b001: memory_addr_o = program_counter_i;
       3'b010: memory_addr_o = add_mem_addr ? load_offset_add + 32'd2 : load_offset_add;
       3'b100: memory_addr_o = add_mem_addr ? store_offset_add + 32'd2 : store_offset_add;
@@ -139,12 +157,10 @@ module rv32i_control
   // Not sure whether this will actually be used, since the
   // memory handling should all be handled in the micro code
   // (might be useful for detecting errors tho)
-  wire word_size_src = control_vector[5];
+  
   wire [2:0] word_size_o = word_size_src ? funct3_o : 3'b001;
 
   reg [XLEN-1:0] immediate_switch;
-
-  wire [1:0] immediate_src = control_vector[7:6];
   always @(*) begin
     case (immediate_src)
       default: immediate_switch = 0;
@@ -159,29 +175,28 @@ module rv32i_control
   // assign increment_pc_o = control_vector[8];
   // assign increment_pc2_o = control_vector[9];
 
-  assign pc_write_o = control_vector[8];
+  // assign pc_write_o = control_vector[8];
 
   // We'll use a reg array here to store microinstruction steps
   reg [4:0] microcode_step = 0;
-  wire microcode_reset = control_vector[10];
 
   always @(posedge clk_i) begin
     if (~microcode_reset & initial_reset)
       microcode_step <= microcode_step + 1'b1;
     else if (microcode_reset & initial_reset)
-      microcode_step <= 5'b1;
+      microcode_step <= 5'b0;
     else
       microcode_step <= 5'b0;
   end
 
-  localparam FETCH_SIZE = 3;
+  localparam FETCH_SIZE = 2;
   reg [4:0] operand_offset = 0;
 
   // for the fetch cycles, the address should
   // always point to the beginning of the memory
   wire [4:0] microcode_mux = microcode_step < FETCH_SIZE ? 
     microcode_step : microcode_step + operand_offset;
-  wire [4:0] microcode_addr = microcode_reset ? 5'b0 : microcode_mux;
+  wire [4:0] microcode_addr = microcode_mux;
 
   bram_init #(
     .memSize_p(5),
@@ -195,9 +210,6 @@ module rv32i_control
     .data_o(control_vector_raw)
   );
 
-  wire write_lower_instr = control_vector[11];
-  wire write_upper_instr = control_vector[12];
-
   always @(posedge clk_i) begin
     if (write_lower_instr)
       instruction[15:0] <= instruction_unmixed;
@@ -210,7 +222,7 @@ module rv32i_control
       case (instruction_unmixed[6:2])
           OP_L:     
             begin
-              case (funct3_o[1:0])
+              case (instruction_unmixed[13:12])
                 default: operand_offset <= 0;
                 2'b01: operand_offset <= 1;
                 2'b10: operand_offset <= 2;
@@ -221,7 +233,7 @@ module rv32i_control
           OP_AUIPC: operand_offset <= 6;
           OP_S:
             begin
-              case (funct3_o[1:0])
+              case (instruction_unmixed[13:12])
                 default: operand_offset <= 7;
                 2'b01: operand_offset <= 8;
                 2'b10: operand_offset <= 9;
@@ -238,25 +250,20 @@ module rv32i_control
     end
   end
 
-  wire registers_input_imm = control_vector[13];
-  wire add_pc_upper = control_vector[16];
   wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i - 32'd4 : {u_immediate, 12'b0};
 
-  wire [1:0] registers_in_state = {(load_word | load_half | load_byte), register_input_imm};
+  wire [2:0] registers_in_state = {register_input_pc, (load_word | load_half | load_byte), registers_input_imm};
   always @(*) begin
     case (registers_in_state)
       default: registers_in_o = alu_out_i;
-      2'b01: registers_in_o = upper_immediate;
-      2'b10: registers_in_o = load_mux;
+      3'b001: registers_in_o = upper_immediate;
+      3'b010: registers_in_o = load_mux;
+      3'b100: registers_in_o = pc_i;
     endcase
   end
 
-  wire alu_op2_immediate = control_vector[14];
   wire [XLEN-1:0] op2_immediate = funct3_o == 3'b011 ? {20'b0, i_immediate} : load_offset;
   assign alu_operand2_o = alu_op2_immediate ? op2_immediate : rs2_i;
-
-  assign registers_write = control_vector[15];
-  wire [2:0] pc_src = control_vector[19:17];
 
   wire [XLEN-1:0] j_reg = load_offset + rs1_i;
   wire [XLEN-1:0] instruction_addr = (pc_i - 32'd4);
@@ -264,32 +271,33 @@ module rv32i_control
   always @(*) begin
     case (pc_src)
       default: pc_o = pc_i + (INST_BITS / 8);
-      3'b001: pc_o = j_immediate + instruction_addr;
-      3'b010: pc_o = {j_reg[XLEN-1:1], 1'b0};
-      3'b100: pc_o = b_immediate + instruction_addr;
+      4'b0001: pc_o = j_immediate + instruction_addr;
+      4'b0010: pc_o = {j_reg[XLEN-1:1], 1'b0};
+      4'b0100: pc_o = b_immediate + instruction_addr;
+      4'b1000: pc_o = reset_delay[0] ? {instruction_unmixed, pc_i[15:0]} : {pc_i[31:16], instruction_unmixed};
     endcase
   end
 
-  wire [XLEN-1:0] load_mux;
+  reg [XLEN-1:0] load_mux;
   reg [INST_BITS-1:0] load_temp = 0;
 
   always @(posedge clk_i) begin
-    if (build_temp) load_temp <= memory_i;
+    if (build_temp) load_temp <= instruction_unmixed;
   end
 
-  wire [7:0] byte_offst = memory_addr_o[0] ? memory_i[7:0] : memory_i[15:8];
+  wire [7:0] byte_offset = memory_addr_o[0] ? memory_i[7:0] : memory_i[15:8];
   wire [XLEN-1:0] signed_byte;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(8) ) SIGN_EXT5 ( .data_i(byte_offst), .data_o(signed_byte) );
-  wire [XLEN-1:0] byte_mux = funct3[2] ? {24'b0, byte_offset} : signed_byte;
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(8) ) SIGN_EXT5 ( .data_i(byte_offset), .data_o(signed_byte) );
+  wire [XLEN-1:0] byte_mux = funct3_o[2] ? {24'b0, byte_offset} : signed_byte;
 
   wire [XLEN-1:0] memory_signed;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT5 ( .data_i(memory_i), .data_o(memory_signed) );
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT6 ( .data_i(instruction_unmixed), .data_o(memory_signed) );
 
   wire [1:0] load_state = {load_byte, load_word};
   always @(*) begin
     case (load_state)
-      default: load_mux = funct3[2] ? {16'b0, memory_i} : memory_signed;
-      2'b01: load_mux = {memory_i, load_temp};
+      default: load_mux = funct3_o[2] ? {16'b0, instruction_unmixed} : memory_signed;
+      2'b01: load_mux = {instruction_unmixed, load_temp};
       2'b10: load_mux = byte_mux;
     endcase
   end
@@ -316,14 +324,26 @@ module rv32i_control
     endcase
   end 
 
-  wire [2:0] store_state = {store_upper, store_byte};
+  wire [1:0] store_state = {store_upper, store_byte};
   always @(*) begin
-    case (mask_state)
-      default: memory_in_o = rs1_i[15:0];
-      2'b01: memory_in_o = memory_addr_o[0] ? {8'b0, rs1_i[7:0]} : {rs1_i[7:0], 8'b0};
-      2'b10: memory_in_o = rs1_i[31:16];
+    case (store_state)
+      default: memory_o = {rs2_i[7:0], rs2_i[15:8]};
+      2'b01: memory_o = memory_addr_o[0] ?  {rs2_i[7:0], 8'b0} : {8'b0, rs2_i[7:0]};
+      2'b10: memory_o = {rs2_i[23:16], rs2_i[31:24]};
     endcase
   end 
+
+  always @(*) begin
+    case ({cond_write_pc, funct3_o})
+      default: pc_write_o = pc_write | ~initial_reset;
+      4'b1000: pc_write_o = alu_equal_i;
+      4'b1001: pc_write_o = ~alu_equal_i;
+      4'b1100: pc_write_o = alu_less_signed_i;
+      4'b1101: pc_write_o = ~alu_less_signed_i;
+      4'b1110: pc_write_o = alu_less_i;
+      4'b1111: pc_write_o = ~alu_less_i;
+    endcase
+  end
 
 endmodule
 

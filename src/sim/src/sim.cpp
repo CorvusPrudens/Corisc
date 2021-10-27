@@ -11,6 +11,8 @@
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
+#include "uart.h"
+
 void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
 {
   tb->eval();
@@ -55,13 +57,23 @@ int main(int argc, char** argv)
     tfp->open("trace.vcd");
   #endif
 
-  unsigned clock_count = 100;
+  unsigned clock_count = 1000;
   if (argc >= 2) {
     clock_count = atoi(argv[1]);
   }
 
+  // UART vars
+  int sendword = 0;
+  int status = 0;
+  int go = 0;
+  int out = 0;
+  tb->RX = 1;
+  tick(tb, tfp, ++logicStep);
+
   for (size_t i = 0; i < clock_count; i++)
   {
+    go = messageManagerStatic(status, &sendword, out);
+    status = uart(tb, go, sendword, &out);
     tick(tb, tfp, ++logicStep);
   }
 

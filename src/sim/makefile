@@ -27,8 +27,18 @@ CPP_SOURCES = src/sim.cpp \
 
 CPP_INCLUDES = \
 -Isrc \
+-Isrc/modules \
 -I$(BUILD) \
--I/usr/local/share/verilator/include
+-I/usr/local/share/verilator/include 
+
+EXAMPLE_CPP_SOURCES = examples/test.c \
+examples/startup.c
+
+EXAMPLE_CPP_INCLUDES = \
+-I./examples \
+-I./examples/include
+
+LINKER_FLAGS = 
 
 .PHONY: all compile_example clean verilate compile verilate_trace compile_trace trace debug verilate_debug compile_debug
 
@@ -42,8 +52,9 @@ $(BUILD):
 	mkdir $(BUILD)
 
 compile_example: $(EXAMPLES)/$(TEST_TARGET).c
-	$(RCC) -c $(EXAMPLES)/$(TEST_TARGET).c -o $(BUILD)/$(TEST_TARGET)
-	$(RLD) -T$(LDSCRIPT) $(BUILD)/$(TEST_TARGET) -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
+	$(RCC) -c $(EXAMPLE_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
+	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) *.o -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
+	rm *.o
 	$(ELF_UTIL) $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
 
 $(ELF_UTIL): $(ELF_UTIL).cpp
@@ -80,7 +91,8 @@ compile_debug:
 	cp $(MICROCODE) $(BUILD)
 
 assembly: compile_example
-	$(RCC) -S $(EXAMPLES)/$(TEST_TARGET).c -o $(BUILD)/$(TEST_TARGET).s
+	$(RCC) -S $(EXAMPLE_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
+	mv *.s $(BUILD)
 	$(ROBJ) -D -s $(BUILD)/$(TEST_TARGET)_linked > $(BUILD)/$(TEST_TARGET).txt
 
 run:

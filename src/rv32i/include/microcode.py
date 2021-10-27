@@ -33,7 +33,6 @@ operation_bits = {
   'build_temp': 26,
   'load_half': 27,
   'cond_write_pc': 28,
-  'mem_word_offset': 29,
 }
 
 operations = {
@@ -54,7 +53,7 @@ operations = {
 
   'op_lw' : [
     ['memory_read', 'mem_addr_load', 'build_temp'],
-    ['memory_read', 'mem_addr_load', 'mem_word_offset', 'load_word', 'registers_write', 'micro_reset'],
+    ['memory_read', 'mem_addr_load', 'add_mem_addr', 'load_word', 'registers_write', 'micro_reset'],
   ],
 
   'op_fence' : [
@@ -119,9 +118,9 @@ def translate_opcode(operation_name, bits, bit_shifts, word_offset):
       except KeyError:
         print(f'oh nu, you tried to add "{item}" in "{operation_name}"! did u really mean that?')
         exit(1)
-    lines.append('{:08X}'.format(word)[2:])
+    lines.append('{:08X}'.format(word))
   if len(lines) == 0:
-    lines.append('{:08X}'.format(0)[2:])
+    lines.append('{:08X}'.format(0))
   return ' '.join(lines)
 
 

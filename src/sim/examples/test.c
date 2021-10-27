@@ -1,7 +1,15 @@
+#include "defs.h"
 
+char* string = "Hello, world!";
 
-void function() {
-  short* value = (short*) 1024;
-  *value = 20;
-  *value += 1;
+void OPT_Os write_string(const char* str)
+{
+  for (const char* i = str; *i != 0; i++)
+    UART = *i;
+}
+
+int main() {
+
+  write_string(string);
+  
 }

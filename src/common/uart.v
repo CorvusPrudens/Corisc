@@ -19,7 +19,12 @@ module uart(
   // produces a baudrate of 31,262 -- close enough!
   reg [8:0] tx_acc = 0;
   reg tx_tick = 0;
+
+  `ifdef SIM
+  localparam ACC_COMPARE = 2;
+  `else
   localparam ACC_COMPARE = 458;
+  `endif
 
   // TRANSMITTER
 
