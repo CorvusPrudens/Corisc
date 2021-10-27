@@ -1,9 +1,9 @@
-`ifndef BRAM_GUARD
-`define BRAM_GUARD
+`ifndef BRAM_DUAL_GUARD
+`define BRAM_DUAL_GUARD
 
-// Simple inferred bram
+// Dual port inferred block ram
 
-module bram
+module bram_dual
   #(
     parameter memSize_p = 8,
     parameter dataWidth_p = 16
@@ -13,9 +13,10 @@ module bram
     input wire write_i,
     input wire [dataWidth_p-1:0] data_i,
 
-    input wire [(memSize_p - 1):0]  addr_i,
+    input wire [(memSize_p - 1):0]  waddr_i,
+    input wire [(memSize_p - 1):0]  raddr_i,
 
-    output wire [(dataWidth_p - 1):0] data_o
+    output reg [(dataWidth_p - 1):0] data_o = 0
   );
 
   reg [(dataWidth_p - 1):0] memory [2**memSize_p];
@@ -24,7 +25,9 @@ module bram
     if (write_i) memory[waddr_i] <= data_i;
   end
 
-  assign data_o = memory[addr_i];
+  always @(negedge clk_i) begin
+    data_o <= memory[raddr_i];
+  end
 
   `ifdef FORMAL
     // FORMAL prove
@@ -46,4 +49,4 @@ module bram
   `endif
 
 endmodule
-`endif // BRAM_GUARD
+`endif // BRAM_DUAL_GUARD

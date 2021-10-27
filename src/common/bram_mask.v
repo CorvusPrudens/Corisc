@@ -1,27 +1,40 @@
-`ifndef BRAM_GUARD
-`define BRAM_GUARD
+`ifndef BRAM_MASK_GUARD
+`define BRAM_MASK_GUARD
 
-// Simple inferred bram
+// Simple inferred bram with write mask
+// TODO -- ensure this is properly inferred for lattice
 
-module bram
+module bram_mask
   #(
-    parameter memSize_p = 8,
-    parameter dataWidth_p = 16
+    parameter MEMORY_SIZE = 8,
+    parameter XLEN = 16
   )
   (
     input wire clk_i,
     input wire write_i,
-    input wire [dataWidth_p-1:0] data_i,
+    input wire [XLEN-1:0] data_i,
+    input wire [XLEN-1:0] write_mask_i,
 
-    input wire [(memSize_p - 1):0]  addr_i,
+    input wire [MEMORY_SIZE-1:0]  addr_i,
 
-    output wire [(dataWidth_p - 1):0] data_o
+    output wire [XLEN-1:0] data_o
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p];
+  reg [XLEN-1:0] memory [2**MEMORY_SIZE];
+
+  wire [XLEN-1:0] data_mux;
+
+  bitwise_mux #(
+    .LENGTH(XLEN)
+  ) BITWISE_MUX (
+    .data1_i(data_i),
+    .data2_i(data_o),
+    .select(write_mask_i),
+    .data_o(data_mux)
+  );
 
   always @(posedge clk_i) begin
-    if (write_i) memory[waddr_i] <= data_i;
+    if (write_i) memory[addr_i] <= data_mux;
   end
 
   assign data_o = memory[addr_i];
@@ -46,4 +59,4 @@ module bram
   `endif
 
 endmodule
-`endif // BRAM_GUARD
+`endif // BRAM_MASK_GUARD

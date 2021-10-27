@@ -1,7 +1,7 @@
 `ifndef INIT_BRAM_GUARD
 `define INIT_BRAM_GUARD
 
-module init_bram
+module bram_init
   #(
     parameter memSize_p = 8,
     parameter dataWidth_p = 16,
@@ -10,13 +10,10 @@ module init_bram
   (
     input wire clk_i,
     input wire write_i,
-    input wire read_i,
     input wire [(dataWidth_p - 1):0] data_i,
+    input wire [(memSize_p - 1):0]  addr_i,
 
-    input wire [(memSize_p - 1):0]  waddr_i,
-    input wire [(memSize_p - 1):0]  raddr_i,
-
-    output reg [(dataWidth_p - 1):0] data_o = 0
+    output wire [(dataWidth_p - 1):0] data_o
   );
 
   reg [(dataWidth_p - 1):0] memory [2**memSize_p];
@@ -24,10 +21,10 @@ module init_bram
   initial $readmemh(initFile_p, memory);
 
   always @(posedge clk_i) begin
-    if (write_i) memory[waddr_i] <= data_i;
-    // read/write conflict resolution
-    else if (read_i) data_o      <= memory[raddr_i];
+    if (write_i) memory[addr_i] <= data_i;
   end
+
+  assign data_o = memory[addr_i];
 
 endmodule
 `endif // INIT_BRAM_GUARD
