@@ -225,11 +225,11 @@ module rv32i_control
   wire registers_input_imm = control_vector[13];
   wire add_pc_upper = control_vector[16];
 
-  wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i : {u_immediate, 12'b0};
+  wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i - 32'd4 : {u_immediate, 12'b0};
   assign registers_in_o = registers_input_imm ? upper_immediate : alu_out_i;
 
   wire alu_op2_immediate = control_vector[14];
-  wire [XLEN-1:0] op2_immediate = funct3_o == 3'b011 ? {20'b0, i_immediate} : store_offset;
+  wire [XLEN-1:0] op2_immediate = funct3_o == 3'b011 ? {20'b0, i_immediate} : load_offset;
   assign alu_operand2_o = alu_op2_immediate ? op2_immediate : rs2_i;
 
   assign registers_write = control_vector[15];

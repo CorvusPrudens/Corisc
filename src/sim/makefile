@@ -15,6 +15,7 @@ MICROCODE = ../rv32i/include/microcode.hex
 ELF_UTIL = ../util/read_elf
 RCC = ~/Applications/riscv/bin/riscv32-unknown-elf-gcc
 RLD = ~/Applications/riscv/bin/riscv32-unknown-elf-ld
+ROBJ = ~/Applications/riscv/bin/riscv32-unknown-elf-objdump
 LDSCRIPT = ../util/rv32i.lds
 EXAMPLES = examples
 TEST_TARGET = startup
@@ -42,7 +43,7 @@ $(BUILD):
 
 compile_example: $(EXAMPLES)/$(TEST_TARGET).c
 	$(RCC) -c $(EXAMPLES)/$(TEST_TARGET).c -o $(BUILD)/$(TEST_TARGET)
-	$(RLD) -T$(LDSCRIPT) $(BUILD)/$(TEST_TARGET) -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage
+	$(RLD) -T$(LDSCRIPT) $(BUILD)/$(TEST_TARGET) -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
 	$(ELF_UTIL) $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
 
 $(ELF_UTIL): $(ELF_UTIL).cpp
@@ -77,6 +78,10 @@ compile_debug:
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)
+
+assembly: compile_example
+	$(RCC) -S $(EXAMPLES)/$(TEST_TARGET).c -o $(BUILD)/$(TEST_TARGET).s
+	$(ROBJ) -D -s $(BUILD)/$(TEST_TARGET)_linked > $(BUILD)/$(TEST_TARGET).txt
 
 run:
 	cd $(BUILD); ./run

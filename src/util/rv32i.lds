@@ -12,7 +12,6 @@ MEMORY
 
 SECTIONS
 {
-
   .isr_vector :
 	{
 		. = ALIGN(4);
@@ -88,6 +87,21 @@ SECTIONS
 	} > SRAM AT > ROM
 
 	/* _sidata = LOADADDR(.data); */
+
+	.sbss (NOLOAD) :
+	{
+		. = ALIGN(4);
+		_ssbss = .;
+
+		PROVIDE(__sbss_start__ = _ssbss);
+		*(.sbss)
+		*(.sbss*)
+		*(COMMON)
+		. = ALIGN(4);
+		_esbss = .;
+
+		PROVIDE(__sbss_end__ = _esbss);
+	} > SRAM
 
 	.bss (NOLOAD) :
 	{

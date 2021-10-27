@@ -33,6 +33,7 @@ operation_bits = {
   'build_temp': 26,
   'register_input_temp': 27,
   'cond_write_pc': 28,
+  'mem_word_offset': 29,
 }
 
 operations = {
@@ -58,7 +59,7 @@ operations = {
 
   'op_lw' : [
     ['memory_read', 'mem_addr_load'],
-    ['memory_read', 'mem_addr_load', 'load_half', 'build_temp'],
+    ['memory_read', 'mem_addr_load', 'mem_word_offset', 'load_half', 'build_temp'],
     ['load_half', 'register_input_temp', 'registers_write', 'micro_reset'],
   ],
 
@@ -76,11 +77,11 @@ operations = {
 
   # remember to preserve other byte when doing byte-writes
   'op_sb' : [
-    ['memory_write', 'mem_addr_store', 'load_byte', 'registers_write', 'micro_reset'],
+    ['memory_write', 'mem_addr_store', 'store_byte', 'micro_reset'],
   ],
 
   'op_sh' : [
-
+    ['memory_write', 'mem_addr_store', 'store_half', 'micro_reset'],
   ],
 
   'op_sw' : [
