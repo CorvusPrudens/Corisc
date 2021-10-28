@@ -128,6 +128,7 @@ view:
 	gtkwave $(BUILD)/trace.vcd
 
 clean:
+	if test -n "$$(find . -maxdepth 1 -name '*.o' -print -quit)"; then rm *.o; fi
 	if [ -d "$(BUILD)" ]; then rm -rf $(BUILD); fi
 
 clean_all: clean
