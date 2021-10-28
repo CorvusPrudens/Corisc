@@ -52,7 +52,10 @@ module rv32i_control
     output wire memory_write_o,
     output reg [INST_BITS-1:0] memory_write_mask_o,
     output reg [INST_BITS-1:0] memory_o,
-    output wire immediate_arithmetic_o
+    output wire immediate_arithmetic_o,
+
+    output reg push_ras_o,
+    output reg pop_ras_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -95,6 +98,8 @@ module rv32i_control
   wire add_mem_addr = control_vector[25];
   wire build_temp = control_vector[26];
   wire cond_write_pc = control_vector[28];
+  wire jal_ras = control_vector[29];
+  wire jalr_ras = control_vector[30];
 
   reg initial_reset = 0;
   wire [INST_BITS-1:0] instruction_unmixed = {memory_i[7:0], memory_i[15:8]};
@@ -342,6 +347,38 @@ module rv32i_control
       4'b1101: pc_write_o = ~alu_less_signed_i;
       4'b1110: pc_write_o = alu_less_i;
       4'b1111: pc_write_o = ~alu_less_i;
+    endcase
+  end
+
+  localparam x1 = 5'h01;
+  localparam x5 = 5'h05;
+
+  wire rd_link = (rd_addr_o == x1) | (rd_addr_o == x5);
+  wire rs1_link = (rs1_addr_o == x1) | (rs1_addr_o == x5);
+  wire rd_rs1_eq = rd_addr_o == rs1_addr_o;
+
+  always @(*) begin
+    case ({rd_link & (jal_ras | jalr_ras), rs1_link & jalr_ras})
+      default: 
+        begin
+          pop_ras_o = 1'b0;
+          push_ras_o = 1'b0;
+        end
+      case 2'b01: 
+        begin
+          pop_ras_o = 1'b1;
+          push_ras_o = 1'b0;
+        end
+      case 2'b10:
+        begin
+          pop_ras_o = 1'b0;
+          push_ras_o = 1'b1;
+        end
+      case 2'b11:
+        begin
+          pop_ras_o = rd_rs1_eq ? 1'b1 : 1'b0;
+          push_ras_o = 1'b1;
+        end
     endcase
   end
 

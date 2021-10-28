@@ -2,6 +2,7 @@
 `define RV32I_REGISTERS_GUARD
 
 `include "bram_dual.v"
+`include "stack.v"
 
 // NOTE -- address setup needs at least half a clock!
 module rv32i_registers 
@@ -23,7 +24,10 @@ module rv32i_registers
 
     output wire [XLEN-1:0] rs1_o,
     output wire [XLEN-1:0] rs2_o,
-    output wire [XLEN-1:0] pc_o
+    output wire [XLEN-1:0] pc_o,
+
+    input wire push_ras_i,
+    input wire pop_ras_i
   );
 
   reg [XLEN-1:0] pc = 0;
@@ -36,6 +40,9 @@ module rv32i_registers
 
   // Register 0 can't be written to
   wire reg_write = rd_addr_i == 0 ? 1'b0 : write_i;
+  
+  wire [XLEN-1:0] rs1_raw;
+  assign rs1_o = pop_ras_i ? stack_out : rs1_raw;
 
   bram_dual #(
     .memSize_p(REG_BITS),
@@ -48,7 +55,7 @@ module rv32i_registers
     .waddr_i(rd_addr_i),
     .raddr_i(rs1_addr_i),
 
-    .data_o(rs1_o)
+    .data_o(rs1_raw)
   );
 
   bram_dual #(
@@ -63,6 +70,21 @@ module rv32i_registers
     .raddr_i(rs2_addr_i),
 
     .data_o(rs2_o)
+  );
+
+  wire stack_overflow;
+  wire [XLEN-1:0] stack_out;
+
+  stack #(
+    .XLEN(XLEN),
+    .SIZE(7) // 128 address ought to be way more than sufficient
+  ) RAS (
+    .clk_i(clk_i),
+    .push_i(push_ras_i),
+    .pop_i(pop_ras_i),
+    .data_i(data_i),
+    .data_o(stack_out),
+    .overflow_o(stack_overflow)
   );
 
   `ifdef FORMAL

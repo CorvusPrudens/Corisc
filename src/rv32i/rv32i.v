@@ -29,6 +29,8 @@ module rv32i(
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
   wire [XLEN-1:0] pc;
+  wire push_ras;
+  wire pop_ras;
 
   rv32i_registers #(
     .XLEN(XLEN),
@@ -44,7 +46,9 @@ module rv32i(
     .rd_addr_i(rd_addr),
     .rs1_o(rs1),
     .rs2_o(rs2),
-    .pc_o(pc)
+    .pc_o(pc),
+    .push_ras_i(push_ras),
+    .pop_ras_i(pop_ras)
   );
 
   wire [2:0] funct3;
