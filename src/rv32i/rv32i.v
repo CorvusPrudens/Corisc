@@ -198,7 +198,9 @@ module rv32i(
     .memory_write_o(memory_write),
     .memory_write_mask_o(write_mask),
     .memory_o(memory_in),
-    .immediate_arithmetic_o(immediate_arithmetic)
+    .immediate_arithmetic_o(immediate_arithmetic),
+    .push_ras_o(push_ras),
+    .pop_ras_o(pop_ras)
   );
 
 endmodule

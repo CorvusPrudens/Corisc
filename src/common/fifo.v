@@ -13,7 +13,7 @@ module fifo #(
     input wire read_i,
     input wire [(dataWidth_p - 1):0] data_i,
 
-    output reg [(dataWidth_p - 1):0] data_o,
+    output wire [(dataWidth_p - 1):0] data_o,
     output wire full_o,
     output wire empty_o
   );
@@ -21,7 +21,7 @@ module fifo #(
   reg [(memSize_p - 1):0] index_read  = 0;
   reg [(memSize_p - 1):0] index_write = 0;
 
-  wire [(dataWidth_p - 1):0] bramOut;
+  // wire [(dataWidth_p - 1):0] bramOut;
 
   assign full_o = index_read - index_write == 1;
   assign empty_o = index_read == index_write;
@@ -39,7 +39,6 @@ module fifo #(
       if (!empty_o)
         index_read <= index_read + 1'b1;
       // WARNING -- this cannot be read immediately on the next clock
-      data_o <= bramOut;
     end
   end
 
@@ -55,7 +54,7 @@ module fifo #(
     .waddr_i(index_write),
     .raddr_i(index_read),
 
-    .data_o(bramOut)
+    .data_o(data_o)
   );
 
   `ifdef FORMAL

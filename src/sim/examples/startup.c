@@ -1,17 +1,16 @@
 #include "defs.h"
 // #include "test.c"
 extern void *_estack;
+extern void *_sidata, *_sdata, *_edata;
+extern void *_sisdata, *_ssdata, *_esdata;
+extern void *_sbss, *_ebss;
 
 void entry();
+int main();
 
 void * S_VECTOR_TABLE vector_table[1] = {
   &entry
 };
-
-
-// void __libc_init_array();
-int main();
-void function();
 
 // void * OPT_O3 memcpy(void* dest, const void* src, unsigned int count)
 // {
@@ -30,11 +29,7 @@ void function();
 //   return dest;
 // }
 
-extern void *_sidata, *_sdata, *_edata;
-extern void *_sisdata, *_ssdata, *_esdata;
-extern void *_sbss, *_ebss;
-
-// TODO -- O2 or higher causes this to fail
+// TODO -- -O2 or higher causes this to fail
 void OPT_O1 initialize_data()
 {
   void **pSource, **pDest;

@@ -1,7 +1,7 @@
 `ifndef STACK_GUARD
 `define STACK_GUARD
 
-`include "bram.v"
+`include "bram_dual.v"
 
 module stack
   #(
@@ -31,14 +31,15 @@ module stack
     endcase
   end
 
-  bram #(
+  bram_dual #(
     .memSize_p(SIZE),
     .dataWidth_p(XLEN)
-  ) BRAM (
+  ) BRAM_DUAL (
     .clk_i(clk_i),
     .write_i(push_i),
     .data_i(data_i),
-    .addr_i(index),
+    .waddr_i(index[SIZE-1:0]),
+    .raddr_i(index[SIZE-1:0] - 1'b1),
     .data_o(data_o)
   );
 

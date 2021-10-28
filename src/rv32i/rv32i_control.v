@@ -290,7 +290,7 @@ module rv32i_control
     if (build_temp) load_temp <= instruction_unmixed;
   end
 
-  wire [7:0] byte_offset = memory_addr_o[0] ? memory_i[7:0] : memory_i[15:8];
+  wire [7:0] byte_offset = memory_addr_o[0] ? memory_i[15:8] : memory_i[7:0];
   wire [XLEN-1:0] signed_byte;
   sign_ext #( .XLEN(XLEN), .INPUT_LEN(8) ) SIGN_EXT5 ( .data_i(byte_offset), .data_o(signed_byte) );
   wire [XLEN-1:0] byte_mux = funct3_o[2] ? {24'b0, byte_offset} : signed_byte;
@@ -364,17 +364,17 @@ module rv32i_control
           pop_ras_o = 1'b0;
           push_ras_o = 1'b0;
         end
-      case 2'b01: 
+      2'b01: 
         begin
           pop_ras_o = 1'b1;
           push_ras_o = 1'b0;
         end
-      case 2'b10:
+      2'b10:
         begin
           pop_ras_o = 1'b0;
           push_ras_o = 1'b1;
         end
-      case 2'b11:
+      2'b11:
         begin
           pop_ras_o = rd_rs1_eq ? 1'b1 : 1'b0;
           push_ras_o = 1'b1;

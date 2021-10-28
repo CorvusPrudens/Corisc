@@ -78,7 +78,7 @@ verilate_trace:
 	$(MAKE) OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(BUILD)
 
 compile_trace:
-	$(CC) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
+	$(CC) $(CPP_FLAGS) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
 	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)

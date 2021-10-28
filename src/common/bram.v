@@ -21,7 +21,7 @@ module bram
   reg [(dataWidth_p - 1):0] memory [2**memSize_p];
 
   always @(posedge clk_i) begin
-    if (write_i) memory[waddr_i] <= data_i;
+    if (write_i) memory[addr_i] <= data_i;
   end
 
   assign data_o = memory[addr_i];
@@ -34,11 +34,11 @@ module bram
     always @(posedge clk_i) begin
       // Check that data is correctly written
       if (timeValid_f && $past(write_i)) begin
-        assert(memory[$past(waddr_i)] == $past(data_i));
+        assert(memory[$past(addr_i)] == $past(data_i));
       end
 
       // // Check that data will be correctly read on the next clock
-      // if (timeValid_f && $past(write_i) && read_i && raddr_i == $past(waddr_i)) begin
+      // if (timeValid_f && $past(write_i) && read_i && raddr_i == $past(addr_i)) begin
       //   assert(data_o == $past(data_i));
       // end
     end
