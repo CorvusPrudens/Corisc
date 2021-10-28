@@ -25,8 +25,8 @@
 // op_b (offset: 13 words)
  10080400
 // op_jalr (offset: 14 words)
- 00148500
+ 40148500
 // op_jal (offset: 15 words)
- 00128500
+ 20128500
 // op_e (offset: 16 words)
  00000400

@@ -33,6 +33,8 @@ operation_bits = {
   'build_temp': 26,
   'load_half': 27,
   'cond_write_pc': 28,
+  'jal_ras': 29,
+  'jalr_ras': 30,
 }
 
 operations = {
@@ -95,11 +97,11 @@ operations = {
   ],
 
   'op_jalr' : [
-    ['register_input_pc', 'registers_write', 'pc_src_jr', 'write_pc', 'micro_reset'],
+    ['register_input_pc', 'registers_write', 'pc_src_jr', 'write_pc', 'jalr_ras', 'micro_reset'],
   ],
 
   'op_jal' : [
-    ['register_input_pc', 'registers_write', 'pc_src_j', 'write_pc', 'micro_reset'],
+    ['register_input_pc', 'registers_write', 'pc_src_j', 'write_pc', 'jal_ras', 'micro_reset'],
   ],
 
   # These two are just nops
