@@ -1,8 +1,8 @@
 #ifndef SRAM16_H
 #define SRAM16_H
 
-#include <string.h>
 #include <cstdlib>
+#include <cstdint>
 
 class Sram16 {
 

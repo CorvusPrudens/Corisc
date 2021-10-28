@@ -3,6 +3,7 @@
 
 #include <string.h>
 #include <cstdlib>
+#include <cstdint>
 
 #define flashSleep_p  0xB9
 #define flashWake_p   0xA9
