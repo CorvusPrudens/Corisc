@@ -5,6 +5,7 @@
 #endif
 
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
+#define CLOCK_PS CLOCK_NS * 10.0 // Apparently 10ps is gtkwave's thing
 #define CLK_I clk_i
 
 #include "Vrv32i.h"
@@ -18,7 +19,7 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
   tb->eval();
 
   #ifdef TRACE
-    if (tfp) tfp->dump(logicStep * CLOCK_NS - CLOCK_NS*0.2);
+    if (tfp) tfp->dump(logicStep * CLOCK_PS - CLOCK_PS*0.2);
   #endif
 
   tb->CLK_I = 1;
@@ -27,7 +28,7 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
   // do things with simulated components
 
   #ifdef TRACE
-    if (tfp) tfp->dump(logicStep * CLOCK_NS);
+    if (tfp) tfp->dump(logicStep * CLOCK_PS);
   #endif
   tb->CLK_I = 0;
   tb->eval();
@@ -36,7 +37,7 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
 
   #ifdef TRACE
     if (tfp){
-      tfp->dump(logicStep * CLOCK_NS + CLOCK_NS*0.5);
+      tfp->dump(logicStep * CLOCK_PS + CLOCK_PS*0.5);
       tfp->flush();
     }
   #endif
