@@ -4,6 +4,7 @@ _estack = 0x00030000;
 
 MEMORY
 {
+	BOOTLOADER (RX): ORIGIN = 0x00000000, LENGTH = 1K
 	GENERAL (RW)   : ORIGIN = 0x00001000, LENGTH = 64
 	GPU (RW)       : ORIGIN = 0x00002000, LENGTH = 1K
 	APU (RW)       : ORIGIN = 0x00004000, LENGTH = 23
@@ -21,7 +22,7 @@ SECTIONS
 	{
 		_sgeneral = .;
 		. = ALIGN(4);
-		KEEP(*(.vector_table))
+		KEEP(*(.general))
 		. = ALIGN(4);
 		_egeneral = .;
 	}
@@ -101,7 +102,7 @@ SECTIONS
 		. = ALIGN(4);
 		KEEP(*(.vector_table))
 		. = ALIGN(4);
-	} > PROGMEM
+	} > BOOTLOADER
 
   .text :
 	{
@@ -117,9 +118,28 @@ SECTIONS
 		. = ALIGN(4);
 		_etext = .;
 
-	} > PROGMEM
+	} > BOOTLOADER
 
-	.progmem :
+	.bootloader :
+	{
+		_sboot = .;
+		. = ALIGN(4);
+		*(.bootloader)
+		*(.bootloader*)
+		. = ALIGN(4);
+		_eboot = .;
+	} > BOOTLOADER
+
+	.bootdata :
+	{
+		_sbdata = .;
+		. = ALIGN(4);
+		KEEP(*(.bootdata))
+		. = ALIGN(4);
+		_ebdata = .;
+	} > BOOTLOADER
+
+	.progmem (NOLOAD) :
 	{
 		. = ALIGN(4);
 		KEEP(*(.progmem))
@@ -138,7 +158,7 @@ SECTIONS
 		_esdata = .;
 
 		PROVIDE(__sdata_end__ = _esdata);
-	} > SRAM AT > PROGMEM
+	} > SRAM AT > BOOTLOADER
 
 	_sisdata = LOADADDR(.sdata);
 
@@ -154,7 +174,7 @@ SECTIONS
 		_edata = .;
 
 		PROVIDE(__data_end__ = _edata);
-	} > SRAM AT > PROGMEM
+	} > SRAM AT > BOOTLOADER
 
 	_sidata = LOADADDR(.data);
 

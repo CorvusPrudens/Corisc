@@ -8,7 +8,7 @@ extern void *_sbss, *_ebss;
 void entry();
 int main();
 
-void * S_VECTOR_TABLE vector_table[1] = {
+void * MEM_VECTOR_TABLE vector_table[1] = {
   &entry
 };
 
