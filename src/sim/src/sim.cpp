@@ -13,6 +13,11 @@
 #include "verilated_vcd_c.h"
 
 #include "uart.h"
+#include "spi_flash.h"
+#include "sram16.h"
+
+Sram16 sram;
+Flash flash;
 
 void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
 {
@@ -22,18 +27,37 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
     if (tfp) tfp->dump(logicStep * CLOCK_PS - CLOCK_PS*0.2);
   #endif
 
+  sram.Tick(
+    tb->SRAM_O, 
+    &tb->SRAM_I, 
+    tb->SRAM_ADDR, 
+    tb->SRAM_WE, 
+    tb->SRAM_CE, 
+    tb->SRAM_UB, 
+    tb->SRAM_LB, 
+    tb->SRAM_OE
+  );
+
   tb->CLK_I = 1;
   tb->eval();
-
-  // do things with simulated components
 
   #ifdef TRACE
     if (tfp) tfp->dump(logicStep * CLOCK_PS);
   #endif
+
+  sram.Tick(
+    tb->SRAM_O, 
+    &tb->SRAM_I, 
+    tb->SRAM_ADDR, 
+    tb->SRAM_WE, 
+    tb->SRAM_CE, 
+    tb->SRAM_UB, 
+    tb->SRAM_LB, 
+    tb->SRAM_OE
+  );
+
   tb->CLK_I = 0;
   tb->eval();
-
-  // do some more things
 
   #ifdef TRACE
     if (tfp){
@@ -41,6 +65,17 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
       tfp->flush();
     }
   #endif
+
+  sram.Tick(
+    tb->SRAM_O, 
+    &tb->SRAM_I, 
+    tb->SRAM_ADDR, 
+    tb->SRAM_WE, 
+    tb->SRAM_CE, 
+    tb->SRAM_UB, 
+    tb->SRAM_LB, 
+    tb->SRAM_OE
+  );
 }
 
 int main(int argc, char** argv) 
