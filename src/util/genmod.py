@@ -12,9 +12,10 @@ NOTE -- this utility makes a few assumptions
 param_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(#\((.|[\r\n\t])+?\))( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
 noparam_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
 param_item_regex = compile(r'([A-Za-z_][A-Za-z_0-9]*) *(=.*)')
-item_regex = compile(r'(input|output|parameter) +(wire|reg)? *(\[.+?\])? *([A-Za-z_][A-Za-z_0-9]*)')
+item_regex = compile(r'(input|output|parameter|inout) +(wire|reg)? *(\[.+?\])? *([A-Za-z_][A-Za-z_0-9]*)')
 multiline_regex = compile(r'/\*(.|[\n\t\r])*?\*/')
 inline_regex = compile(r'//(.|[\r\n\t])*?\n')
+directive = compile(r'`(.|[\r\n\t])*?\n')
 
 def _sar(string: str, regex, replace: str='', group: int=0, ignore_first: bool=False, ignore_last: bool=False) -> str:
     """
@@ -64,10 +65,12 @@ def gen_mod(modpath, insertpath, insertline):
   if params is not None:
     params = _sar(params, multiline_regex, replace=' ')
     params = _sar(params, inline_regex, replace='\n')
+    params = _sar(params, directive, replace='\n')
     param_list = [param_item_regex.search(line).group(1) for line in params.split(',')]
   
   items = _sar(items, multiline_regex, replace=' ')
   items = _sar(items, inline_regex, replace='\n')
+  items = _sar(items, directive, replace='\n')
 
   item_list = [item_regex.search(line).group(4) for line in items.split(',')]
 
