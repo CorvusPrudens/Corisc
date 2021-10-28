@@ -155,13 +155,28 @@ int main(int argc, char** argv)
   string outfile;
   app.add_option("-o", outfile, "output file")
     ->default_str("out.bin");
+  bool boot = false;
+  app.add_flag("-b", boot, "write boot loader");
 
   CLI11_PARSE(app, argc, argv);
 
+  vector<string> sections;
+  size_t program_size;
+  if (boot)
+  {
+    sections = {".vector_table", ".text", ".bootloader", ".bootdata", ".sdata", ".data"};
+    program_size = 1024;
+  }
+  else
+  {
+    sections = {".vector_table", ".text", ".progmem", ".sdata", ".data"};
+    program_size = 65536;
+  }
+
   Elf elf(filename.c_str());
   elf.WriteSectionsToHex(
-    {".vector_table", ".preinit_array", ".init_array", ".fini_array", ".text", ".sdata", ".data"}, 
+    sections, 
     outfile.c_str(), 
-    1024
+    program_size
   );
 }

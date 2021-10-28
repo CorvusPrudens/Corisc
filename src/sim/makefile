@@ -17,11 +17,14 @@ RCC = riscv32-unknown-elf-gcc
 RLD = riscv32-unknown-elf-ld
 ROBJ = riscv32-unknown-elf-objdump
 LDSCRIPT = ../util/rv32i.lds
+BOOT_LDSCRIPT = ../util/rv32i_boot.lds
 EXAMPLES = examples
 TEST_TARGET = startup
 
 
 CPP_SOURCES = src/sim.cpp \
+src/modules/spi_flash.cpp \
+src/modules/sram16.cpp \
 ${VERILATOR_INCL}/include/verilated.cpp \
 ${VERILATOR_INCL}/include/verilated_vcd_c.cpp 
 
@@ -37,19 +40,28 @@ CPP_FLAGS = \
 EXAMPLE_CPP_SOURCES = examples/test.c \
 examples/startup.c
 
+BOOTLOADER_CPP_SOURCES = examples/bootloader.c \
+examples/startup.c
+
+BOOTLOADER_FLAGS =
+
 EXAMPLE_CPP_INCLUDES = \
 -I./examples \
 -I./examples/include
 
 LINKER_FLAGS = 
 
-.PHONY: all compile_example clean verilate compile verilate_trace compile_trace trace debug verilate_debug compile_debug
+.PHONY: all compile_example clean verilate \
+	compile verilate_trace compile_trace trace \
+	debug verilate_debug compile_debug compile_bootloader
 
 all: $(ELF_UTIL) $(BUILD) compile_example verilate compile
 
 trace: $(ELF_UTIL) $(BUILD) compile_example verilate_trace compile_trace
 
 debug: $(ELF_UTIL) $(BUILD) compile_example verilate_debug compile_debug
+
+boot: $(ELF_UTIL) $(BUILD) compile_bootloader verilate_trace compile_trace
 
 $(BUILD):
 	mkdir $(BUILD)
@@ -59,6 +71,12 @@ compile_example: $(EXAMPLES)/$(TEST_TARGET).c
 	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) *.o -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
 	rm *.o
 	$(ELF_UTIL) $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
+
+compile_bootloader: $(EXAMPLES)/bootloader.c
+	$(RCC) $(BOOTLOADER_FLAGS) -c $(BOOTLOADER_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
+	$(RLD) $(LINKER_FLAGS) -T$(BOOT_LDSCRIPT) *.o -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
+	rm *.o
+	$(ELF_UTIL) -b $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
 
 $(ELF_UTIL): $(ELF_UTIL).cpp
 	$(CC) $(CPP_FLAGS) -O3 $(ELF_UTIL).cpp -o $(ELF_UTIL) -I../util
@@ -95,6 +113,11 @@ compile_debug:
 
 assembly: compile_example
 	$(RCC) -S $(EXAMPLE_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
+	mv *.s $(BUILD)
+	$(ROBJ) -D -s $(BUILD)/$(TEST_TARGET)_linked > $(BUILD)/$(TEST_TARGET).txt
+
+boot_assembly:
+	$(RCC) $(BOOTLOADER_FLAGS) -S $(BOOTLOADER_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
 	mv *.s $(BUILD)
 	$(ROBJ) -D -s $(BUILD)/$(TEST_TARGET)_linked > $(BUILD)/$(TEST_TARGET).txt
 
