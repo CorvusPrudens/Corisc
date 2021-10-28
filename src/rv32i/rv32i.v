@@ -6,13 +6,26 @@
 `include "rv32i_memory.v"
 `include "rv32i_control.v"
 `include "bram_init.v"
-`include "bram_mask.v"
 `include "uartwrapper.v"
+`include "sram16.v"
 
 module rv32i(
     input clk_i,
     input RX,
-    output TX
+    output TX,
+
+    `ifdef SIM
+    output wire [15:0] SRAM_O,
+    input wire [15:0] SRAM_I,
+    `else
+    inout wire [15:0] SRAM_DATA,
+    `endif
+    output wire [15:0] SRAM_ADDR,
+    output wire SRAM_WE,
+    output wire SRAM_CE,
+    output wire SRAM_OE,
+    output wire SRAM_UB,
+    output wire SRAM_LB
   );
 
   localparam XLEN = 32;
@@ -84,25 +97,45 @@ module rv32i(
   wire [MEM_LEN-1:0] memory_out;
   wire illegal_memory_access;
 
-  wire [3:0] memory_region;
-  wire [MEM_LEN-1:0] ram_out;
-  wire [MEM_LEN-1:0] rom_out;
+  wire [8:0] memory_region;
+
+  wire [MEM_LEN-1:0] bootloader_out;
+  wire [MEM_LEN-1:0] general_out;
+  wire [MEM_LEN-1:0] gpu_out = 0;
+  wire [MEM_LEN-1:0] apu_out = 0;
+  wire [MEM_LEN-1:0] vrc6_1_out = 0;
+  wire [MEM_LEN-1:0] vrc6_2_out = 0;
+  wire [MEM_LEN-1:0] vrc6_3_out = 0;
+  wire [MEM_LEN-1:0] progmem_out;
+  wire [MEM_LEN-1:0] sram_out;
+
   wire [MEM_LEN-1:0] uart_out;
+  assign general_out = uart_out;
 
   wire [MEM_LEN-1:0] write_mask;
   
   rv32i_memory #(
     .XLEN(XLEN),
     .PORT_LEN(MEM_LEN),
-    .MAP_SIZE(4),
-    .REGION_1_B(32'd0),
-    .REGION_1_E(32'd1024),
-    .REGION_2_B(32'd1024),
-    .REGION_2_E(32'd2048),
-    .REGION_3_B(32'd4096),
-    .REGION_3_E(32'd4098),
-    .REGION_4_B(32'd8192),
-    .REGION_4_E(32'd8192)
+    .MAP_SIZE(9),
+    .REGION_0_B(32'h00000000),
+    .REGION_0_E(32'h00000400),
+    .REGION_1_B(32'h00001000),
+    .REGION_1_E(32'h00001040),
+    .REGION_2_B(32'h00002000),
+    .REGION_2_E(32'h00002400),
+    .REGION_3_B(32'h00004000),
+    .REGION_3_E(32'h00004018),
+    .REGION_4_B(32'h00009000),
+    .REGION_4_E(32'h00009004),
+    .REGION_5_B(32'h0000A000),
+    .REGION_5_E(32'h0000A004),
+    .REGION_6_B(32'h0000B000),
+    .REGION_6_E(32'h0000B004),
+    .REGION_7_B(32'h00010000),
+    .REGION_7_E(32'h00020000),
+    .REGION_8_B(32'h00020000),
+    .REGION_8_E(32'h00030000)
   ) RV32I_MEMORY (
     .clk_i(clk_i),
     .write_i(memory_write),
@@ -111,10 +144,15 @@ module rv32i(
     .addr_i(memory_addr),
     .data_i(memory_in),
 
-    .data1_i(rom_out),
-    .data2_i(ram_out),
-    .data3_i(uart_out),
-    .data4_i(16'b0),
+    .data0_i(bootloader_out),
+    .data1_i(general_out),
+    .data2_i(gpu_out),
+    .data3_i(apu_out),
+    .data4_i(vrc6_1_out),
+    .data5_i(vrc6_2_out),
+    .data6_i(vrc6_3_out),
+    .data7_i(progmem_out),
+    .data8_i(sram_out),
 
     .data_region_o(memory_region),
     .data_o(memory_out),
@@ -128,8 +166,8 @@ module rv32i(
   uartwrapper UARTWRAPPER (
     .clk_i(clk_i),
     .data_i(memory_in[7:0]),
-    .write_i(memory_region[2] & memory_write & ~memory_addr[0]),
-    .read_i(memory_region[2] & memory_read & ~memory_addr[0]),
+    .write_i(memory_region[1] & memory_write & ~memory_addr[0]),
+    .read_i(memory_region[1] & memory_read & ~memory_addr[0]),
     .data_o(uart_out[7:0]),
     .status_o(uart_out[15:8]),
     .RX(RX),
@@ -142,24 +180,36 @@ module rv32i(
     .memSize_p(9),
     .dataWidth_p(MEM_LEN),
     .initFile_p("program.hex")
-  ) INIT_BRAM (
+  ) BOOTLOADER (
     .clk_i(clk_i),
     .write_i(memory_region[0] & memory_write),
     .data_i(memory_in),
     .addr_i(memory_addr[9:1]),
-    .data_o(rom_out)
+    .data_o(bootloader_out)
   );
 
-  bram_mask #(
-    .MEMORY_SIZE(9),
-    .XLEN(MEM_LEN)
-  ) BRAM_MASK (
+  assign progmem_out = sram_out;
+  // Should progmem be unwritable in the non-bootloader configuration? (nah probably not, we could easily
+  // load program linked for certain sections of progmem in-app)
+  sram16 SRAM16 (
     .clk_i(clk_i),
-    .write_i(memory_region[1] & memory_write),
+    .write_i(memory_write & (memory_region[7] | memory_region[8])),
+    .addr_i({~memory_addr[16], memory_addr[15:1]}),
     .data_i(memory_in),
-    .write_mask_i(write_mask),
-    .addr_i({memory_addr[10], memory_addr[8:1]}),
-    .data_o(ram_out)
+    .data_o(sram_out),
+    .mask_i(write_mask),
+    .SRAM_ADDR(SRAM_ADDR),
+    `ifdef SIM
+    .SRAM_I(SRAM_I),
+    .SRAM_O(SRAM_O),
+    `else
+    .SRAM_DATA(SRAM_DATA),
+    `endif
+    .SRAM_WE(SRAM_WE),
+    .SRAM_CE(SRAM_CE),
+    .SRAM_OE(SRAM_OE),
+    .SRAM_LB(SRAM_LB),
+    .SRAM_UB(SRAM_UB)
   );
 
   ///////////////////////////////////////////////////////////////
