@@ -1,9 +1,10 @@
 
 CC = g++
 BUILD = build
+VERILATION = $(BUILD)/verilation
 VERILATOR = verilator 
-VERILATOR_FLAGS = -Wall -cc -O3 --x-assign fast --x-initial fast --noassert -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(BUILD)
-VERILATOR_FLAGS_TRACE = -Wall -cc --trace --trace-max-array 64 -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(BUILD)
+VERILATOR_FLAGS = -Wall -cc -O3 --x-assign fast --x-initial fast --noassert -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
+VERILATOR_FLAGS_TRACE = -Wall -cc --trace --trace-max-array 64 -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
 VERILOG_INCLUDES = \
 -I../rv32i \
 -I../rv32i/include \
@@ -32,6 +33,7 @@ CPP_INCLUDES = \
 -Isrc \
 -Isrc/modules \
 -I$(BUILD) \
+-I$(VERILATION) \
 -I${VERILATOR_INCL}/include 
 
 CPP_FLAGS = \
@@ -55,16 +57,19 @@ LINKER_FLAGS =
 	compile verilate_trace compile_trace trace \
 	debug verilate_debug compile_debug compile_bootloader
 
-all: $(ELF_UTIL) $(BUILD) compile_example verilate compile
+all: $(ELF_UTIL) $(VERILATION) compile_example verilate compile
 
-trace: $(ELF_UTIL) $(BUILD) compile_example verilate_trace compile_trace
+trace: $(ELF_UTIL) $(VERILATION) compile_example verilate_trace compile_trace
 
-debug: $(ELF_UTIL) $(BUILD) compile_example verilate_debug compile_debug
+debug: $(ELF_UTIL) $(VERILATION) compile_example verilate_debug compile_debug
 
-boot: $(ELF_UTIL) $(BUILD) compile_bootloader verilate_trace compile_trace
+boot: $(ELF_UTIL) $(VERILATION) compile_bootloader verilate_trace compile_trace
 
 $(BUILD):
 	mkdir $(BUILD)
+
+$(VERILATION): $(BUILD)
+	mkdir $(VERILATION)
 
 compile_example: $(EXAMPLES)/$(TEST_TARGET).c
 	$(RCC) -c $(EXAMPLE_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
@@ -81,33 +86,35 @@ compile_bootloader: $(EXAMPLES)/bootloader.c
 $(ELF_UTIL): $(ELF_UTIL).cpp
 	$(CC) $(CPP_FLAGS) -O3 $(ELF_UTIL).cpp -o $(ELF_UTIL) -I../util
 
+
+
 verilate: src/sim.cpp
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) -f V$(TARGET).mk -C $(BUILD)
+	$(MAKE) -j -f V$(TARGET).mk -C $(VERILATION)
 
 compile:
 	$(CC) $(CPP_FLAGS) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES)
-	$(CC) *.o $(BUILD)/Vrv32i__ALL.o -o $(BUILD)/run
+	$(CC) *.o $(VERILATION)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)
 
 verilate_trace:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(BUILD)
+	$(MAKE) -j OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(VERILATION)
 
 compile_trace:
 	$(CC) $(CPP_FLAGS) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
-	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
+	$(CC) *.o $(VERILATION)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)
 
 verilate_debug:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(BUILD) -CFLAGS="-g"
+	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(VERILATION) -CFLAGS="-g"
 
 compile_debug:
 	$(CC) $(CPP_FLAGS) -O0 -c -g $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
-	$(CC) *.o $(BUILD)/V$(TARGET)__ALL.o -o $(BUILD)/run
+	$(CC) *.o $(VERILATION)/V$(TARGET)__ALL.o -o $(BUILD)/run
 	rm *.o
 	cp $(MICROCODE) $(BUILD)
 
