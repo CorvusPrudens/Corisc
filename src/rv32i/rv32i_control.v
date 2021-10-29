@@ -13,7 +13,9 @@ module rv32i_control
     XLEN = 32,
     ILEN = 32,
     REG_BITS = 5,
-    INST_BITS = 16
+    INST_BITS = 16,
+    INITIAL_ADDR = 32'h0,
+    MICRO_CODE = "microcode.hex"
   )
   (
     input wire clk_i,
@@ -152,7 +154,7 @@ module rv32i_control
 
   always @(*) begin
     case (mem_addr_src)
-      default: memory_addr_o = {30'b0, reset_delay[0], 1'b0}; // for reading the entry point
+      default: memory_addr_o = {INITIAL_ADDR[31:2], reset_delay[0], 1'b0}; // for reading the entry point
       3'b001: memory_addr_o = program_counter_i;
       3'b010: memory_addr_o = add_mem_addr ? load_offset_add + 32'd2 : load_offset_add;
       3'b100: memory_addr_o = add_mem_addr ? store_offset_add + 32'd2 : store_offset_add;
@@ -188,8 +190,6 @@ module rv32i_control
   always @(posedge clk_i) begin
     if (~microcode_reset & initial_reset)
       microcode_step <= microcode_step + 1'b1;
-    else if (microcode_reset & initial_reset)
-      microcode_step <= 5'b0;
     else
       microcode_step <= 5'b0;
   end
@@ -206,7 +206,7 @@ module rv32i_control
   bram_init #(
     .memSize_p(5),
     .dataWidth_p(32),
-    .initFile_p("microcode.hex")
+    .initFile_p(MICRO_CODE)
   ) INIT_BRAM (
     .clk_i(clk_i),
     .write_i(1'b0),

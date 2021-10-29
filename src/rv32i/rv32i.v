@@ -9,6 +9,14 @@
 `include "uartwrapper.v"
 `include "sram16.v"
 
+`ifndef PROGRAM_PATH
+`define PROGRAM_PATH "program.hex"
+`endif
+
+`ifndef MICROCODE_PATH
+`define MICROCODE_PATH "microcode.hex"
+`endif
+
 module rv32i(
     input clk_i,
     input RX,
@@ -113,13 +121,21 @@ module rv32i(
   assign general_out = uart_out;
 
   wire [MEM_LEN-1:0] write_mask;
+
+  localparam PROGMEM_ADDR = 32'h00010000;
+  localparam BOOTLOADER_ADDR = 32'h0;
   
   rv32i_memory #(
     .XLEN(XLEN),
     .PORT_LEN(MEM_LEN),
     .MAP_SIZE(9),
-    .REGION_0_B(32'h00000000),
+    `ifdef BOOTLOADER
+    .REGION_0_B(BOOTLOADER_ADDR),
     .REGION_0_E(32'h00000400),
+    `else
+    .REGION_0_B(BOOTLOADER_ADDR),
+    .REGION_0_E(32'h00000000),
+    `endif
     .REGION_1_B(32'h00001000),
     .REGION_1_E(32'h00001040),
     .REGION_2_B(32'h00002000),
@@ -132,7 +148,7 @@ module rv32i(
     .REGION_5_E(32'h0000A004),
     .REGION_6_B(32'h0000B000),
     .REGION_6_E(32'h0000B004),
-    .REGION_7_B(32'h00010000),
+    .REGION_7_B(PROGMEM_ADDR),
     .REGION_7_E(32'h00020000),
     .REGION_8_B(32'h00020000),
     .REGION_8_E(32'h00030000)
@@ -176,10 +192,11 @@ module rv32i(
 
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
   // of 16 will actually ignore the lsb of the address
+  `ifdef BOOTLOADER
   bram_init #(
     .memSize_p(9),
     .dataWidth_p(MEM_LEN),
-    .initFile_p("program.hex")
+    .initFile_p(`PROGRAM_PATH)
   ) BOOTLOADER (
     .clk_i(clk_i),
     .write_i(memory_region[0] & memory_write),
@@ -187,6 +204,9 @@ module rv32i(
     .addr_i(memory_addr[9:1]),
     .data_o(bootloader_out)
   );
+  `else
+  assign bootloader_out = 0;
+  `endif
 
   assign progmem_out = sram_out;
   // Should progmem be unwritable in the non-bootloader configuration? (nah probably not, we could easily
@@ -220,7 +240,13 @@ module rv32i(
     .XLEN(XLEN),
     .ILEN(XLEN),
     .REG_BITS(REG_BITS),
-    .INST_BITS(MEM_LEN)
+    .INST_BITS(MEM_LEN),
+    `ifdef BOOTLOADER
+    .INITIAL_ADDR(BOOTLOADER_ADDR),
+    `else
+    .INITIAL_ADDR(PROGMEM_ADDR),
+    `endif
+    .MICRO_CODE(`MICROCODE_PATH)
   ) RV32I_CONTROL (
     .clk_i(clk_i),
     .reset_i(1'b0),
