@@ -21,9 +21,17 @@
 #define MEM_SRAM __attribute__((section(".sram")))
 #define MEM_VECTOR_TABLE __attribute__((section(".vector_table")))
 
+#define MEM_PROGMEM_ADDR (0x00010000)
+#define MEM_SRAM_ADDR (0x00020000)
+
 // Memory mapped I/O
 // TODO -- this should probably be based on the linker or something
 #define UART *((volatile uint8_t*) 0x00001000)
 #define UART_STATUS *((volatile uint8_t*) 0x00001001)
+
+#define FLASH_DATA *((volatile uint16_t*) 0x00001002)
+#define FLASH_PAGE *((volatile uint16_t*) 0x00001004)
+#define FLASH_STATUS *((volatile uint16_t*) 0x00001006)
+#define FLASH_PAGE_LEN 256
 
 #endif

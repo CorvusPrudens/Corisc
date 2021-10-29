@@ -76,8 +76,9 @@ module rv32i_control
   wire [31:0] control_vector_raw;
   wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
-  assign memory_read_o = control_vector[0];
-  assign memory_write_o = control_vector[1];
+  // The ~clk_i helps prevent glitching as addresses etc settle
+  assign memory_read_o = control_vector[0] & ~clk_i;
+  assign memory_write_o = control_vector[1] & ~clk_i;
   wire [2:0] mem_addr_src = control_vector[4:2];
   wire word_size_src = control_vector[5];
   wire [1:0] immediate_src = control_vector[7:6];

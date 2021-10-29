@@ -30,6 +30,7 @@ void * MEM_VECTOR_TABLE vector_table[1] = {
 // }
 
 // TODO -- -O2 or higher causes this to fail
+// TODO -- should be set to OPT_Os, but we'll need a memcpy and memset def
 void OPT_O1 initialize_data()
 {
   void **pSource, **pDest;

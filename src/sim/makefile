@@ -1,4 +1,4 @@
-
+# TODO -- we need to set up dead code stripping
 UNAME := $(shell uname)
 ifeq ($(UNAME), Linux)
 NPROC = $$(nproc)
@@ -75,7 +75,7 @@ RISCV_INCLUDES = \
 -I./examples \
 -I./examples/include
 
-BOOTLOADER_FLAGS =
+RISCV_FLAGS = 
 
 LINKER_FLAGS = 
 
@@ -105,7 +105,7 @@ SORTED_BOOT = $(sort $(BOOTLOADER_OBJECTS))
 all: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET)
-	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex CLOCK_COUNT="-DCLOCK_COUNT=14318180"
 
 trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
@@ -118,6 +118,11 @@ debug: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
 
 boot: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
+	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET)
+	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex CLOCK_COUNT="-DCLOCK_COUNT=14318180"
+
+boot_trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE"
 	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex
@@ -136,17 +141,17 @@ $(ELF_UTIL): $(ELF_UTIL).cpp
 
 $(BUILD)/%.o: %.cpp makefile | $(BUILD)
 	mkdir -p $(@D)
-	$(CC) $(OPT) $(CPP_FLAGS) $(CPP_INCLUDES) $(TRACE) -c $< -o $@ 
+	$(CC) $(OPT) $(CPP_FLAGS) $(CLOCK_COUNT) $(CPP_INCLUDES) $(TRACE) -c $< -o $@ 
 
 $(BUILD)/%.or: %.c makefile | $(BUILD)
 	mkdir -p $(@D)
-	$(RCC) $(RISCV_INCLUDES) -c $< -o $@
-	$(RCC) $(RISCV_INCLUDES) -S $< -o $@.s
+	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
+	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
 
 $(BUILD)/%.ob: %.c makefile | $(BUILD)
 	mkdir -p $(@D)
-	$(RCC) $(BOOTLOADER_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
-	$(RCC) $(BOOTLOADER_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
+	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
+	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
 
 $(BUILD)/$(TARGET): $(SORTED_OBJECTS) makefile
 	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@

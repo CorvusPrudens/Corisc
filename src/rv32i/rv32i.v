@@ -33,7 +33,11 @@ module rv32i(
     output wire SRAM_CE,
     output wire SRAM_OE,
     output wire SRAM_UB,
-    output wire SRAM_LB
+    output wire SRAM_LB,
+    output wire FLASH_CS,
+    output wire FLASH_SCK,
+    output wire FLASH_SDI,
+    input wire  FLASH_SDO
   );
 
   localparam XLEN = 32;
@@ -108,7 +112,7 @@ module rv32i(
   wire [8:0] memory_region;
 
   wire [MEM_LEN-1:0] bootloader_out;
-  wire [MEM_LEN-1:0] general_out;
+  reg  [MEM_LEN-1:0] general_out;
   wire [MEM_LEN-1:0] gpu_out = 0;
   wire [MEM_LEN-1:0] apu_out = 0;
   wire [MEM_LEN-1:0] vrc6_1_out = 0;
@@ -118,6 +122,20 @@ module rv32i(
   wire [MEM_LEN-1:0] sram_out;
 
   wire [MEM_LEN-1:0] uart_out;
+  wire [MEM_LEN-1:0] flash_out;
+
+  wire general_uart  = memory_region[1] & (memory_addr[5:0] < 2);
+  wire general_flash = memory_region[1] & (memory_addr[5:0] > 1 && memory_addr[5:0] < 8);
+
+  wire [1:0] general_state = {general_flash, general_uart};
+  always @(*) begin
+    case (general_state)
+      default: general_out = uart_out;
+      2'b01: general_out = uart_out;
+      2'b10: general_out = {flash_out[7:0], flash_out[15:8]};
+    endcase
+  end
+
   assign general_out = uart_out;
 
   wire [MEM_LEN-1:0] write_mask;
@@ -182,12 +200,26 @@ module rv32i(
   uartwrapper UARTWRAPPER (
     .clk_i(clk_i),
     .data_i(memory_in[7:0]),
-    .write_i(memory_region[1] & memory_write & ~memory_addr[0]),
-    .read_i(memory_region[1] & memory_read & ~memory_addr[0]),
+    .write_i(general_uart & memory_write & ~memory_addr[0]),
+    .read_i(general_uart & memory_read & ~memory_addr[0]),
     .data_o(uart_out[7:0]),
     .status_o(uart_out[15:8]),
     .RX(RX),
     .TX(TX)
+  );
+
+  flash FLASH (
+    .clk_i(clk_i),
+    .data_i({memory_in[7:0], memory_in[15:8]}), // un-endianded
+    .data_o(flash_out),
+    .addr_i(memory_addr[2:1]),
+    .write_i(general_flash & memory_write),
+    .read_i(general_flash & memory_read),
+    .CS(FLASH_CS),
+    .SDO(FLASH_SDI),
+    .SCK(FLASH_SCK),
+    .SDI(FLASH_SDO),
+    .reset_states(1'b0)
   );
 
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes

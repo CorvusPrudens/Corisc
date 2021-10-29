@@ -21,9 +21,9 @@ void Sram16::Tick(
     if (!write_enable)
     {
       uint16_t original = memory[address];
-      if (upper_byte_enable)
+      if (!upper_byte_enable)
         original = (original & 0x00FF) | (input & 0xFF00);
-      if (lower_byte_enable)
+      if (!lower_byte_enable)
         original = (original & 0xFF00) | (input & 0x00FF);
       memory[address] = original;
     }

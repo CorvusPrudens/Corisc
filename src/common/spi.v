@@ -3,6 +3,7 @@
 
 module spi(
     input wire clk_i,
+    input wire spi_clk_i,
     input wire start_i,
     input wire [7:0] data_i,
 
@@ -11,7 +12,8 @@ module spi(
     output wire busy_o,
     output wire sdo_o,
     output wire sck_o,
-    input  wire sdi_i
+    input  wire sdi_i,
+    output wire clk_active_o
     // cs handled by controlling module
   );
 
@@ -31,7 +33,7 @@ module spi(
   // a bit messy, but
   wire [3:0] rxState = spiState + 1'b1;
 
-  always @(posedge clk_i) begin
+  always @(posedge spi_clk_i) begin
     case (spiState)
       4'b0000: if (start) spiState <= 4'b0111;
       4'b0111: spiState <= 4'b1110;
@@ -50,11 +52,12 @@ module spi(
     if (spiState == 4'b1111) data_o <= shift_i;
   end
 
-  always @(negedge clk_i) begin
+  always @(negedge spi_clk_i) begin
     if (busy_o) tx_bit <= shift_o[spiState[2:0]];
   end
 
-  assign sck_o  = spiState[3] ? clk_i : 1'b0;
+  assign clk_active_o = spiState[3];
+  assign sck_o  = clk_active_o ? spi_clk_i : 1'b0;
   assign sdo_o  = tx_bit;
   assign busy_o = spiState[3] | start;
   // assign cs_o   = spiState == 0;

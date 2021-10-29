@@ -17,7 +17,8 @@
 #define pageSize_p  256
 #define memSize_p 8388608
 
-
+// TODO -- there's a bug where reading
+// can cause aligment issues (i.e. unexpected zeros)
 class Flash {
 
     public:

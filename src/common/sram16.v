@@ -32,11 +32,12 @@ module sram16 (
   assign data_o = SRAM_DATA;
   `endif
 
+  // These are all active low
   assign SRAM_CE = 1'b0;
   assign SRAM_WE = ~write_i;
   assign SRAM_OE = write_i;
-  assign SRAM_LB = mask_i[7:0] == 0;
-  assign SRAM_UB = mask_i[15:8] == 0;
+  assign SRAM_LB = mask_i[7:0] != 0;
+  assign SRAM_UB = mask_i[15:8] != 0;
 
 endmodule
 

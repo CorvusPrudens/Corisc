@@ -8,8 +8,12 @@
 #define TRACE_FILE "trace.vcd"
 #endif
 
+#ifndef CLOCK_COUNT
+#define CLOCK_COUNT 3000000
+#endif
+
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
-#define CLOCK_PS CLOCK_NS * 10.0 // Apparently 10ps is gtkwave's thing
+#define CLOCK_PS CLOCK_NS * 100.0 // Apparently 10ps is gtkwave's thing
 #define CLK_I clk_i
 
 #include "Vrv32i.h"
@@ -31,6 +35,9 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
     if (tfp) tfp->dump(logicStep * CLOCK_PS - CLOCK_PS*0.2);
   #endif
 
+  tb->CLK_I = 1;
+  tb->eval();
+
   sram.Tick(
     tb->SRAM_O, 
     &tb->SRAM_I, 
@@ -41,14 +48,15 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
     tb->SRAM_LB, 
     tb->SRAM_OE
   );
-
-  tb->CLK_I = 1;
-  tb->eval();
+  flash.Tick(tb->FLASH_SDI, &tb->FLASH_SDO, tb->FLASH_SCK, tb->FLASH_CS);
 
   #ifdef TRACE
     if (tfp) tfp->dump(logicStep * CLOCK_PS);
   #endif
 
+  tb->CLK_I = 0;
+  tb->eval();
+
   sram.Tick(
     tb->SRAM_O, 
     &tb->SRAM_I, 
@@ -59,9 +67,7 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
     tb->SRAM_LB, 
     tb->SRAM_OE
   );
-
-  tb->CLK_I = 0;
-  tb->eval();
+  flash.Tick(tb->FLASH_SDI, &tb->FLASH_SDO, tb->FLASH_SCK, tb->FLASH_CS);
 
   #ifdef TRACE
     if (tfp){
@@ -70,16 +76,6 @@ void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
     }
   #endif
 
-  sram.Tick(
-    tb->SRAM_O, 
-    &tb->SRAM_I, 
-    tb->SRAM_ADDR, 
-    tb->SRAM_WE, 
-    tb->SRAM_CE, 
-    tb->SRAM_UB, 
-    tb->SRAM_LB, 
-    tb->SRAM_OE
-  );
 }
 
 int main(int argc, char** argv) 
@@ -97,7 +93,7 @@ int main(int argc, char** argv)
     tfp->open(TRACE_FILE);
   #endif
 
-  unsigned clock_count = 1000;
+  size_t clock_count = CLOCK_COUNT;
   if (argc >= 2) {
     clock_count = atoi(argv[1]);
   }
@@ -109,6 +105,9 @@ int main(int argc, char** argv)
   int out = 0;
   tb->RX = 1;
   tick(tb, tfp, ++logicStep);
+
+  for (int i = 0; i < 256; i++)
+    flash[0x300000 + i] = 256 - i;
 
   for (size_t i = 0; i < clock_count; i++)
   {
