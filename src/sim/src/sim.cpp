@@ -111,7 +111,7 @@ int main(int argc, char** argv)
 
   for (size_t i = 0; i < clock_count; i++)
   {
-    go = messageManagerStatic(status, &sendword, out);
+    go = messageManagerStatic(status, &sendword, out, true);
     status = uart(tb, go, sendword, &out);
     tick(tb, tfp, ++logicStep);
   }

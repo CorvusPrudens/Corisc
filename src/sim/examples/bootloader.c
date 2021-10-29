@@ -64,6 +64,7 @@ void OPT_Os write_string(const char* str)
 {
   for (const char* i = str; *i != 0; i++)
     UART = *i;
+  UART = (uint8_t) 0;
 }
 
 int OPT_Os main()
@@ -72,5 +73,5 @@ int OPT_Os main()
 
   load_progmem((uint8_t*) MEM_PROGMEM_ADDR, page_addr, 256);
 
-  write_string("Completed program setup!");
+  write_string("Completed program setup!\n");
 }

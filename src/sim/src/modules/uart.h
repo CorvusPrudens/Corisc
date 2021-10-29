@@ -22,10 +22,13 @@ int mess[] = {
   0x55, 0xAA
 };
 
-int messageManagerStatic(int uart_status, int* uart_in, int uart_out) {
+char stringbuff[256];
+size_t string_idx = 0;
+
+int messageManagerStatic(int uart_status, int* uart_in, int uart_out, bool print_strings) {
   #define LEN_PACKET 3
 
-  static int len_mess = sizeof(mess)/sizeof(int);
+  static int len_mess = sizeof(mess)/sizeof(int)/4;
   static int packet = 0;
   static int packpos = 0;
   static int framecounter = 0;
@@ -45,7 +48,17 @@ int messageManagerStatic(int uart_status, int* uart_in, int uart_out) {
   }
 
   if (uart_status & 2) {
-    printf("recieved: %d\n", uart_out);
+    if (!print_strings)
+      printf("recieved: %d\n", uart_out);
+    else
+    {
+      stringbuff[string_idx++] = (char) uart_out;
+      if (uart_out == 0 || string_idx == 256)
+      {
+        printf("%s", stringbuff);
+        string_idx = 0;
+      }
+    }
   }
 
   framecounter++;
