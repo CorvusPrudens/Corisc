@@ -4,6 +4,10 @@
 #define TARGET top
 #endif
 
+#ifndef TRACE_FILE
+#define TRACE_FILE "trace.vcd"
+#endif
+
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
 #define CLOCK_PS CLOCK_NS * 10.0 // Apparently 10ps is gtkwave's thing
 #define CLK_I clk_i
@@ -90,7 +94,7 @@ int main(int argc, char** argv)
 
   #ifdef TRACE
     tb->trace(tfp, 99);
-    tfp->open("trace.vcd");
+    tfp->open(TRACE_FILE);
   #endif
 
   unsigned clock_count = 1000;
