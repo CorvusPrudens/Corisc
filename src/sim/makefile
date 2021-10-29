@@ -1,6 +1,14 @@
 
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+NPROC = $$(nproc)
+else
+NPROC = 4
+endif
+
 CC = g++
 BUILD = build
+TRACE_FILE = $(BUILD)/trace.vcd
 VERILATION = $(BUILD)/verilation
 VERILATOR = verilator 
 VERILATOR_FLAGS = -j -Wall -cc -O3 --x-assign fast --x-initial fast --noassert -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
@@ -10,8 +18,21 @@ VERILOG_INCLUDES = \
 -I../rv32i/include \
 -I../lattice \
 -I../common
-TARGET = rv32i
 MICROCODE = ../rv32i/include/microcode.hex
+
+ifeq ($(BOOTLOADER), 1)
+VERILOG_DEFS = \
+-DSIM \
+-DMICROCODE_PATH=\"$(MICROCODE)\" \
+-DPROGRAM_PATH=\"$(PROGRAM)\" \
+-DBOOTLOADER
+else
+VERILOG_DEFS = \
+-DSIM \
+-DMICROCODE_PATH=\"$(MICROCODE)\" \
+-DPROGRAM_PATH=\"$(PROGRAM)\" 
+endif
+TARGET = rv32i
 
 ELF_UTIL = ../util/read_elf
 RCC = riscv32-unknown-elf-gcc
@@ -39,7 +60,8 @@ CPP_INCLUDES = \
 -I${VERILATOR_INCL}/include 
 
 CPP_FLAGS = \
--std=c++17
+-std=c++17 \
+-DTRACE_FILE=\"$(TRACE_FILE)\"
 
 RISCV_SOURCES = \
 examples/test.c \
@@ -80,23 +102,34 @@ SORTED_BOOT = $(sort $(BOOTLOADER_OBJECTS))
 	compile verilate_trace compile_trace trace \
 	debug verilate_debug compile_debug compile_bootloader
 
-all: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(RISCV_TARGET).hex verilate 
-	$(MAKE) -j $(BUILD)/$(TARGET)
+all: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
+	$(MAKE) verilate PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET)
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
 
-trace: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(RISCV_TARGET).hex verilate_trace
-	$(MAKE) -j $(BUILD)/$(TARGET) TRACE="-DTRACE"
+trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
+	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
 
-debug: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(RISCV_TARGET).hex verilate_debug
-	$(MAKE) -j $(BUILD)/$(TARGET) DEBUG=1
+debug: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
+	$(MAKE) verilate_debug PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) DEBUG=1
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
 
-boot: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(BOOTLOADER_TARGET).hex verilate_trace
-	$(MAKE) -j $(BUILD)/$(TARGET) TRACE="-DTRACE"
+boot: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
+	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex
 
 $(BUILD):
 	mkdir -p $@
 
 $(VERILATION): $(BUILD)
 	mkdir -p $@
+
+$(MICROCODE): $(MICROCODE:.hex=.py)
+	cd $(dir $(MICROCODE)); python3 $(notdir $(MICROCODE:.hex=.py))
 
 $(ELF_UTIL): $(ELF_UTIL).cpp
 	$(CC) $(OPT) $(CPP_FLAGS) $< -o $@ -I../util
@@ -115,42 +148,41 @@ $(BUILD)/%.ob: %.c makefile | $(BUILD)
 	$(RCC) $(BOOTLOADER_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
 	$(RCC) $(BOOTLOADER_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
 
-$(BUILD)/$(TARGET): $(SORTED_OBJECTS) $(MICROCODE) makefile
+$(BUILD)/$(TARGET): $(SORTED_OBJECTS) makefile
 	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@
-	cp $(MICROCODE) $(BUILD)
 
-$(BUILD)/$(RISCV_TARGET).hex: $(SORTED_RISCV) makefile
+$(BUILD)/$(RISCV_TARGET).hex: $(SORTED_RISCV) $(LDSCRIPT) makefile
 	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) $(SORTED_RISCV) \
 		-o $(BUILD)/$(RISCV_TARGET).elf --print-memory-usage -Map $(BUILD)/$(RISCV_TARGET).map
 	$(ELF_UTIL) $(BUILD)/$(RISCV_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(RISCV_TARGET).elf > $(BUILD)/$(RISCV_TARGET).obj
 
-$(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) makefile
+$(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) $(BOOT_LDSCRIPT) makefile
 	$(RLD) $(LINKER_FLAGS) -T$(BOOT_LDSCRIPT) $(SORTED_BOOT) \
 		-o $(BUILD)/$(BOOTLOADER_TARGET).elf --print-memory-usage -Map $(BUILD)/$(BOOTLOADER_TARGET).map
 	$(ELF_UTIL) -b $(BUILD)/$(BOOTLOADER_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(BOOTLOADER_TARGET).elf > $(BUILD)/$(BOOTLOADER_TARGET).obj
 
-verilate: src/sim.cpp
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) -j -f V$(TARGET).mk -C $(VERILATION)
+verilate: $(CPP_SOURCES) $(RISCV_SOURCES) $(BOOTLOADER_SOURCES)
+	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v $(VERILOG_DEFS)
+	$(MAKE) -j$(NPROC) -f V$(TARGET).mk -C $(VERILATION)
 
-verilate_trace:
-	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) -j OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(VERILATION)
+verilate_trace: $(CPP_SOURCES) $(RISCV_SOURCES) $(BOOTLOADER_SOURCES)
+	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v $(VERILOG_DEFS)
+	$(MAKE) -j$(NPROC) OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(VERILATION)
 
-verilate_debug:
-	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
-	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(VERILATION) -CFLAGS="-g"
+verilate_debug: $(CPP_SOURCES) $(RISCV_SOURCES) $(BOOTLOADER_SOURCES)
+	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v $(VERILOG_DEFS) -CFLAGS "-g"
+	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(VERILATION) 
 
 run:
-	cd $(BUILD); ./$(TARGET)
+	./$(BUILD)/$(TARGET)
 
 view:
-	gtkwave $(BUILD)/trace.vcd
+	gtkwave $(TRACE_FILE)
 
 clean:
-	if [ -d "$(BUILD)" ]; then rm -rf $(BUILD); fi
+	rm -rf $(BUILD)
 
 clean_all: clean
-	if [ -f "$(ELF_UTIL)" ]; then rm $(ELF_UTIL); fi
+	rm -f $(ELF_UTIL)
