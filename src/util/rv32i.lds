@@ -21,7 +21,7 @@ SECTIONS
 	{
 		_sgeneral = .;
 		. = ALIGN(4);
-		KEEP(*(.vector_table))
+		KEEP(*(.general))
 		. = ALIGN(4);
 		_egeneral = .;
 	}
@@ -96,18 +96,12 @@ SECTIONS
 	} > PROGMEM
 */
 
-	.vector_table :
-	{
-		. = ALIGN(4);
-		KEEP(*(.vector_table))
-		. = ALIGN(4);
-	} > PROGMEM
-
   .text :
 	{
 		. = ALIGN(4);
 		_stext = .;
 
+		KEEP(*(.vector_table))
 		*(.text)
 		*(.text*)
 		*(.rodata)
