@@ -105,7 +105,6 @@ module rv32i_control
   wire jalr_ras = control_vector[30];
 
   reg initial_reset = 0;
-  wire [INST_BITS-1:0] instruction_unmixed = {memory_i[7:0], memory_i[15:8]};
 
   reg [ILEN-1:0] instruction = 0;
 
@@ -218,17 +217,17 @@ module rv32i_control
 
   always @(posedge clk_i) begin
     if (write_lower_instr)
-      instruction[15:0] <= instruction_unmixed;
+      instruction[15:0] <= memory_i;
     if (write_upper_instr)
-      instruction[31:16] <= instruction_unmixed;
+      instruction[31:16] <= memory_i;
   end
 
   always @(posedge clk_i) begin
     if (write_lower_instr) begin
-      case (instruction_unmixed[6:2])
+      case (memory_i[6:2])
           OP_L:     
             begin
-              case (instruction_unmixed[13:12])
+              case (memory_i[13:12])
                 default: operand_offset <= 0;
                 2'b01: operand_offset <= 1;
                 2'b10: operand_offset <= 2;
@@ -239,7 +238,7 @@ module rv32i_control
           OP_AUIPC: operand_offset <= 6;
           OP_S:
             begin
-              case (instruction_unmixed[13:12])
+              case (memory_i[13:12])
                 default: operand_offset <= 7;
                 2'b01: operand_offset <= 8;
                 2'b10: operand_offset <= 9;
@@ -280,7 +279,7 @@ module rv32i_control
       4'b0001: pc_o = j_immediate + instruction_addr;
       4'b0010: pc_o = {j_reg[XLEN-1:1], 1'b0};
       4'b0100: pc_o = b_immediate + instruction_addr;
-      4'b1000: pc_o = reset_delay[0] ? {instruction_unmixed, pc_i[15:0]} : {pc_i[31:16], instruction_unmixed};
+      4'b1000: pc_o = reset_delay[0] ? {memory_i, pc_i[15:0]} : {pc_i[31:16], memory_i};
     endcase
   end
 
@@ -288,7 +287,7 @@ module rv32i_control
   reg [INST_BITS-1:0] load_temp = 0;
 
   always @(posedge clk_i) begin
-    if (build_temp) load_temp <= instruction_unmixed;
+    if (build_temp) load_temp <= memory_i;
   end
 
   wire [7:0] byte_offset = memory_addr_o[0] ? memory_i[15:8] : memory_i[7:0];
@@ -297,13 +296,13 @@ module rv32i_control
   wire [XLEN-1:0] byte_mux = funct3_o[2] ? {24'b0, byte_offset} : signed_byte;
 
   wire [XLEN-1:0] memory_signed;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT6 ( .data_i(instruction_unmixed), .data_o(memory_signed) );
+  sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT6 ( .data_i(memory_i), .data_o(memory_signed) );
 
   wire [1:0] load_state = {load_byte, load_word};
   always @(*) begin
     case (load_state)
-      default: load_mux = funct3_o[2] ? {16'b0, instruction_unmixed} : memory_signed;
-      2'b01: load_mux = {instruction_unmixed, load_temp};
+      default: load_mux = funct3_o[2] ? {16'b0, memory_i} : memory_signed;
+      2'b01: load_mux = {memory_i, load_temp};
       2'b10: load_mux = byte_mux;
     endcase
   end
@@ -333,7 +332,7 @@ module rv32i_control
   wire [1:0] store_state = {store_upper, store_byte};
   always @(*) begin
     case (store_state)
-      default: memory_o = {rs2_i[7:0], rs2_i[15:8]};
+      default: memory_o = rs2_i[15:0];
       2'b01: memory_o = memory_addr_o[0] ?  {rs2_i[7:0], 8'b0} : {8'b0, rs2_i[7:0]};
       2'b10: memory_o = {rs2_i[23:16], rs2_i[31:24]};
     endcase

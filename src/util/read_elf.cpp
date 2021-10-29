@@ -68,6 +68,7 @@ class Elf
     {
       size_t index = 0;
       std::ofstream file(outfile);
+      uint8_t lsb = 0;
 
       for (auto& section : sections)
       {
@@ -81,25 +82,45 @@ class Elf
           if (index + length > padding)
             throw 99;
 
-          size_t outer_loop = ceil((float) length / 8);
-          
-          for (size_t i = 0; i < outer_loop; i++)
+          for (size_t i = 0; i < length; i++)
           {
-            for (size_t j = 0; j < 8; j++)
+            if (index > 0 && index % 8 == 0)
+              file << "\n";
+            if (section_index >= length)
+              break;
+            if ((index & 1) == 0)
+              lsb = outdata[section_index];
+            else
             {
-              if (section_index < length)
-                file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << (int) outdata[section_index];
-              else
-                // file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << 0;
-                goto next;
-              if (index & 1)
-                file << " ";
-              index++;
-              section_index++;
+              uint16_t word = (outdata[section_index] << 8) | lsb;
+              file << std::setfill ('0') << std::setw(sizeof(uint16_t)*2) << std::hex << word;
+              file << " ";
             }
-            file << "\n";
+            index++;
+            section_index++;
           }
-          next:;
+
+          // size_t outer_loop = ceil((float) length / 8);
+          
+          // for (size_t i = 0; i < outer_loop; i++)
+          // {
+          //   for (size_t j = 0; j < 8; j++)
+          //   {
+          //     if (index > 0 && index % 8 == 0)
+          //       file << "\n";
+          //     if (section_index < length)
+          //       file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << (int) outdata[section_index];
+          //     else
+          //       // file << std::setfill ('0') << std::setw(sizeof(uint8_t)*2) << std::hex << 0;
+          //       goto next;
+          //     if (index & 1)
+          //       file << " ";
+          //     index++;
+          //     section_index++;
+          //   }
+            
+          // }
+          // next:;
         }
         catch (int e)
         {

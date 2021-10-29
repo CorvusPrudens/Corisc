@@ -132,7 +132,7 @@ module rv32i(
     case (general_state)
       default: general_out = uart_out;
       2'b01: general_out = uart_out;
-      2'b10: general_out = {flash_out[7:0], flash_out[15:8]};
+      2'b10: general_out = flash_out;
     endcase
   end
 
@@ -210,7 +210,7 @@ module rv32i(
 
   flash FLASH (
     .clk_i(clk_i),
-    .data_i({memory_in[7:0], memory_in[15:8]}), // un-endianded
+    .data_i(memory_in), // un-endianded
     .data_o(flash_out),
     .addr_i(memory_addr[2:1]),
     .write_i(general_flash & memory_write),
