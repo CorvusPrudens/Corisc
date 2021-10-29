@@ -3,8 +3,8 @@ CC = g++
 BUILD = build
 VERILATION = $(BUILD)/verilation
 VERILATOR = verilator 
-VERILATOR_FLAGS = -Wall -cc -O3 --x-assign fast --x-initial fast --noassert -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
-VERILATOR_FLAGS_TRACE = -Wall -cc --trace --trace-max-array 64 -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
+VERILATOR_FLAGS = -j -Wall -cc -O3 --x-assign fast --x-initial fast --noassert -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
+VERILATOR_FLAGS_TRACE = -j -Wall -cc --trace --trace-max-array 64 -Wno-UNUSED -Wno-UNSIGNED -CFLAGS "-O3" --Mdir $(VERILATION)
 VERILOG_INCLUDES = \
 -I../rv32i \
 -I../rv32i/include \
@@ -22,6 +22,8 @@ BOOT_LDSCRIPT = ../util/rv32i_boot.lds
 EXAMPLES = examples
 TEST_TARGET = startup
 
+RISCV_TARGET = riscv
+BOOTLOADER_TARGET = bootloader
 
 CPP_SOURCES = src/sim.cpp \
 src/modules/spi_flash.cpp \
@@ -39,103 +41,115 @@ CPP_INCLUDES = \
 CPP_FLAGS = \
 -std=c++17
 
-EXAMPLE_CPP_SOURCES = examples/test.c \
+RISCV_SOURCES = \
+examples/test.c \
 examples/startup.c
 
-BOOTLOADER_CPP_SOURCES = examples/bootloader.c \
+BOOTLOADER_SOURCES = \
+examples/bootloader.c \
 examples/startup.c
 
-BOOTLOADER_FLAGS =
-
-EXAMPLE_CPP_INCLUDES = \
+RISCV_INCLUDES = \
 -I./examples \
 -I./examples/include
 
+BOOTLOADER_FLAGS =
+
 LINKER_FLAGS = 
+
+ifeq ($(DEBUG), 1)
+OPT = -O0
+CPP_FLAGS += -g
+else
+OPT = -O3
+endif
+
+OBJECTS = $(addprefix $(BUILD)/,$(CPP_SOURCES:.cpp=.o))
+vpath %.cpp $(sort $(dir $(CPP_SOURCES)))
+SORTED_OBJECTS = $(sort $(OBJECTS))
+
+RISCV_OBJECTS = $(addprefix $(BUILD)/,$(RISCV_SOURCES:.c=.or))
+vpath %.c $(sort $(dir $(RISCV_SOURCES)))
+SORTED_RISCV = $(sort $(RISCV_OBJECTS))
+
+BOOTLOADER_OBJECTS = $(addprefix $(BUILD)/,$(BOOTLOADER_SOURCES:.c=.ob))
+vpath %.c $(sort $(dir $(BOOTLOADER_SOURCES)))
+SORTED_BOOT = $(sort $(BOOTLOADER_OBJECTS))
 
 .PHONY: all compile_example clean verilate \
 	compile verilate_trace compile_trace trace \
 	debug verilate_debug compile_debug compile_bootloader
 
-all: $(ELF_UTIL) $(VERILATION) compile_example verilate compile
+all: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(RISCV_TARGET).hex verilate 
+	$(MAKE) -j $(BUILD)/$(TARGET)
 
-trace: $(ELF_UTIL) $(VERILATION) compile_example verilate_trace compile_trace
+trace: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(RISCV_TARGET).hex verilate_trace
+	$(MAKE) -j $(BUILD)/$(TARGET) TRACE="-DTRACE"
 
-debug: $(ELF_UTIL) $(VERILATION) compile_example verilate_debug compile_debug
+debug: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(RISCV_TARGET).hex verilate_debug
+	$(MAKE) -j $(BUILD)/$(TARGET) DEBUG=1
 
-boot: $(ELF_UTIL) $(VERILATION) compile_bootloader verilate_trace compile_trace
+boot: $(ELF_UTIL) $(VERILATION) $(BUILD)/$(BOOTLOADER_TARGET).hex verilate_trace
+	$(MAKE) -j $(BUILD)/$(TARGET) TRACE="-DTRACE"
 
 $(BUILD):
-	mkdir $(BUILD)
+	mkdir -p $@
 
 $(VERILATION): $(BUILD)
-	mkdir $(VERILATION)
-
-compile_example: $(EXAMPLES)/$(TEST_TARGET).c
-	$(RCC) -c $(EXAMPLE_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
-	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) *.o -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
-	rm *.o
-	$(ELF_UTIL) $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
-
-compile_bootloader: $(EXAMPLES)/bootloader.c
-	$(RCC) $(BOOTLOADER_FLAGS) -c $(BOOTLOADER_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
-	$(RLD) $(LINKER_FLAGS) -T$(BOOT_LDSCRIPT) *.o -o $(BUILD)/$(TEST_TARGET)_linked --print-memory-usage -Map $(BUILD)/$(TEST_TARGET)_map
-	rm *.o
-	$(ELF_UTIL) -b $(BUILD)/$(TEST_TARGET)_linked -o $(BUILD)/program.hex
+	mkdir -p $@
 
 $(ELF_UTIL): $(ELF_UTIL).cpp
-	$(CC) $(CPP_FLAGS) -O3 $(ELF_UTIL).cpp -o $(ELF_UTIL) -I../util
+	$(CC) $(OPT) $(CPP_FLAGS) $< -o $@ -I../util
 
+$(BUILD)/%.o: %.cpp makefile | $(BUILD)
+	mkdir -p $(@D)
+	$(CC) $(OPT) $(CPP_FLAGS) $(CPP_INCLUDES) $(TRACE) -c $< -o $@ 
 
+$(BUILD)/%.or: %.c makefile | $(BUILD)
+	mkdir -p $(@D)
+	$(RCC) $(RISCV_INCLUDES) -c $< -o $@
+	$(RCC) $(RISCV_INCLUDES) -S $< -o $@.s
+
+$(BUILD)/%.ob: %.c makefile | $(BUILD)
+	mkdir -p $(@D)
+	$(RCC) $(BOOTLOADER_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
+	$(RCC) $(BOOTLOADER_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
+
+$(BUILD)/$(TARGET): $(SORTED_OBJECTS) $(MICROCODE) makefile
+	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@
+	cp $(MICROCODE) $(BUILD)
+
+$(BUILD)/$(RISCV_TARGET).hex: $(SORTED_RISCV) makefile
+	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) $(SORTED_RISCV) \
+		-o $(BUILD)/$(RISCV_TARGET).elf --print-memory-usage -Map $(BUILD)/$(RISCV_TARGET).map
+	$(ELF_UTIL) $(BUILD)/$(RISCV_TARGET).elf -o $@
+	$(ROBJ) -D -s $(BUILD)/$(RISCV_TARGET).elf > $(BUILD)/$(RISCV_TARGET).obj
+
+$(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) makefile
+	$(RLD) $(LINKER_FLAGS) -T$(BOOT_LDSCRIPT) $(SORTED_BOOT) \
+		-o $(BUILD)/$(BOOTLOADER_TARGET).elf --print-memory-usage -Map $(BUILD)/$(BOOTLOADER_TARGET).map
+	$(ELF_UTIL) -b $(BUILD)/$(BOOTLOADER_TARGET).elf -o $@
+	$(ROBJ) -D -s $(BUILD)/$(BOOTLOADER_TARGET).elf > $(BUILD)/$(BOOTLOADER_TARGET).obj
 
 verilate: src/sim.cpp
 	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
 	$(MAKE) -j -f V$(TARGET).mk -C $(VERILATION)
 
-compile:
-	$(CC) $(CPP_FLAGS) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES)
-	$(CC) *.o $(VERILATION)/V$(TARGET)__ALL.o -o $(BUILD)/run
-	rm *.o
-	cp $(MICROCODE) $(BUILD)
-
 verilate_trace:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
 	$(MAKE) -j OPT_FAST="-O3 -march=native" -f V$(TARGET).mk -C $(VERILATION)
-
-compile_trace:
-	$(CC) $(CPP_FLAGS) -O3 -c $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
-	$(CC) *.o $(VERILATION)/V$(TARGET)__ALL.o -o $(BUILD)/run
-	rm *.o
-	cp $(MICROCODE) $(BUILD)
 
 verilate_debug:
 	$(VERILATOR) $(VERILATOR_FLAGS_TRACE) $(VERILOG_INCLUDES) ../rv32i/$(TARGET).v -DSIM
 	$(MAKE) OPT_GLOBAL="-O0" -f V$(TARGET).mk -C $(VERILATION) -CFLAGS="-g"
 
-compile_debug:
-	$(CC) $(CPP_FLAGS) -O0 -c -g $(CPP_SOURCES) $(CPP_INCLUDES) -DTRACE
-	$(CC) *.o $(VERILATION)/V$(TARGET)__ALL.o -o $(BUILD)/run
-	rm *.o
-	cp $(MICROCODE) $(BUILD)
-
-assembly: compile_example
-	$(RCC) -S $(EXAMPLE_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
-	mv *.s $(BUILD)
-	$(ROBJ) -D -s $(BUILD)/$(TEST_TARGET)_linked > $(BUILD)/$(TEST_TARGET).txt
-
-boot_assembly:
-	$(RCC) $(BOOTLOADER_FLAGS) -S $(BOOTLOADER_CPP_SOURCES) $(EXAMPLE_CPP_INCLUDES)
-	mv *.s $(BUILD)
-	$(ROBJ) -D -s $(BUILD)/$(TEST_TARGET)_linked > $(BUILD)/$(TEST_TARGET).txt
-
 run:
-	cd $(BUILD); ./run
+	cd $(BUILD); ./$(TARGET)
 
 view:
 	gtkwave $(BUILD)/trace.vcd
 
 clean:
-	if test -n "$$(find . -maxdepth 1 -name '*.o' -print -quit)"; then rm *.o; fi
 	if [ -d "$(BUILD)" ]; then rm -rf $(BUILD); fi
 
 clean_all: clean
