@@ -64,6 +64,18 @@ class Elf
       fclose(file);
     }
 
+    void WriteSectionsToBin(vector<string> sections, const char* outfile)
+    {
+      FILE* file = fopen(outfile, "wb");
+      if (file==NULL) {fputs ("Unable to open output file!",stderr); exit (2);}
+      for (auto& section : sections)
+      {
+        Elf32_Shdr* output_section = getSectionByName((char*) section.c_str());
+        size_t bytes_written = fwrite(bytes_ + output_section->sh_offset, sizeof(uint8_t), output_section->sh_size, file);
+      }
+      fclose(file);
+    }
+
     void WriteSectionsToHex(vector<string> sections, const char* outfile, size_t padding)
     {
       size_t index = 0;
@@ -178,6 +190,8 @@ int main(int argc, char** argv)
     ->default_str("out.bin");
   bool boot = false;
   app.add_flag("-b", boot, "write boot loader");
+  bool binary = false;
+  app.add_flag("--bin", binary, "write output to binary");
 
   CLI11_PARSE(app, argc, argv);
 
@@ -195,9 +209,16 @@ int main(int argc, char** argv)
   }
 
   Elf elf(filename.c_str());
-  elf.WriteSectionsToHex(
-    sections, 
-    outfile.c_str(), 
-    program_size
-  );
+
+  if (binary)
+    elf.WriteSectionsToBin(
+      sections, 
+      outfile.c_str()
+    );
+  else
+    elf.WriteSectionsToHex(
+      sections, 
+      outfile.c_str(), 
+      program_size
+    );
 }

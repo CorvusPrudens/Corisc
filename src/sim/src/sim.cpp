@@ -12,6 +12,10 @@
 #define CLOCK_COUNT 30000
 #endif
 
+#ifndef PROG_BIN
+#define PROG_BIN "rv32i.bin"
+#endif
+
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
 #define CLOCK_PS CLOCK_NS * 100.0 // Apparently 1ps is gtkwave's thing
 #define CLK_I clk_i
@@ -23,60 +27,10 @@
 #include "uart.h"
 #include "spi_flash.h"
 #include "sram16.h"
+#include "utils.h"
 
 Sram16 sram;
 Flash flash;
-
-void tick(Vrv32i *tb, VerilatedVcdC *tfp, unsigned logicStep)
-{
-  tb->eval();
-
-  #ifdef TRACE
-    if (tfp) tfp->dump(logicStep * CLOCK_PS - CLOCK_PS*0.2);
-  #endif
-
-  tb->CLK_I = 1;
-  tb->eval();
-
-  sram.Tick(
-    tb->SRAM_O, 
-    &tb->SRAM_I, 
-    tb->SRAM_ADDR, 
-    tb->SRAM_WE, 
-    tb->SRAM_CE, 
-    tb->SRAM_UB, 
-    tb->SRAM_LB, 
-    tb->SRAM_OE
-  );
-  flash.Tick(tb->FLASH_SDI, &tb->FLASH_SDO, tb->FLASH_SCK, tb->FLASH_CS);
-
-  #ifdef TRACE
-    if (tfp) tfp->dump(logicStep * CLOCK_PS);
-  #endif
-
-  tb->CLK_I = 0;
-  tb->eval();
-
-  sram.Tick(
-    tb->SRAM_O, 
-    &tb->SRAM_I, 
-    tb->SRAM_ADDR, 
-    tb->SRAM_WE, 
-    tb->SRAM_CE, 
-    tb->SRAM_UB, 
-    tb->SRAM_LB, 
-    tb->SRAM_OE
-  );
-  flash.Tick(tb->FLASH_SDI, &tb->FLASH_SDO, tb->FLASH_SCK, tb->FLASH_CS);
-
-  #ifdef TRACE
-    if (tfp){
-      tfp->dump(logicStep * CLOCK_PS + CLOCK_PS*0.5);
-      tfp->flush();
-    }
-  #endif
-
-}
 
 int main(int argc, char** argv) 
 {
@@ -131,16 +85,14 @@ int main(int argc, char** argv)
     {
       if (*ram_test++ != flash[i])
         success = false;
-      // if (*(ram_test-1) != flash[i])
-      // {
-      //   printf("ram: %d, flash: %d at index %d\n", *(ram_test - 1), flash[i], i - start_addr);
-      // }
     }
     if (success)
       printf("Bootloader test passed!\n");
     else
       printf("Bootloader test failed :c\n");
   #else
+
+    LoadProgram(PROG_BIN, (uint8_t*) sram.memory);
     for (size_t i = 0; i < clock_count; i++)
     {
       go = messageManagerStatic(status, &sendword, out, true);

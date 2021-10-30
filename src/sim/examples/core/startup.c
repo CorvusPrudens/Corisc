@@ -8,12 +8,13 @@ extern void *_sbss, *_ebss;
 void entry();
 int main();
 void systick();
+void GpuHandler();
 void default_handler();
 
 void * MEM_VECTOR_TABLE vector_table[] = {
   &entry,
   &systick,
-  &default_handler,
+  &GpuHandler,
   &default_handler,
   &default_handler,
   &default_handler,

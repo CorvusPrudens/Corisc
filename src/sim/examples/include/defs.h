@@ -43,4 +43,7 @@
 #define TIMER_COMPARE *((volatile uint16_t*) 0x0000100E)
 #define TIMER_PRESCALAR *((volatile uint16_t*) 0x00001010)
 
+#define TIMER_INT_BIT 0b00000001
+#define GPU_INT_BIT 0b00000010
+
 #endif

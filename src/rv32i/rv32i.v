@@ -9,6 +9,7 @@
 `include "uartwrapper.v"
 `include "sram16.v"
 `include "timer.v"
+`include "gpu.v"
 
 `ifndef PROGRAM_PATH
 `define PROGRAM_PATH "program.hex"
@@ -16,6 +17,10 @@
 
 `ifndef MICROCODE_PATH
 `define MICROCODE_PATH "microcode.hex"
+`endif
+
+`ifndef GPU_INIT_PATH
+`define GPU_INIT_PATH "initdata.hex"
 `endif
 
 module rv32i(
@@ -38,7 +43,13 @@ module rv32i(
     output wire FLASH_CS,
     output wire FLASH_SCK,
     output wire FLASH_SDI,
-    input wire  FLASH_SDO
+    input wire  FLASH_SDO,
+
+    output wire DIS_CS,
+    output wire DIS_RES,
+    output wire DIS_SDI,
+    output wire DIS_SCK,
+    output wire DIS_DC
   );
 
   localparam XLEN = 32;
@@ -169,9 +180,9 @@ module rv32i(
     .REGION_1_B(32'h00001000),
     .REGION_1_E(32'h00001040),
     .REGION_2_B(32'h00002000),
-    .REGION_2_E(32'h00002400),
-    .REGION_3_B(32'h00004000),
-    .REGION_3_E(32'h00004018),
+    .REGION_2_E(32'h00004004),
+    .REGION_3_B(32'h00005000),
+    .REGION_3_E(32'h00005018),
     .REGION_4_B(32'h00009000),
     .REGION_4_E(32'h00009004),
     .REGION_5_B(32'h0000A000),
@@ -244,6 +255,24 @@ module rv32i(
     .intVec_o(int_src_timer)
   );
 
+  wire int_src_gpu;
+  gpu #(
+    .gpuSize_p(9),
+    .gpuInputWidth_p(12),
+    .initData_p(`GPU_INIT_PATH)
+  ) GPU (
+    .clk_i(clk_i),
+    .write_i(memory_region[2] & memory_write),
+    .waddr_i(memory_addr[12:1]),
+    .data_i(memory_in),
+    .SDO(DIS_SDI),
+    .SCK(DIS_SCK),
+    .DC(DIS_DC),
+    .CS(DIS_CS),
+    .RES(DIS_RES),
+    .intVec_o(int_src_gpu)
+  );
+
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
   // of 16 will actually ignore the lsb of the address
   `ifdef BOOTLOADER
@@ -287,7 +316,7 @@ module rv32i(
   );
 
   assign interrupt_vector[0] = int_src_timer;
-  assign interrupt_vector[1] = 1'b0;
+  assign interrupt_vector[1] = int_src_gpu;
   assign interrupt_vector[2] = 1'b0;
   assign interrupt_vector[3] = 1'b0;
   assign interrupt_vector[4] = 1'b0;

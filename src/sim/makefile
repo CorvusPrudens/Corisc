@@ -31,8 +31,7 @@ CPP_FLAGS = -DBOOTLOADER
 else
 VERILOG_DEFS = \
 -DSIM \
--DMICROCODE_PATH=\"$(MICROCODE)\" \
--DPROGRAM_PATH=\"$(PROGRAM)\" 
+-DMICROCODE_PATH=\"$(MICROCODE)\"
 endif
 TARGET = rv32i
 
@@ -49,6 +48,7 @@ RISCV_TARGET = riscv
 BOOTLOADER_TARGET = bootloader
 
 CPP_SOURCES = src/sim.cpp \
+src/modules/util.cpp \
 src/modules/spi_flash.cpp \
 src/modules/sram16.cpp \
 ${VERILATOR_INCL}/include/verilated.cpp \
@@ -63,19 +63,22 @@ CPP_INCLUDES = \
 
 CPP_FLAGS += \
 -std=c++17 \
--DTRACE_FILE=\"$(TRACE_FILE)\"
+-DTRACE_FILE=\"$(TRACE_FILE)\" \
+-DPROG_BIN=\"$(BUILD)/$(RISCV_TARGET).bin\"
 
 RISCV_SOURCES = \
 examples/test.c \
-examples/startup.c
+examples/core/startup.c
 
 BOOTLOADER_SOURCES = \
-examples/bootloader.c \
-examples/startup.c
+examples/core/bootloader.c \
+examples/core/startup.c
 
 RISCV_INCLUDES = \
 -I./examples \
--I./examples/include
+-I./examples/include \
+-I./examples/core \
+-I./examples/modules
 
 RISCV_FLAGS = -Wunused-function
 
@@ -105,19 +108,19 @@ SORTED_BOOT = $(sort $(BOOTLOADER_OBJECTS))
 	debug verilate_debug compile_debug compile_bootloader
 
 all: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
-	$(MAKE) verilate PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) verilate 
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) CLOCK_COUNT="-DCLOCK_COUNT=14318180"
-	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex 
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 
 trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
-	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) verilate_trace 
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE"
-	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 
 debug: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
-	$(MAKE) verilate_debug PROGRAM=$(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) verilate_debug 
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) DEBUG=1
-	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).hex
+	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin
 
 boot: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
@@ -158,10 +161,10 @@ $(BUILD)/%.ob: %.c makefile | $(BUILD)
 $(BUILD)/$(TARGET): $(SORTED_OBJECTS) makefile
 	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@
 
-$(BUILD)/$(RISCV_TARGET).hex: $(SORTED_RISCV) $(LDSCRIPT) makefile
+$(BUILD)/$(RISCV_TARGET).bin: $(SORTED_RISCV) $(LDSCRIPT) makefile
 	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) $(SORTED_RISCV) \
 		-o $(BUILD)/$(RISCV_TARGET).elf --print-memory-usage -Map $(BUILD)/$(RISCV_TARGET).map
-	$(ELF_UTIL) $(BUILD)/$(RISCV_TARGET).elf -o $@
+	$(ELF_UTIL) --bin $(BUILD)/$(RISCV_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(RISCV_TARGET).elf > $(BUILD)/$(RISCV_TARGET).obj
 
 $(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) $(BOOT_LDSCRIPT) makefile
