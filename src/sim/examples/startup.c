@@ -7,10 +7,19 @@ extern void *_sbss, *_ebss;
 
 void entry();
 int main();
+void systick();
 
-void * MEM_VECTOR_TABLE vector_table[1] = {
-  &entry
+void * MEM_VECTOR_TABLE vector_table[] = {
+  &entry,
+  &systick,
 };
+
+volatile uint32_t counter = 0;
+
+void OPT_Os INTERRUPT systick()
+{
+  counter++;
+}
 
 // void * OPT_O3 memcpy(void* dest, const void* src, unsigned int count)
 // {

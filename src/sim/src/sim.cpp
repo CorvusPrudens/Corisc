@@ -9,7 +9,7 @@
 #endif
 
 #ifndef CLOCK_COUNT
-#define CLOCK_COUNT 3000000
+#define CLOCK_COUNT 30000
 #endif
 
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision

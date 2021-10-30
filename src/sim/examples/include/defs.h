@@ -36,7 +36,11 @@
 #define FLASH_STATUS *((volatile uint16_t*) 0x00001006)
 #define FLASH_PAGE_LEN 256
 
-#define INTERRUPT_VECTOR *((volatile uint16_t*) 0x00001008)
-#define INTERRUPT_MASK   *((volatile uint16_t*) 0x0000100A)
+#define INTERRUPT_VECTOR *((volatile uint16_t*) 0x0000100A)
+#define INTERRUPT_MASK   *((volatile uint16_t*) 0x00001008)
+
+#define TIMER_STATE *((volatile uint16_t*) 0x0000100C)
+#define TIMER_COMPARE *((volatile uint16_t*) 0x0000100E)
+#define TIMER_PRESCALAR *((volatile uint16_t*) 0x00001010)
 
 #endif

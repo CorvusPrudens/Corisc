@@ -20,7 +20,7 @@ module rv32i_interrupts
 
   reg [INT_VECT_LEN-1:0] interrupt_mask = 0;
   assign interrupt_mask_o = interrupt_mask;
-  wire [INT_VECT_LEN-1:0] interrupt_masked = interrupt_vector_i & ~interrupt_mask;
+  wire [INT_VECT_LEN-1:0] interrupt_masked = interrupt_vector_i & interrupt_mask;
   reg [INT_VECT_LEN-1:0] interrupt_vector = 0;
   assign interrupt_vector_o = interrupt_handling;
 
@@ -75,11 +75,11 @@ module rv32i_interrupts
   reg [2:0] interrupt_vector_offset;
   always @(*) begin
     case (interrupt_handling)
-      5'h01: interrupt_vector_offset = 3'h0;
-      5'h02: interrupt_vector_offset = 3'h1;
-      5'h04: interrupt_vector_offset = 3'h2;
-      5'h08: interrupt_vector_offset = 3'h3;
-      5'h10: interrupt_vector_offset = 3'h4;
+      5'h01: interrupt_vector_offset = 3'h1;
+      5'h02: interrupt_vector_offset = 3'h2;
+      5'h04: interrupt_vector_offset = 3'h3;
+      5'h08: interrupt_vector_offset = 3'h4;
+      5'h10: interrupt_vector_offset = 3'h5;
       default: interrupt_vector_offset = 0;
     endcase
   end

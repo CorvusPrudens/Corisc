@@ -4,13 +4,6 @@
 // uint8_t flash_buffer[256];
 uint8_t* progmem_ptr;
 
-volatile uint32_t counter = 0;
-
-void OPT_Os INTERRUPT systick()
-{
-  counter++;
-}
-
 uint8_t OPT_Os flash_write(uint8_t* data, size_t len, uint16_t page)
 {
   // for now we'll just write one page at a time
@@ -82,7 +75,13 @@ int OPT_Os main()
   // INTERRUPT_MASK = mask;
   // UART = INTERRUPT_MASK;
 
-  load_progmem((uint8_t*) MEM_PROGMEM_ADDR, page_addr, 256);
+  INTERRUPT_MASK = 1;
+  volatile uint16_t timer_compare = 100;
+  TIMER_COMPARE = timer_compare;
+  UART = TIMER_COMPARE;
+  TIMER_STATE = 1;
+
+  // load_progmem((uint8_t*) MEM_PROGMEM_ADDR, page_addr, 256);
 
   // write_string("Completed program setup!\n");
 }

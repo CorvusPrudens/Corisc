@@ -47,7 +47,7 @@ module rv32i_control
     input wire alu_less_signed_i,
 
     output reg [XLEN-1:0] pc_o,
-    output reg pc_write_o,
+    output wire pc_write_o,
 
     input wire [INST_BITS-1:0] memory_i,
 
@@ -135,7 +135,7 @@ module rv32i_control
     .interrupt_mask_write_i(interrupt_mask_write_i),
     .interrupt_vector_offset_o(interrupt_vector_offset),
     .interrupt_state_o(interrupt_state),
-    .interrupt_advance_i(microcode_step == 0)
+    .interrupt_advance_i(pc_save_uepc)
   );
 
   reg initial_reset = 0;
@@ -186,7 +186,8 @@ module rv32i_control
   sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT4 ( .data_i(s_immediate), .data_o(store_offset) );
   wire [XLEN-1:0] store_offset_add = store_offset + rs1_i;
 
-  wire [XLEN-1:0] vtable_addr = {VECTOR_TABLE[31:2], reset_delay[0] | ~pc_save_uepc, 1'b0} + interrupt_vector_offset;
+  wire vtable_tick = ~initial_reset ? reset_delay[0] : ~pc_save_uepc;
+  wire [XLEN-1:0] vtable_addr = {VECTOR_TABLE[31:2], vtable_tick, 1'b0} + interrupt_vector_offset;
 
   always @(*) begin
     case (mem_addr_src)
@@ -225,13 +226,10 @@ module rv32i_control
 
   // for the fetch cycles, the address should
   // always point to the beginning of the memory
-  wire [4:0] microcode_mux1 = microcode_step < FETCH_SIZE ? 
+  wire [4:0] microcode_mux = microcode_step < FETCH_SIZE ? 
     microcode_step : microcode_step + operand_offset;
 
-  wire [4:0] microcode_mux2 = (microcode_step == 0 && interrupt_state[0]) ? 
-    microcode_step + INTERRUPT_OFFSET : microcode_mux1;
-
-  wire [4:0] microcode_addr = microcode_mux2;
+  wire [4:0] microcode_addr = microcode_mux;
 
   bram_init #(
     .memSize_p(5),
@@ -253,7 +251,9 @@ module rv32i_control
   end
 
   always @(posedge clk_i) begin
-    if (write_lower_instr) begin
+    if (write_lower_instr & interrupt_state[0]) begin
+      operand_offset <= INTERRUPT_OFFSET;
+    end else if (write_lower_instr) begin
       case (memory_i[6:2])
           OP_L:     
             begin
@@ -308,7 +308,7 @@ module rv32i_control
   reg [XLEN-1:0] uepc = 0;
   always @(posedge clk_i)
     if (pc_save_uepc)
-      uepc <= pc_i;
+      uepc <= pc_i - 32'd4;
 
   always @(*) begin
     case (pc_src)
@@ -377,15 +377,18 @@ module rv32i_control
     endcase
   end 
 
+  reg pc_write_mux;
+  assign pc_write_o = mem_addr_vtable ? 1'b1 : pc_write_mux;
+
   always @(*) begin
     case ({cond_write_pc, funct3_o})
-      default: pc_write_o = pc_write | ~initial_reset;
-      4'b1000: pc_write_o = alu_equal_i;
-      4'b1001: pc_write_o = ~alu_equal_i;
-      4'b1100: pc_write_o = alu_less_signed_i;
-      4'b1101: pc_write_o = ~alu_less_signed_i;
-      4'b1110: pc_write_o = alu_less_i;
-      4'b1111: pc_write_o = ~alu_less_i;
+      default: pc_write_mux = pc_write | ~initial_reset;
+      4'b1000: pc_write_mux = alu_equal_i;
+      4'b1001: pc_write_mux = ~alu_equal_i;
+      4'b1100: pc_write_mux = alu_less_signed_i;
+      4'b1101: pc_write_mux = ~alu_less_signed_i;
+      4'b1110: pc_write_mux = alu_less_i;
+      4'b1111: pc_write_mux = ~alu_less_i;
     endcase
   end
 
