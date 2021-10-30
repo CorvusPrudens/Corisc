@@ -18,7 +18,16 @@
 
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
 #define CLOCK_PS CLOCK_NS * 100.0 // Apparently 1ps is gtkwave's thing
-#define CLK_I clk_i
+
+#define SCALE 5
+#define WIDTH 128
+#define HEIGHT 64
+#define XOFFSET 8
+#define YOFFSET 8
+#define CLOCKS_PER_FRAME 238636.3
+
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 
 #include "Vrv32i.h"
 #include "verilated.h"
@@ -34,6 +43,133 @@ Flash flash;
 
 int main(int argc, char** argv) 
 {
+
+  ///////////////////////////////////////////////////////////////
+  // GL stuff
+  ///////////////////////////////////////////////////////////////
+  uint32_t glBuffer[WIDTH*HEIGHT] = {0xFF000000};
+
+  const GLchar* vertexSource = R"glsl(
+      #version 150 core
+      in vec2 position;
+      in vec2 texcoord;
+      out vec2 Texcoord;
+      void main()
+      {
+          Texcoord = texcoord;
+          gl_Position = vec4(position, 0.0, 1.0);
+      }
+  )glsl";
+  const GLchar* fragmentSource = R"glsl(
+      #version 150 core
+      in vec2 Texcoord;
+      out vec4 outColor;
+      uniform sampler2D tex;
+      void main()
+      {
+          outColor = texture(tex, Texcoord);
+      }
+  )glsl";
+
+  glfwInit();
+
+  #ifdef __APPLE__
+  glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 2);
+  glfwWindowHint (GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  GLFWwindow* window = glfwCreateWindow(1440, 720, "CPU", nullptr, nullptr); // Windowed
+  #else
+  glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+  GLFWwindow* window = glfwCreateWindow(1920, 960, "CPU", nullptr, nullptr);
+  #endif
+
+  glfwSetKeyCallback(window, key_callback);
+
+  glfwSwapInterval(1);
+  glfwMakeContextCurrent(window);
+  glewExperimental = GL_TRUE;
+  glewInit();
+
+  // Create Vertex Array Object
+  GLuint vao;
+  glGenVertexArrays(1, &vao);
+  glBindVertexArray(vao);
+
+  // Create a Vertex Buffer Object and copy the vertex data to it
+  GLuint vbo;
+  glGenBuffers(1, &vbo);
+
+  GLfloat vertices[] = {
+  //  Position      Color             Texcoords
+      -1.0f,  1.0f,  0.0f, 0.0f, // Top-left
+       1.0f,  1.0f,  1.0f, 0.0f, // Top-right
+       1.0f, -1.0f,  1.0f, 1.0f, // Bottom-right
+      -1.0f, -1.0f,  0.0f, 1.0f  // Bottom-left
+  };
+
+  glBindBuffer(GL_ARRAY_BUFFER, vbo);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+  // Create an element array
+  GLuint ebo;
+  glGenBuffers(1, &ebo);
+
+  GLuint elements[] = {
+      0, 1, 2,
+      2, 3, 0
+  };
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
+
+  // Create and compile the vertex shader
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, &vertexSource, NULL);
+  glCompileShader(vertexShader);
+
+  // Create and compile the fragment shader
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, &fragmentSource, NULL);
+  glCompileShader(fragmentShader);
+
+  // Link the vertex and fragment shader into a shader program
+  GLuint shaderProgram = glCreateProgram();
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+  glBindFragDataLocation(shaderProgram, 0, "outColor");
+  glLinkProgram(shaderProgram);
+  glUseProgram(shaderProgram);
+
+  // Specify the layout of the vertex data
+  GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+  glEnableVertexAttribArray(posAttrib);
+  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+
+  // GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
+  // glEnableVertexAttribArray(colAttrib);
+  // glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+  GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+  glEnableVertexAttribArray(texAttrib);
+  glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+
+  // Load texture
+  GLuint tex;
+  glGenTextures(1, &tex);
+  glBindTexture(GL_TEXTURE_2D, tex);
+
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, WIDTH, HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, glBuffer);
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+  ///////////////////////////////////////////////////////////////
+  // GL stuff end
+  ///////////////////////////////////////////////////////////////
+
   Verilated::commandArgs(argc, argv);
   Verilated::traceEverOn(true);
 
@@ -60,12 +196,6 @@ int main(int argc, char** argv)
   tb->RX = 1;
   tick(tb, tfp, ++logicStep);
 
-  // for (int i = 0; i < 256; i++)
-  // {
-  //   size_t address = 0x300000 + i;
-  //   flash[address] = 255 - i;
-  // }
-
   // Bootloader verification
   #ifdef BOOTLOADER
     size_t start_addr = 0x300000;
@@ -76,7 +206,7 @@ int main(int argc, char** argv)
     {
       go = messageManagerStatic(status, &sendword, out, false);
       status = uart(tb, go, sendword, &out);
-      tick(tb, tfp, ++logicStep);
+      tick(tb, tfp, sram, flash, ++logicStep);
     }
 
     bool success = true;
@@ -99,6 +229,30 @@ int main(int argc, char** argv)
       status = uart(tb, go, sendword, &out);
       tick(tb, tfp, ++logicStep);
     }
+
+
+    for (int j = 0; j < NUM_FRAMES; ) {
+      for (int i = 0; i < CLOCKS_PER_FRAME; i++) {
+        go = messageManagerStatic(status, &sendword, out, true);
+        status = uart(tb, go, sendword, &out);
+        tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
+        if (tb->FRAME_SYNC) {
+          updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
+          writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
+          j++;
+          currentFrame++;
+        }
+      }
+      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, glBuffer);
+      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+      glfwSwapBuffers(window);
+      glfwPollEvents();
+      if (endExecution) {
+        break;
+      }
+    }
+
   #endif
 
   tb->final();
