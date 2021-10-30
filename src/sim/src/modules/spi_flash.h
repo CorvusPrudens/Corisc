@@ -67,6 +67,8 @@ class Flash {
 
         uint8_t& operator[](size_t index) { return memory[index]; }
 
+        bool debug;
+
     private:
 
         State MatchCommand();
@@ -121,7 +123,6 @@ class Flash {
 
         bool snoozy;
         bool writeEnabled;
-        bool debug;
 
         uint8_t sdo_intern;
 };

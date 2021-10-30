@@ -132,7 +132,7 @@ void Flash::Write(uint8_t sdi, uint8_t* sdo, uint8_t clk, uint8_t ce, bool clock
                 {
                     address |= (sdi & 1) << bitPosAddress--;
                     if (bitPosAddress == -1 && debug)
-                        printf("Address: %d | %d\n", address, address % pageSize_p);
+                        printf("Address: 0x%X | %d\n", address, address % pageSize_p);
                 }
             }
         }
@@ -179,11 +179,14 @@ void Flash::Read(uint8_t sdi, uint8_t* sdo, uint8_t clk, uint8_t ce, bool clocke
                         bitPosGeneral = 7;
                     }
                 }
-                else
+            }
+            else
+            {
+                if (bitPosAddress != -1)
                 {
                     address |= (sdi & 1) << bitPosAddress--;
                     if (bitPosAddress == -1 && debug)
-                        printf("Address: %d | %d\n", address, address % pageSize_p);
+                        printf("Address: 0x%X | %d\n", address, address % pageSize_p);
                 }
             }
         }

@@ -664,8 +664,10 @@ module flash(
               begin
                 if (~spiBusy) begin
                   if (bramWriteAddrP1[8]) begin
+                    bramWriteAddr <= 0;
                     read_sm <= SM_READ_R1;
                     flash_sm <= SM_DONE;
+                    bramDataIn <= {8'b0, spiDataOut};
                     bramWrite <= 1'b1;
                     spiStart <= 1'b0;
                     cs <= 1'b0;
@@ -830,7 +832,6 @@ module flash(
         begin
           flash_sm    <= SM_DONE_B;
           bramWrite <= 1'b0;
-          bramWriteAddr <= 0;
           resetStatus <= 1'b1;
         end
       SM_DONE_B:
