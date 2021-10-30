@@ -70,8 +70,13 @@ class Elf
       if (file==NULL) {fputs ("Unable to open output file!",stderr); exit (2);}
       for (auto& section : sections)
       {
-        Elf32_Shdr* output_section = getSectionByName((char*) section.c_str());
-        size_t bytes_written = fwrite(bytes_ + output_section->sh_offset, sizeof(uint8_t), output_section->sh_size, file);
+        try 
+        {
+          Elf32_Shdr* output_section = getSectionByName((char*) section.c_str());
+          size_t bytes_written = fwrite(bytes_ + output_section->sh_offset, sizeof(uint8_t), output_section->sh_size, file);
+        }
+        catch (int e) {}
+        
       }
       fclose(file);
     }
@@ -199,12 +204,12 @@ int main(int argc, char** argv)
   size_t program_size;
   if (boot)
   {
-    sections = {".vector_table", ".text", ".bootloader", ".bootdata", ".sdata", ".data"};
+    sections = {".vector_table", ".text", ".bootloader", ".bootdata", ".data"};
     program_size = 1024;
   }
   else
   {
-    sections = {".vector_table", ".text", ".progmem", ".sdata", ".data"};
+    sections = {".vector_table", ".text", ".data"};
     program_size = 65536;
   }
 

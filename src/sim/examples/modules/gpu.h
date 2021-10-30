@@ -3,10 +3,10 @@
 
 #include "defs.h"
 
-volatile uint16_t MEM_GPU FrameBuffer[512];
-volatile uint32_t MEM_GPU RequestBuffer[256];
-volatile uint16_t MEM_GPU SpriteBuffer[1024];
-volatile uint16_t MEM_GPU CharacterBuffer[1024];
+extern volatile uint16_t MEM_GPU FrameBuffer[512];
+extern volatile uint32_t MEM_GPU RequestBuffer[256];
+extern volatile uint16_t MEM_GPU SpriteBuffer[1024];
+extern volatile uint16_t MEM_GPU CharacterBuffer[1024];
 
 #define GPU_CLEAR_ENABLE *((volatile uint16_t*) 0x00004000)
 #define GPU_CLEAR_WORD *((volatile uint16_t*) 0x00004002)
@@ -42,7 +42,7 @@ void DrawString(char* s, uint8_t xpos, uint8_t ypos);
 void SetGpuClear(uint8_t enable, uint16_t clear_word);
 // void WriteRequest(GpuRequest* req);
 
-extern uint16_t* request_ptr;
-extern uint16_t* sprite_ptr;
+extern volatile uint32_t* request_ptr;
+extern volatile uint16_t* sprite_ptr;
 
 #endif

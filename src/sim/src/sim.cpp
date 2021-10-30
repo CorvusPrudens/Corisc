@@ -12,6 +12,10 @@
 #define CLOCK_COUNT 30000
 #endif
 
+#ifndef NUM_FRAMES
+#define NUM_FRAMES 10
+#endif
+
 #ifndef PROG_BIN
 #define PROG_BIN "rv32i.bin"
 #endif
@@ -194,7 +198,8 @@ int main(int argc, char** argv)
   int go = 0;
   int out = 0;
   tb->RX = 1;
-  tick(tb, tfp, ++logicStep);
+  uint8_t displaybuff[WIDTH*(HEIGHT/8)] = {0};
+  tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
 
   // Bootloader verification
   #ifdef BOOTLOADER
@@ -223,13 +228,6 @@ int main(int argc, char** argv)
   #else
 
     LoadProgram(PROG_BIN, (uint8_t*) sram.memory);
-    for (size_t i = 0; i < clock_count; i++)
-    {
-      go = messageManagerStatic(status, &sendword, out, true);
-      status = uart(tb, go, sendword, &out);
-      tick(tb, tfp, ++logicStep);
-    }
-
 
     for (int j = 0; j < NUM_FRAMES; ) {
       for (int i = 0; i < CLOCKS_PER_FRAME; i++) {

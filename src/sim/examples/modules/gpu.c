@@ -1,10 +1,15 @@
 #include "gpu.h"
 
+volatile uint16_t MEM_GPU FrameBuffer[512];
+volatile uint32_t MEM_GPU RequestBuffer[256];
+volatile uint16_t MEM_GPU SpriteBuffer[1024];
+volatile uint16_t MEM_GPU CharacterBuffer[1024];
+
 volatile uint32_t* request_ptr;
 volatile uint16_t* sprite_ptr;
 
-const size_t request_end = RequestBuffer + sizeof(RequestBuffer);
-const size_t sprite_end = SpriteBuffer + sizeof(SpriteBuffer);
+const size_t request_end = (size_t) RequestBuffer + sizeof(RequestBuffer);
+const size_t sprite_end = (size_t) SpriteBuffer + sizeof(SpriteBuffer);
 
 SpriteSource text_source = {
   0,
@@ -27,12 +32,12 @@ SpriteInfo text_info = {
 
 void OPT_Os INTERRUPT GpuHandler()
 {
-  
+
 }
 
-static void OPT_Os WriteRequest(SpriteInfo* req)
+static void OPT_O3 WriteRequest(SpriteInfo* req)
 {
-  if (request_ptr < request_end)
+  if ((size_t) request_ptr < request_end)
   {
     // We really need to get multiplication / division in here
     int16_t frame_offset = 0;
@@ -52,7 +57,7 @@ static void OPT_Os WriteRequest(SpriteInfo* req)
   }
 }
 
-static void OPT_Os LoadSprite(SpriteSource* sprite)
+static void OPT_O3 LoadSprite(SpriteSource* sprite)
 {
   if ((size_t) sprite_ptr + sprite->width - 1 < (size_t) sprite_end)
   {
@@ -72,7 +77,7 @@ static void OPT_Os LoadSprite(SpriteSource* sprite)
   }
 }
 
-void GpuInit()
+void OPT_Os GpuInit()
 {
   ClearRequests();
   ClearSprites();
@@ -91,14 +96,14 @@ inline void OPT_Os ClearRequests()
   request_ptr = RequestBuffer;
 }
 
-void OPT_Os DrawSprite(SpriteInfo* info)
+void OPT_O3 DrawSprite(SpriteInfo* info)
 {
   if (info->source->loaded == 0)
     LoadSprite(info->source);
   WriteRequest(info);
 }
 
-inline void OPT_Os DrawChar(char c, uint8_t xpos, uint8_t ypos)
+inline void OPT_O3 DrawChar(char c, uint8_t xpos, uint8_t ypos)
 {
   text_source.index = (uint16_t) c << 2;
   text_info.xpos = xpos;
@@ -106,7 +111,7 @@ inline void OPT_Os DrawChar(char c, uint8_t xpos, uint8_t ypos)
   WriteRequest(&text_info);
 }
 
-void OPT_Os DrawString(char* s, uint8_t xpos, uint8_t ypos)
+void OPT_O3 DrawString(char* s, uint8_t xpos, uint8_t ypos)
 {
   for ( ; *s != 0; s++)
   {

@@ -2,7 +2,6 @@
 // #include "test.c"
 extern void *_estack;
 extern void *_sidata, *_sdata, *_edata;
-extern void *_sisdata, *_ssdata, *_esdata;
 extern void *_sbss, *_ebss;
 
 void entry();
@@ -53,14 +52,13 @@ void OPT_Os INTERRUPT default_handler()
 // TODO -- should be set to OPT_Os, but we'll need a memcpy and memset def
 void OPT_O1 initialize_data()
 {
-  void **pSource, **pDest;
-	for (pSource = &_sidata, pDest = &_sdata; pDest != &_edata; pSource++, pDest++)
+  // Casting to uint16_t facilitates faster reads and writes, since that's the 
+  // port size of all the memory
+  uint16_t **pSource, **pDest;
+	for (pSource = (uint16_t**)&(_sidata), pDest =  (uint16_t**)&_sdata; pDest !=  (uint16_t**)&_edata; pSource++, pDest++)
 		*pDest = *pSource;
 
-  for (pSource = &_sisdata, pDest = &_ssdata; pDest != &_esdata; pSource++, pDest++)
-		*pDest = *pSource;
-
-	for (pDest = &_sbss; pDest != &_ebss; pDest++)
+	for (pDest =  (uint16_t**)&_sbss; pDest !=  (uint16_t**)&_ebss; pDest++)
 		*pDest = 0;
 }
 
@@ -70,7 +68,6 @@ void __attribute__((naked, noreturn)) entry()
 
   initialize_data();
 
-  // __libc_init_array();
   main();
   for (;;);
 }

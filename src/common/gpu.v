@@ -65,7 +65,6 @@ module gpu
     .data_o(bramOut),
 
     .intVec_o(intVec_o),
-    .data_c(data_c),
     .reset_i(1'b0)
   );
 

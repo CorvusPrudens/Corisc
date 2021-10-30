@@ -48,7 +48,7 @@ RISCV_TARGET = riscv
 BOOTLOADER_TARGET = bootloader
 
 CPP_SOURCES = src/sim.cpp \
-src/modules/util.cpp \
+src/modules/utils.cpp \
 src/modules/spi_flash.cpp \
 src/modules/sram16.cpp \
 ${VERILATOR_INCL}/include/verilated.cpp \
@@ -66,9 +66,16 @@ CPP_FLAGS += \
 -DTRACE_FILE=\"$(TRACE_FILE)\" \
 -DPROG_BIN=\"$(BUILD)/$(RISCV_TARGET).bin\"
 
+ifeq ($(UNAME), Linux)
+LINKER_FLAGS = -lglfw -lGLEW -lGL
+else
+LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW -lsndfile
+endif
+
 RISCV_SOURCES = \
-examples/test.c \
-examples/core/startup.c
+examples/main.c \
+examples/core/startup.c \
+examples/modules/gpu.c
 
 BOOTLOADER_SOURCES = \
 examples/core/bootloader.c \
@@ -82,7 +89,7 @@ RISCV_INCLUDES = \
 
 RISCV_FLAGS = -Wunused-function
 
-LINKER_FLAGS = 
+RISCV_LINKER_FLAGS = 
 
 ifeq ($(DEBUG), 1)
 OPT = -O0
@@ -159,16 +166,16 @@ $(BUILD)/%.ob: %.c makefile | $(BUILD)
 	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
 
 $(BUILD)/$(TARGET): $(SORTED_OBJECTS) makefile
-	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@
+	$(CC) $(LINKER_FLAGS) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@
 
 $(BUILD)/$(RISCV_TARGET).bin: $(SORTED_RISCV) $(LDSCRIPT) makefile
-	$(RLD) $(LINKER_FLAGS) -T$(LDSCRIPT) $(SORTED_RISCV) \
+	$(RLD) $(RISCV_LINKER_FLAGS) -T$(LDSCRIPT) $(SORTED_RISCV) \
 		-o $(BUILD)/$(RISCV_TARGET).elf --print-memory-usage -Map $(BUILD)/$(RISCV_TARGET).map
 	$(ELF_UTIL) --bin $(BUILD)/$(RISCV_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(RISCV_TARGET).elf > $(BUILD)/$(RISCV_TARGET).obj
 
 $(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) $(BOOT_LDSCRIPT) makefile
-	$(RLD) $(LINKER_FLAGS) -T$(BOOT_LDSCRIPT) $(SORTED_BOOT) \
+	$(RLD) $(RISCV_LINKER_FLAGS) -T$(BOOT_LDSCRIPT) $(SORTED_BOOT) \
 		-o $(BUILD)/$(BOOTLOADER_TARGET).elf --print-memory-usage -Map $(BUILD)/$(BOOTLOADER_TARGET).map
 	$(ELF_UTIL) -b $(BUILD)/$(BOOTLOADER_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(BOOTLOADER_TARGET).elf > $(BUILD)/$(BOOTLOADER_TARGET).obj

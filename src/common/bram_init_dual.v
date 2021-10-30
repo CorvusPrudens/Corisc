@@ -1,7 +1,7 @@
 `ifndef INIT_BRAM_DUAL_GUARD
 `define INIT_BRAM_DUAL_GUARD
 
-module bram_init
+module bram_init_dual
   #(
     parameter memSize_p = 8,
     parameter dataWidth_p = 16,
@@ -14,7 +14,7 @@ module bram_init
     input wire [(memSize_p - 1):0]  waddr_i,
     input wire [(memSize_p - 1):0]  raddr_i,
 
-    output wire [(dataWidth_p - 1):0] data_o
+    output reg [(dataWidth_p - 1):0] data_o
   );
 
   reg [(dataWidth_p - 1):0] memory [2**memSize_p];

@@ -29,6 +29,7 @@ module rv32i(
     output TX,
 
     `ifdef SIM
+    output wire FRAME_SYNC,
     output wire [15:0] SRAM_O,
     input wire [15:0] SRAM_I,
     `else
@@ -51,6 +52,10 @@ module rv32i(
     output wire DIS_SCK,
     output wire DIS_DC
   );
+
+  `ifdef SIM
+    assign FRAME_SYNC = int_src_gpu;
+  `endif
 
   localparam XLEN = 32;
   localparam REG_BITS = 5;
