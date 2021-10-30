@@ -81,6 +81,15 @@ module flash(
   wire [7:0]  bramWriteMux = flash_sm[3] ? bramWriteAddr[7:0] : bramWriteAddrBus[7:0];
   reg resetStatus = 0;
 
+  always @(*) begin
+    case (addr_i) 
+      default: data_o = 16'b0;
+      2'b01: data_o = bramDataOut;
+      2'b10: data_o = page;
+      2'b11: data_o = {13'b0, readStatus};
+    endcase
+  end
+
   always @(posedge clk_i) begin
     if (~busy) begin
       if (write_i) begin
@@ -96,13 +105,8 @@ module flash(
         endcase
       end else if (read_i) begin
         case (addr_i)
-          1:
-            begin
-              data_o          <= bramDataOut;
-              bramReadAddrBus <= bramReadAddrBus + 1'b1;
-            end
-          2: data_o <= page;
-          3: data_o <= {13'b0, readStatus};
+          default: ;
+          1: bramReadAddrBus <= bramReadAddrBus + 1'b1;
         endcase
       end else begin
         bramWriteBus <= 1'b0;
@@ -113,7 +117,6 @@ module flash(
         bramReadAddrBus  <= 0;
         bramWriteAddrBus <= 0;
       end
-      data_o <= 16'h0001;
     end
   end
 
@@ -661,7 +664,6 @@ module flash(
               begin
                 if (~spiBusy) begin
                   if (bramWriteAddrP1[8]) begin
-                    bramWriteAddr <= 0;
                     read_sm <= SM_READ_R1;
                     flash_sm <= SM_DONE;
                     bramWrite <= 1'b1;
@@ -828,6 +830,7 @@ module flash(
         begin
           flash_sm    <= SM_DONE_B;
           bramWrite <= 1'b0;
+          bramWriteAddr <= 0;
           resetStatus <= 1'b1;
         end
       SM_DONE_B:
