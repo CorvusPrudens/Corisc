@@ -67,21 +67,18 @@ void OPT_Os write_string(const char* str)
   UART = (uint8_t) 0;
 }
 
+inline void OPT_Os start_timer()
+{
+  INTERRUPT_MASK |= 1;
+  TIMER_COMPARE = 14318;
+  TIMER_STATE = 1;
+}
+
 int OPT_Os main()
 {
   uint16_t page_addr = 0x3000;
 
-  // volatile uint16_t mask = 0b1010;
-  // INTERRUPT_MASK = mask;
-  // UART = INTERRUPT_MASK;
-
-  INTERRUPT_MASK = 1;
-  volatile uint16_t timer_compare = 14318;
-  TIMER_COMPARE = timer_compare;
-  UART = TIMER_COMPARE;
-  TIMER_STATE = 1;
-
-  // load_progmem((uint8_t*) MEM_PROGMEM_ADDR, page_addr, 256);
+  load_progmem((uint8_t*) MEM_PROGMEM_ADDR, page_addr, 256);
 
   // write_string("Completed program setup!\n");
 }
