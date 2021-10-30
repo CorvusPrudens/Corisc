@@ -28,8 +28,7 @@ class Sram16 {
 
     uint16_t& operator[](size_t index) { return memory[index]; }
 
-    private:
-      uint16_t memory[65536];
+    uint16_t memory[65536];
 };
 
 #endif // SRAM16_H
