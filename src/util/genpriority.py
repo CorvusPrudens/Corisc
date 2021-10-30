@@ -1,27 +1,22 @@
 import os
 
-"""
-{interruptVector_i[1] & (interruptVector_i[1] ^ interruptVector_i[0]), interruptVector_i[0]};
-"""
 
-template = """
-wire [{size}:0] {vector};
-"""
+template = "  wire [{size}:0] {vector};"
 
-bit_template = """
-{vector}[{index}] = {{ {src}[{index}] & ~({sources_less}) }};
-"""
+bit_template = "  assign {vector}[{index}] = {src}[{index}] & ~({sources_less});"
 
 def genpriority(vector, size, src, target, line):
   out =[template.format_map({'vector': vector, 'size': size-1})]
-  out.append(f'{vector}[0] = {src}[0];')
+  out.append(f'  assign {vector}[0] = {src}[0];')
   for i in range(1, size):
-    sources_less = '|'.join([f'{src}[{j}]' for j in range(i - 1, -1, -1)])
+    sources_less = ' | '.join([f'{src}[{j}]' for j in range(i - 1, -1, -1)])
     out.append(bit_template.format_map({'vector': vector, 'index': i, 'src': src, 'sources_less': sources_less}))
   
   with open(target, 'r') as file:
     data = [line for line in file]
   
+  line -= 1
+
   if len(data) < line:
     line = len(data - 1)
   

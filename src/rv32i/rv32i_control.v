@@ -14,7 +14,7 @@ module rv32i_control
     ILEN = 32,
     REG_BITS = 5,
     INST_BITS = 16,
-    INITIAL_ADDR = 32'h0,
+    VECTOR_TABLE = 32'h0,
     MICRO_CODE = "microcode.hex",
     INT_VECT_LEN = 5
   )
@@ -58,7 +58,13 @@ module rv32i_control
     output wire immediate_arithmetic_o,
 
     output reg push_ras_o,
-    output reg pop_ras_o
+    output reg pop_ras_o,
+
+    input wire [INT_VECT_LEN-1:0] interrupt_vector_i,
+    input wire [INT_VECT_LEN-1:0] interrupt_mask_i,
+    output wire [INT_VECT_LEN-1:0] interrupt_mask_o,
+    output wire [INT_VECT_LEN-1:0] current_interrupt_o,
+    input wire interrupt_mask_write_i
   );
 
   localparam OP_L     = 5'b00000;
@@ -76,14 +82,6 @@ module rv32i_control
   // TODO -- need to get exception support in here at some point
   reg [5:0] trap_vector = 0;
 
-  localparam 
-  reg [INT_VECT_LEN-1:0] interrupt_vector = 0;
-  reg [INT_VECT_LEN-1:0] interrupt_mask = 0;
-
-  wire [INT_VECT_LEN-1:0] interrupt_vector_lowest = 0;
-
-  
-
   wire [31:0] control_vector_raw;
   wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
@@ -92,8 +90,12 @@ module rv32i_control
   assign memory_write_o = control_vector[1] & ~clk_i;
   wire [2:0] mem_addr_src = control_vector[4:2];
   wire word_size_src = control_vector[5];
-  wire [1:0] immediate_src = control_vector[7:6];
+  // wire [1:0] immediate_src = control_vector[7:6];
+  wire pc_save_uepc = control_vector[6];
+  wire pc_restore_uepc = control_vector[7];
   wire pc_write = control_vector[8];
+  // TODO -- this should be changed to a pc-related name since that' really its function
+  wire mem_addr_vtable = control_vector[9];
   wire microcode_reset = control_vector[10];
   wire write_lower_instr = control_vector[11];
   wire write_upper_instr = control_vector[12];
@@ -102,7 +104,7 @@ module rv32i_control
   wire alu_op2_immediate = control_vector[14];
   assign immediate_arithmetic_o = alu_op2_immediate;
   assign registers_write = control_vector[15];
-  wire [3:0] pc_src = {~initial_reset, control_vector[19:17]};
+  wire [5:0] pc_src = {pc_restore_uepc, mem_addr_vtable, ~initial_reset, control_vector[19:17]};
   wire register_input_pc = control_vector[20];
   wire load_byte = control_vector[21];
   wire load_half = control_vector[27];
@@ -114,6 +116,27 @@ module rv32i_control
   wire cond_write_pc = control_vector[28];
   wire jal_ras = control_vector[29];
   wire jalr_ras = control_vector[30];
+  wire clear_interrupt = control_vector[31];
+
+  wire [XLEN-1:0] interrupt_vector_offset;
+  wire [1:0] interrupt_state;
+
+  rv32i_interrupts #(
+    .XLEN(XLEN),
+    .ILEN(ILEN),
+    .INT_VECT_LEN(INT_VECT_LEN)
+  ) RV32I_INTERRUPTS (
+    .clk_i(clk_i),
+    .clear_interrupt_i(clear_interrupt),
+    .interrupt_vector_i(interrupt_vector_i),
+    .interrupt_vector_o(current_interrupt_o),
+    .interrupt_mask_i(interrupt_mask_i),
+    .interrupt_mask_o(interrupt_mask_o),
+    .interrupt_mask_write_i(interrupt_mask_write_i),
+    .interrupt_vector_offset_o(interrupt_vector_offset),
+    .interrupt_state_o(interrupt_state),
+    .interrupt_advance_i(microcode_step == 0)
+  );
 
   reg initial_reset = 0;
 
@@ -163,9 +186,11 @@ module rv32i_control
   sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT4 ( .data_i(s_immediate), .data_o(store_offset) );
   wire [XLEN-1:0] store_offset_add = store_offset + rs1_i;
 
+  wire [XLEN-1:0] vtable_addr = {VECTOR_TABLE[31:2], reset_delay[0] | ~pc_save_uepc, 1'b0} + interrupt_vector_offset;
+
   always @(*) begin
     case (mem_addr_src)
-      default: memory_addr_o = {INITIAL_ADDR[31:2], reset_delay[0], 1'b0}; // for reading the entry point
+      default: memory_addr_o = vtable_addr;
       3'b001: memory_addr_o = program_counter_i;
       3'b010: memory_addr_o = add_mem_addr ? load_offset_add + 32'd2 : load_offset_add;
       3'b100: memory_addr_o = add_mem_addr ? store_offset_add + 32'd2 : store_offset_add;
@@ -177,16 +202,6 @@ module rv32i_control
   // (might be useful for detecting errors tho)
   
   wire [2:0] word_size_o = word_size_src ? funct3_o : 3'b001;
-
-  reg [XLEN-1:0] immediate_switch;
-  always @(*) begin
-    case (immediate_src)
-      default: immediate_switch = 0;
-      2'b00: immediate_switch = load_offset;
-      2'b01: immediate_switch = {20'b0, i_immediate};
-      2'b10: immediate_switch = {u_immediate, 12'b0};
-    endcase
-  end
 
   // assign immediate_o = unsigned_immediate ? {i_immediate} : load_offset;
 
@@ -210,9 +225,13 @@ module rv32i_control
 
   // for the fetch cycles, the address should
   // always point to the beginning of the memory
-  wire [4:0] microcode_mux = microcode_step < FETCH_SIZE ? 
+  wire [4:0] microcode_mux1 = microcode_step < FETCH_SIZE ? 
     microcode_step : microcode_step + operand_offset;
-  wire [4:0] microcode_addr = microcode_mux;
+
+  wire [4:0] microcode_mux2 = (microcode_step == 0 && interrupt_state[0]) ? 
+    microcode_step + INTERRUPT_OFFSET : microcode_mux1;
+
+  wire [4:0] microcode_addr = microcode_mux2;
 
   bram_init #(
     .memSize_p(5),
@@ -266,6 +285,8 @@ module rv32i_control
     end
   end
 
+  localparam INTERRUPT_OFFSET = 17;
+
   wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i - 32'd4 : {u_immediate, 12'b0};
 
   wire [2:0] registers_in_state = {register_input_pc, (load_word | load_half | load_byte), registers_input_imm};
@@ -284,13 +305,20 @@ module rv32i_control
   wire [XLEN-1:0] j_reg = load_offset + rs1_i;
   wire [XLEN-1:0] instruction_addr = (pc_i - 32'd4);
 
+  reg [XLEN-1:0] uepc = 0;
+  always @(posedge clk_i)
+    if (pc_save_uepc)
+      uepc <= pc_i;
+
   always @(*) begin
     case (pc_src)
       default: pc_o = pc_i + (INST_BITS / 8);
-      4'b0001: pc_o = j_immediate + instruction_addr;
-      4'b0010: pc_o = {j_reg[XLEN-1:1], 1'b0};
-      4'b0100: pc_o = b_immediate + instruction_addr;
-      4'b1000: pc_o = reset_delay[0] ? {memory_i, pc_i[15:0]} : {pc_i[31:16], memory_i};
+      6'b000001: pc_o = j_immediate + instruction_addr;
+      6'b000010: pc_o = {j_reg[XLEN-1:1], 1'b0};
+      6'b000100: pc_o = b_immediate + instruction_addr;
+      6'b001000: pc_o = reset_delay[0] ? {memory_i, pc_i[15:0]} : {pc_i[31:16], memory_i};
+      6'b010000: pc_o = pc_save_uepc ? {pc_i[31:16], memory_i} : {memory_i, pc_i[15:0]};
+      6'b100000: pc_o = uepc;
     endcase
   end
 

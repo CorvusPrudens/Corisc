@@ -10,6 +10,8 @@
 #define OPT_O2 __attribute__((optimize("O2")))
 #define OPT_O1 __attribute__((optimize("O1")))
 
+#define INTERRUPT __attribute__((interrupt))
+
 #define MEM_BOOTLOADER __attribute__((section(".bootloader")))
 #define MEM_GENERAL __attribute__((section(".general")))
 #define MEM_GPU __attribute__((section(".gpu")))
@@ -33,5 +35,8 @@
 #define FLASH_PAGE *((volatile uint16_t*) 0x00001004)
 #define FLASH_STATUS *((volatile uint16_t*) 0x00001006)
 #define FLASH_PAGE_LEN 256
+
+#define INTERRUPT_VECTOR *((volatile uint16_t*) 0x00001008)
+#define INTERRUPT_MASK   *((volatile uint16_t*) 0x0000100A)
 
 #endif

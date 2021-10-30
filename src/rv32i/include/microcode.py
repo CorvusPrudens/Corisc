@@ -10,10 +10,10 @@ operation_bits = {
   'mem_addr_load': 3,
   'mem_addr_store': 4,
   'word_size_src': 5,
-  'i_immediate': 6,
-  'u_immediate': 7,
+  'pc_save_uepc': 6,
+  'pc_restore_uepc': 7,
   'write_pc': 8,
-  # 'increment_pc': 9,
+  'mem_addr_vtable': 9,
   'micro_reset': 10,
   'write_lower_instr': 11,
   'write_upper_instr': 12,
@@ -35,6 +35,7 @@ operation_bits = {
   'cond_write_pc': 28,
   'jal_ras': 29,
   'jalr_ras': 30,
+  'clear_interrupt': 31,
 }
 
 operations = {
@@ -104,9 +105,17 @@ operations = {
     ['register_input_pc', 'registers_write', 'pc_src_j', 'write_pc', 'jal_ras', 'micro_reset'],
   ],
 
-  # These two are just nops
-  'op_e' : [
-    ['micro_reset'],
+  # # This is just a nop
+  # 'op_e' : [
+  #   ['micro_reset'],
+  # ],
+  'op_mret' : [
+    ['write_pc', 'pc_restore_uepc', 'clear_interrupt', 'micro_reset'],
+  ],
+
+  'pseudo_op_interrupt' : [
+    ['pc_save_uepc', 'write_pc', 'mem_addr_vtable'],
+    ['write_pc', 'mem_addr_vtable', 'micro_reset'],
   ],
 }
 

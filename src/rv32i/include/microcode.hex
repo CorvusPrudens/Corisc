@@ -28,5 +28,7 @@
  40148500
 // op_jal (offset: 15 words)
  20128500
-// op_e (offset: 16 words)
- 00000400
+// op_mret (offset: 16 words)
+ 80000580
+// pseudo_op_interrupt (offset: 17 words)
+ 00000340 00000700

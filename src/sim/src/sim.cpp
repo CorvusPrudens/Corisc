@@ -120,7 +120,7 @@ int main(int argc, char** argv)
 
     for (size_t i = 0; i < clock_count; i++)
     {
-      go = messageManagerStatic(status, &sendword, out, true);
+      go = messageManagerStatic(status, &sendword, out, false);
       status = uart(tb, go, sendword, &out);
       tick(tb, tfp, ++logicStep);
     }
@@ -131,10 +131,10 @@ int main(int argc, char** argv)
     {
       if (*ram_test++ != flash[i])
         success = false;
-      if (*(ram_test-1) != flash[i])
-      {
-        printf("ram: %d, flash: %d at index %d\n", *(ram_test - 1), flash[i], i - start_addr);
-      }
+      // if (*(ram_test-1) != flash[i])
+      // {
+      //   printf("ram: %d, flash: %d at index %d\n", *(ram_test - 1), flash[i], i - start_addr);
+      // }
     }
     if (success)
       printf("Bootloader test passed!\n");

@@ -44,6 +44,10 @@ module rv32i(
   localparam REG_BITS = 5;
   localparam MEM_LEN = 16;
 
+  localparam INT_VECT_LEN = 5;
+
+  wire [INT_VECT_LEN-1:0] interrupt_vector;
+
   wire registers_write;
   wire registers_pc_write;
   wire [XLEN-1:0] registers_data;
@@ -123,20 +127,24 @@ module rv32i(
 
   wire [MEM_LEN-1:0] uart_out;
   wire [MEM_LEN-1:0] flash_out;
+  wire [INT_VECT_LEN-1:0] current_interrupt_vector;
+  wire [INT_VECT_LEN-1:0] current_interrupt_mask;
 
   wire general_uart  = memory_region[1] & (memory_addr[5:0] < 2);
   wire general_flash = memory_region[1] & (memory_addr[5:0] > 1 && memory_addr[5:0] < 8);
+  wire general_interrupt_mask = memory_region[1] & (memory_addr[5:0] == 8);
+  wire general_interrupt_vector = memory_region[1] & (memory_addr[5:0] == 10);
 
-  wire [1:0] general_state = {general_flash, general_uart};
+  wire [3:0] general_state = {general_interrupt_vector, general_interrupt_mask, general_flash, general_uart};
   always @(*) begin
     case (general_state)
       default: general_out = uart_out;
-      2'b01: general_out = uart_out;
-      2'b10: general_out = flash_out;
+      4'b0001: general_out = uart_out;
+      4'b0010: general_out = flash_out;
+      4'b0100: general_out = { {MEM_LEN-INT_VECT_LEN{1'b0}}, current_interrupt_mask};
+      4'b1000: general_out = { {MEM_LEN-INT_VECT_LEN{1'b0}}, current_interrupt_vector};
     endcase
   end
-
-  assign general_out = uart_out;
 
   wire [MEM_LEN-1:0] write_mask;
 
@@ -264,6 +272,8 @@ module rv32i(
     .SRAM_UB(SRAM_UB)
   );
 
+  assign interrupt_vector = 0;
+
   ///////////////////////////////////////////////////////////////
   // Memory mapped modules end
   ///////////////////////////////////////////////////////////////
@@ -274,11 +284,12 @@ module rv32i(
     .REG_BITS(REG_BITS),
     .INST_BITS(MEM_LEN),
     `ifdef BOOTLOADER
-    .INITIAL_ADDR(BOOTLOADER_ADDR),
+    .VECTOR_TABLE(BOOTLOADER_ADDR),
     `else
-    .INITIAL_ADDR(PROGMEM_ADDR),
+    .VECTOR_TABLE(PROGMEM_ADDR),
     `endif
-    .MICRO_CODE(`MICROCODE_PATH)
+    .MICRO_CODE(`MICROCODE_PATH),
+    .INT_VECT_LEN(INT_VECT_LEN)
   ) RV32I_CONTROL (
     .clk_i(clk_i),
     .reset_i(1'b0),
@@ -308,7 +319,12 @@ module rv32i(
     .memory_o(memory_in),
     .immediate_arithmetic_o(immediate_arithmetic),
     .push_ras_o(push_ras),
-    .pop_ras_o(pop_ras)
+    .pop_ras_o(pop_ras),
+    .interrupt_vector_i(interrupt_vector),
+    .interrupt_mask_i(memory_out[INT_VECT_LEN-1:0]),
+    .interrupt_mask_o(current_interrupt_mask),
+    .current_interrupt_o(current_interrupt_vector),
+    .interrupt_mask_write_i(general_interrupt_mask & memory_region[1] && memory_write)
   );
 
 endmodule
