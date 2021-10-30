@@ -76,7 +76,7 @@ int OPT_Os main()
   // UART = INTERRUPT_MASK;
 
   INTERRUPT_MASK = 1;
-  volatile uint16_t timer_compare = 100;
+  volatile uint16_t timer_compare = 14318;
   TIMER_COMPARE = timer_compare;
   UART = TIMER_COMPARE;
   TIMER_STATE = 1;

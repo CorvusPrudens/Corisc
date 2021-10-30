@@ -8,10 +8,15 @@ extern void *_sbss, *_ebss;
 void entry();
 int main();
 void systick();
+void default_handler();
 
 void * MEM_VECTOR_TABLE vector_table[] = {
   &entry,
   &systick,
+  &default_handler,
+  &default_handler,
+  &default_handler,
+  &default_handler,
 };
 
 volatile uint32_t counter = 0;
@@ -19,6 +24,11 @@ volatile uint32_t counter = 0;
 void OPT_Os INTERRUPT systick()
 {
   counter++;
+}
+
+void OPT_Os INTERRUPT default_handler()
+{
+
 }
 
 // void * OPT_O3 memcpy(void* dest, const void* src, unsigned int count)
