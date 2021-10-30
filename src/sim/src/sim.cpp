@@ -9,11 +9,11 @@
 #endif
 
 #ifndef CLOCK_COUNT
-#define CLOCK_COUNT 3000000
+#define CLOCK_COUNT 50000
 #endif
 
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
-#define CLOCK_PS CLOCK_NS * 100.0 // Apparently 10ps is gtkwave's thing
+#define CLOCK_PS CLOCK_NS * 100.0 // Apparently 1ps is gtkwave's thing
 #define CLK_I clk_i
 
 #include "Vrv32i.h"
@@ -107,7 +107,10 @@ int main(int argc, char** argv)
   tick(tb, tfp, ++logicStep);
 
   for (int i = 0; i < 256; i++)
-    flash[0x300000 + i] = 256 - i;
+  {
+    size_t address = 0x300000 + i;
+    flash[address] = 255 - i;
+  }
 
   for (size_t i = 0; i < clock_count; i++)
   {
