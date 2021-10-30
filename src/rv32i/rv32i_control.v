@@ -15,7 +15,8 @@ module rv32i_control
     REG_BITS = 5,
     INST_BITS = 16,
     INITIAL_ADDR = 32'h0,
-    MICRO_CODE = "microcode.hex"
+    MICRO_CODE = "microcode.hex",
+    INT_VECT_LEN = 5
   )
   (
     input wire clk_i,
@@ -70,9 +71,19 @@ module rv32i_control
   localparam OP_B     = 5'b11000;
   localparam OP_JALR  = 5'b11001;
   localparam OP_JAL   = 5'b11011;
-  localparam OP_E     = 5'b11100; // EBREAK / ECALL
+  localparam OP_SYS   = 5'b11100;
 
+  // TODO -- need to get exception support in here at some point
   reg [5:0] trap_vector = 0;
+
+  localparam 
+  reg [INT_VECT_LEN-1:0] interrupt_vector = 0;
+  reg [INT_VECT_LEN-1:0] interrupt_mask = 0;
+
+  wire [INT_VECT_LEN-1:0] interrupt_vector_lowest = 0;
+
+  
+
   wire [31:0] control_vector_raw;
   wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
@@ -249,8 +260,8 @@ module rv32i_control
           OP_B:     operand_offset <= 13;
           OP_JALR:  operand_offset <= 14;
           OP_JAL:   operand_offset <= 15;
-          OP_E:     operand_offset <= 16;
-          default:  operand_offset <= 16;
+          OP_SYS:   operand_offset <= 16; // TODO I know I know, non-compliant... but we'll always assume this is an mret
+          default:  operand_offset <= 4; // simple nop
       endcase
     end
   end
