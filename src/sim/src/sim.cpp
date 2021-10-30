@@ -9,7 +9,7 @@
 #endif
 
 #ifndef CLOCK_COUNT
-#define CLOCK_COUNT 50000
+#define CLOCK_COUNT 3000000
 #endif
 
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
@@ -106,18 +106,48 @@ int main(int argc, char** argv)
   tb->RX = 1;
   tick(tb, tfp, ++logicStep);
 
-  for (int i = 0; i < 256; i++)
-  {
-    size_t address = 0x300000 + i;
-    flash[address] = 255 - i;
-  }
+  // for (int i = 0; i < 256; i++)
+  // {
+  //   size_t address = 0x300000 + i;
+  //   flash[address] = 255 - i;
+  // }
 
-  for (size_t i = 0; i < clock_count; i++)
-  {
-    go = messageManagerStatic(status, &sendword, out, true);
-    status = uart(tb, go, sendword, &out);
-    tick(tb, tfp, ++logicStep);
-  }
+  // Bootloader verification
+  #ifdef BOOTLOADER
+    size_t start_addr = 0x300000;
+    size_t write_len = 256 * 256;
+    flash.RandomFill(start_addr, write_len);
+
+    for (size_t i = 0; i < clock_count; i++)
+    {
+      go = messageManagerStatic(status, &sendword, out, true);
+      status = uart(tb, go, sendword, &out);
+      tick(tb, tfp, ++logicStep);
+    }
+
+    bool success = true;
+    uint8_t* ram_test = (uint8_t*) sram.memory;
+    for (size_t i = start_addr; i < start_addr + write_len / 2 + 16; i++)
+    {
+      if (*ram_test++ != flash[i])
+        success = false;
+      if (*(ram_test-1) != flash[i])
+      {
+        printf("ram: %d, flash: %d at index %d\n", *(ram_test - 1), flash[i], i - start_addr);
+      }
+    }
+    if (success)
+      printf("Bootloader test passed!\n");
+    else
+      printf("Bootloader test failed :c\n");
+  #else
+    for (size_t i = 0; i < clock_count; i++)
+    {
+      go = messageManagerStatic(status, &sendword, out, true);
+      status = uart(tb, go, sendword, &out);
+      tick(tb, tfp, ++logicStep);
+    }
+  #endif
 
   tb->final();
   delete tb;
