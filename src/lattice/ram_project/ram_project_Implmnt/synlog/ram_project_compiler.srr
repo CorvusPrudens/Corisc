@@ -1,0 +1,361 @@
+Synopsys HDL Compiler, version comp2016q3p1, Build 141R, built Dec  5 2016
+@N|Running in 64-bit mode
+Copyright (C) 1994-2016 Synopsys, Inc. All rights reserved. This Synopsys software and all associated documentation are proprietary to Synopsys, Inc. and may only be used pursuant to the terms and conditions of a written license agreement with Synopsys, Inc. All other use, reproduction, modification, or distribution of the Synopsys software or the associated documentation is strictly prohibited.
+
+Synopsys Verilog Compiler, version comp2016q3p1, Build 141R, built Dec  5 2016
+@N|Running in 64-bit mode
+Copyright (C) 1994-2016 Synopsys, Inc. All rights reserved. This Synopsys software and all associated documentation are proprietary to Synopsys, Inc. and may only be used pursuant to the terms and conditions of a written license agreement with Synopsys, Inc. All other use, reproduction, modification, or distribution of the Synopsys software or the associated documentation is strictly prohibited.
+
+Running on host :cpc
+@I::"/home/corvus/Applications/iCEcube2/synpbase/lib/generic/sb_ice40.v" (library work)
+@I::"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/hypermods.v" (library __hyper__lib__)
+@I::"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/umr_capim.v" (library snps_haps)
+@I::"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/scemi_objects.v" (library snps_haps)
+@I::"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/scemi_pipes.svh" (library snps_haps)
+@I::"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_registers.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_registers.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_registers.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/stack.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_alu.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_memory.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v":"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_interrupts.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v":"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_microcode.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/fifo.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sram16.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi_wo.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi.v" (library work)
+@I:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/crc.v" (library work)
+Verilog syntax check successful!
+File /home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_interrupts.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/fifo.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sram16.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi_wo.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/crc.v changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/../../common/include/chardata.hex changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/../../common/include/initdata.hex changed - recompiling
+File /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/../../rv32i/include/microcode.hex changed - recompiling
+Selecting top level module rv32i
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":6:7:6:15|Synthesizing module bram_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000000101
+	dataWidth_p=32'b00000000000000000000000000100000
+   Generated name = bram_dual_5s_32s
+
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":24:2:24:7|Found RAM memory, depth=32, width=32
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":6:7:6:15|Synthesizing module bram_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000000111
+	dataWidth_p=32'b00000000000000000000000000100000
+   Generated name = bram_dual_7s_32s
+
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":24:2:24:7|Found RAM memory, depth=128, width=32
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/stack.v":6:7:6:11|Synthesizing module stack in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	SIZE=32'b00000000000000000000000000000111
+   Generated name = stack_32s_7s
+
+@N: CG179 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/stack.v":30:50:30:54|Removing redundant assignment.
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_registers.v":8:7:8:21|Synthesizing module rv32i_registers in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	REG_BITS=32'b00000000000000000000000000000101
+   Generated name = rv32i_registers_32s_5s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_alu.v":4:7:4:15|Synthesizing module rv32i_alu in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	OP_ADD=4'b0000
+	OP_SUB=4'b1000
+	OP_SLT=4'b0010
+	OP_SLTU=4'b0011
+	OP_AND=4'b0111
+	OP_OR=4'b0110
+	OP_XOR=4'b0100
+	OP_SLL=4'b0001
+	OP_SRL=4'b0101
+	OP_SRA=4'b1101
+   Generated name = rv32i_alu_Z1
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_memory.v":4:7:4:18|Synthesizing module rv32i_memory in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	PORT_LEN=32'b00000000000000000000000000010000
+	MAP_SIZE=32'b00000000000000000000000000001001
+	REGION_0_B=32'b00000000000000000000000000000000
+	REGION_0_E=32'b00000000000000000000000000000000
+	REGION_1_B=32'b00000000000000000001000000000000
+	REGION_1_E=32'b00000000000000000001000001000000
+	REGION_2_B=32'b00000000000000000010000000000000
+	REGION_2_E=32'b00000000000000000100000000000100
+	REGION_3_B=32'b00000000000000000101000000000000
+	REGION_3_E=32'b00000000000000000101000000011000
+	REGION_4_B=32'b00000000000000001001000000000000
+	REGION_4_E=32'b00000000000000001001000000000100
+	REGION_5_B=32'b00000000000000001010000000000000
+	REGION_5_E=32'b00000000000000001010000000000100
+	REGION_6_B=32'b00000000000000001011000000000000
+	REGION_6_E=32'b00000000000000001011000000000100
+	REGION_7_B=32'b00000000000000010000000000000000
+	REGION_7_E=32'b00000000000000100000000000000000
+	REGION_8_B=32'b00000000000000100000000000000000
+	REGION_8_E=32'b00000000000000110000000000000000
+   Generated name = rv32i_memory_Z2
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":6:7:6:15|Synthesizing module bram_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000001001
+	dataWidth_p=32'b00000000000000000000000000001000
+   Generated name = bram_dual_9s_8s
+
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":24:2:24:7|Found RAM memory, depth=512, width=8
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/fifo.v":6:7:6:10|Synthesizing module fifo in library work.
+
+	memSize_p=32'b00000000000000000000000000001001
+	dataWidth_p=32'b00000000000000000000000000001000
+   Generated name = fifo_9s_8s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v":5:7:5:10|Synthesizing module uart in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v":7:7:7:17|Synthesizing module uartwrapper in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/crc.v":8:7:8:9|Synthesizing module crc in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":6:7:6:15|Synthesizing module bram_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000001000
+	dataWidth_p=32'b00000000000000000000000000010000
+   Generated name = bram_dual_8s_16s
+
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":24:2:24:7|Found RAM memory, depth=256, width=16
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi.v":4:7:4:9|Synthesizing module spi in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":21:7:21:11|Synthesizing module flash in library work.
+
+@W: CL265 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":93:2:93:7|Removing unused bit 5 of status[8:0]. Either assign all bits or reduce the width of the signal.
+@W: CL271 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":93:2:93:7|Pruning unused bits 1 to 0 of status[8:0]. If this is not the intended behavior, drive the inputs with valid values, or inputs from the top level.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[8] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[9] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[10] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[11] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[12] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[13] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[14] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramDataIn[15] is always 0.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Register bit bramWriteAddr[8] is always 0.
+@W: CL260 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Pruning register bit 8 of bramWriteAddr[8:0]. If this is not the intended behavior, drive the input with valid values, or an input from the top level.
+@W: CL279 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Pruning register bits 15 to 8 of bramDataIn[15:0]. If this is not the intended behavior, drive the inputs with valid values, or inputs from the top level.
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v":4:7:4:11|Synthesizing module timer in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":6:7:6:15|Synthesizing module bram_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000001000
+	dataWidth_p=32'b00000000000000000000000000010000
+   Generated name = bram_dual_8_16s
+
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":24:2:24:7|Found RAM memory, depth=256, width=16
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":6:7:6:15|Synthesizing module bram_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000001001
+	dataWidth_p=32'b00000000000000000000000000010000
+   Generated name = bram_dual_9s_16s
+
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":24:2:24:7|Found RAM memory, depth=512, width=16
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v":4:7:4:20|Synthesizing module bram_init_dual in library work.
+
+	memSize_p=32'b00000000000000000000000000001010
+	dataWidth_p=32'b00000000000000000000000000001000
+	initFile_p=264'b001011100010111000101111001011100010111000101111011000110110111101101101011011010110111101101110001011110110100101101110011000110110110001110101011001000110010100101111011000110110100001100001011100100110010001100001011101000110000100101110011010000110010101111000
+   Generated name = bram_init_dual_10s_8s_../../common/include/chardata.hex_Z3
+
+@W: CG532 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v":22:2:22:8|Within an initial block, only Verilog force statements and memory $readmemh/$readmemb initialization statements are recognized, and all other content is ignored.
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v":24:2:24:7|Found RAM memory, depth=1024, width=8
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":8:7:8:11|Synthesizing module accel in library work.
+
+	gpuSize_p=32'b00000000000000000000000000001001
+	gpuInputWidth_p=32'b00000000000000000000000000001100
+	SM_ACCEL_IDLE=32'b00000000000000000000000000000000
+	SM_ACCEL_CLEAR=32'b00000000000000000000000000000001
+	SM_ACCEL_READ1=32'b00000000000000000000000000000010
+	SM_ACCEL_READ2=32'b00000000000000000000000000000011
+	SM_ACCEL_INCR=32'b00000000000000000000000000000100
+	SM_ACCEL_WRITE=32'b00000000000000000000000000000101
+	SM_ACCEL_PREWRITE=32'b00000000000000000000000000000110
+	SM_ACCEL_WRITE1=32'b00000000000000000000000000000111
+	SM_ACCEL_WRITE2=32'b00000000000000000000000000001000
+	SM_ACCEL_WRITE3=32'b00000000000000000000000000001001
+	SM_ACCEL_WRITE4=32'b00000000000000000000000000001010
+	SM_ACCEL_DONE=32'b00000000000000000000000000001110
+	SM_ACCEL_EXIT=32'b00000000000000000000000000001111
+   Generated name = accel_Z4
+
+@N: CG179 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":267:87:267:91|Removing redundant assignment.
+@N: CG179 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":270:88:270:92|Removing redundant assignment.
+@N: CG179 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":279:87:279:91|Removing redundant assignment.
+@N: CG179 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":282:88:282:92|Removing redundant assignment.
+@W: CL271 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":158:2:158:7|Pruning unused bits 3 to 0 of cleanedY[5:0]. If this is not the intended behavior, drive the inputs with valid values, or inputs from the top level.
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi_wo.v":4:7:4:12|Synthesizing module spi_wo in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":7:7:7:9|Synthesizing module gpu in library work.
+
+	gpuSize_p=32'b00000000000000000000000000001001
+	gpuInputWidth_p=32'b00000000000000000000000000001100
+	initData_p=264'b001011100010111000101111001011100010111000101111011000110110111101101101011011010110111101101110001011110110100101101110011000110110110001110101011001000110010100101111011010010110111001101001011101000110010001100001011101000110000100101110011010000110010101111000
+	numWords=5'b11110
+	delayBits=32'b00000000000000000000000000010100
+	frameBits=32'b00000000000000000000000000010010
+	frameCompare=19'b1110100100001011001
+   Generated name = gpu_9s_12s_../../common/include/initdata.hex_30_20s_18s_477273_Z5
+
+@W: CG532 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":77:2:77:8|Within an initial block, only Verilog force statements and memory $readmemh/$readmemb initialization statements are recognized, and all other content is ignored.
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sram16.v":4:7:4:12|Synthesizing module sram16 in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_interrupts.v":2:7:2:22|Synthesizing module rv32i_interrupts in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	ILEN=32'b00000000000000000000000000100000
+	INT_VECT_LEN=32'b00000000000000000000000000000101
+   Generated name = rv32i_interrupts_32s_32s_5s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v":5:7:5:14|Synthesizing module sign_ext in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	INPUT_LEN=32'b00000000000000000000000000010101
+   Generated name = sign_ext_32s_21s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v":5:7:5:14|Synthesizing module sign_ext in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	INPUT_LEN=32'b00000000000000000000000000001101
+   Generated name = sign_ext_32s_13s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v":5:7:5:14|Synthesizing module sign_ext in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	INPUT_LEN=32'b00000000000000000000000000001100
+   Generated name = sign_ext_32s_12s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_microcode.v":4:7:4:21|Synthesizing module rv32i_microcode in library work.
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v":5:7:5:14|Synthesizing module sign_ext in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	INPUT_LEN=32'b00000000000000000000000000001000
+   Generated name = sign_ext_32s_8s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v":5:7:5:14|Synthesizing module sign_ext in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	INPUT_LEN=32'b00000000000000000000000000010000
+   Generated name = sign_ext_32s_16s
+
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v":14:7:14:19|Synthesizing module rv32i_control in library work.
+
+	XLEN=32'b00000000000000000000000000100000
+	ILEN=32'b00000000000000000000000000100000
+	REG_BITS=32'b00000000000000000000000000000101
+	INST_BITS=32'b00000000000000000000000000010000
+	VECTOR_TABLE=32'b00000000000000010000000000000000
+	MICRO_CODE=264'b001011100010111000101111001011100010111000101111011100100111011000110011001100100110100100101111011010010110111001100011011011000111010101100100011001010010111101101101011010010110001101110010011011110110001101101111011001000110010100101110011010000110010101111000
+	INT_VECT_LEN=32'b00000000000000000000000000000101
+	OP_L=5'b00000
+	OP_FENCE=5'b00011
+	OP_AI=5'b00100
+	OP_AUIPC=5'b00101
+	OP_S=5'b01000
+	OP_A=5'b01100
+	OP_LUI=5'b01101
+	OP_B=5'b11000
+	OP_JALR=5'b11001
+	OP_JAL=5'b11011
+	OP_SYS=5'b11100
+	FETCH_SIZE=32'b00000000000000000000000000000010
+	INTERRUPT_OFFSET=32'b00000000000000000000000000010001
+	x1=5'b00001
+	x5=5'b00101
+   Generated name = rv32i_control_Z6
+
+@W: CL271 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v":255:2:255:7|Pruning unused bits 6 to 0 of instruction_8[31:0]. If this is not the intended behavior, drive the inputs with valid values, or inputs from the top level.
+@N: CG364 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":37:7:37:11|Synthesizing module rv32i in library work.
+
+@W: CS263 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":282:13:282:30|Port-width mismatch for port waddr_i. The port definition is 13 bits, but the actual port connection bit width is 12. Adjust either the definition or the instantiation of this port.
+@N: CL159 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_microcode.v":6:15:6:19|Input clk_i is unused.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_interrupts.v":48:2:48:7|Trying to extract state machine for register interrupt_state_o.
+@N: CL159 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sram16.v":5:15:5:19|Input clk_i is unused.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":95:2:95:7|Trying to extract state machine for register displayState.
+@N: CL189 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":95:2:95:7|Register bit displayState[3] is always 0.
+@W: CL260 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":95:2:95:7|Pruning register bit 3 of displayState[3:0]. If this is not the intended behavior, drive the input with valid values, or an input from the top level.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi_wo.v":33:2:33:7|Trying to extract state machine for register spiState.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":158:2:158:7|Trying to extract state machine for register accel_sm.
+@N: CL134 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v":24:2:24:7|Found RAM treg[0], depth=4, width=16
+@W: CL247 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v":7:21:7:26|Input port bit 2 of addr_i[2:0] is unused
+
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Trying to extract state machine for register write_sm.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Trying to extract state machine for register read_sm.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Trying to extract state machine for register flash_sm.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Trying to extract state machine for register erase_sm.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":234:2:234:7|Trying to extract state machine for register busy_sm.
+@N: CL159 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":35:15:35:26|Input reset_states is unused.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi.v":36:2:36:7|Trying to extract state machine for register spiState.
+@N: CL159 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/crc.v":10:15:10:21|Input spi_clk is unused.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v":37:2:37:7|Trying to extract state machine for register TXstate.
+@N: CL201 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v":77:2:77:7|Trying to extract state machine for register RXstate.
+@N: CL159 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_memory.v":35:30:35:35|Input data_i is unused.
+@N: CL159 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_alu.v":9:15:9:19|Input clk_i is unused.
+
+At c_ver Exit (Real Time elapsed 0h:00m:00s; CPU Time elapsed 0h:00m:00s; Memory used current: 86MB peak: 88MB)
+
+Process took 0h:00m:01s realtime, 0h:00m:01s cputime
+
+Process completed successfully.
+# Sat Oct 30 22:20:17 2021
+
+###########################################################]
+Synopsys Netlist Linker, version comp2016q3p1, Build 141R, built Dec  5 2016
+@N|Running in 64-bit mode
+@N: NF107 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":37:7:37:11|Selected library: work cell: rv32i view verilog as top level
+@N: NF107 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":37:7:37:11|Selected library: work cell: rv32i view verilog as top level
+
+At syn_nfilter Exit (Real Time elapsed 0h:00m:00s; CPU Time elapsed 0h:00m:00s; Memory used current: 71MB peak: 72MB)
+
+Process took 0h:00m:01s realtime, 0h:00m:01s cputime
+
+Process completed successfully.
+# Sat Oct 30 22:20:17 2021
+
+###########################################################]
+@END
+
+At c_hdl Exit (Real Time elapsed 0h:00m:00s; CPU Time elapsed 0h:00m:00s; Memory used current: 4MB peak: 4MB)
+
+Process took 0h:00m:01s realtime, 0h:00m:01s cputime
+
+Process completed successfully.
+# Sat Oct 30 22:20:17 2021
+
+###########################################################]

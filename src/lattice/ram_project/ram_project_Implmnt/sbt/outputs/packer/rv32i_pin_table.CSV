@@ -1,0 +1,143 @@
+* ******************************************************************************
+
+* iCEcube Pin Table
+
+* Version:            2020.12.27943
+
+* Build Date:         Dec 10 2020 17:24:17
+
+* File Generated:     Oct 30 2021 22:22:27
+
+* Purpose:            Detailed IO and package pin info
+
+* Copyright (C) 2006-2010 by Lattice Semiconductor Corp. All rights reserved.
+
+* ******************************************************************************
+
+Device, iCE40HX8K
+Package, BG121
+
+Pin Number, Pin Type Name, Signal Name, Direction, Global Buffer, IO Standard, Pull Up, IO Function, IO Bank, 
+---------------, ---------------, ---------------, ---------------, ---------------, ---------------, ---------------, ---------------, ---------------, 
+A1, PIO, SRAM_ADDR[3], Output, , SB_LVCMOS, No Pull Up, Simple Output, topBank
+A2, PIO, not used, , , , , , topBank
+A3, PIO, SRAM_ADDR[4], Output, , SB_LVCMOS, No Pull Up, Simple Output, topBank
+A4, PIO, not used, , , , , , topBank
+A5, PIO, not used, , , , , , topBank
+A6, PIO, SRAM_DATA[4], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+A7, PIO, SRAM_UB, Output, , SB_LVCMOS, No Pull Up, Simple Output, topBank
+A8, PIO, SRAM_DATA[0], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+A9, PIO, not used, , , , , , topBank
+A10, PIO, SRAM_DATA[5], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+A11, PIO, SRAM_DATA[11], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+B1, PIO, not used, , , , , , leftBank
+B2, PIO, SRAM_ADDR[2], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+B3, PIO, SRAM_ADDR[5], Output, , SB_LVCMOS, No Pull Up, Simple Output, topBank
+B4, PIO, SRAM_ADDR[6], Output, , SB_LVCMOS, No Pull Up, Simple Output, topBank
+B5, PIO, SRAM_DATA[10], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+B6, PIO_GBIN, SRAM_LB, Output, , SB_LVCMOS, No Pull Up, Simple Output, topBank
+B7, PIO_GBIN, not used, , , , , , topBank
+B8, PIO, SRAM_DATA[8], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+B9, PIO, SRAM_DATA[12], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+B10, VPP_DIRECT, not used, , , , , , UnknownBank
+B11, PIO, SRAM_DATA[13], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, rightBank
+C1, PIO, SRAM_ADDR[0], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+C2, PIO, not used, , , , , , leftBank
+C3, PIO, SRAM_ADDR[1], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+C4, PIO, not used, , , , , , leftBank
+C5, AGND_TOP, not used, , , , , , UnknownBank
+C6, AVDD_TOP, not used, , , , , , UnknownBank
+C7, PIO, SRAM_DATA[15], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+C8, PIO, SRAM_DATA[2], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+C9, PIO, SRAM_DATA[6], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+C10, VPP_PUMP, not used, , , , , , UnknownBank
+C11, PIO, not used, , , , , , rightBank
+D1, PIO, not used, , , , , , leftBank
+D2, PIO, not used, , , , , , leftBank
+D3, PIO, SRAM_ADDR[9], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+D4, VCC, not used, , , , , , UnknownBank
+D5, PIO, SRAM_DATA[1], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+D6, VCCIO_0, not used, , , , , , topBank
+D7, PIO, SRAM_DATA[7], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, topBank
+D8, VCC, not used, , , , , , UnknownBank
+D9, PIO, SRAM_WE, Output, , SB_LVCMOS, No Pull Up, Simple Output, rightBank
+D10, PIO, SRAM_DATA[3], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, rightBank
+D11, PIO, SRAM_DATA[14], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, rightBank
+E1, PIO, SRAM_DATA[9], InOut, , SB_LVCMOS, No Pull Up, Simple Input Output Tristatable by Enable, leftBank
+E2, PIO, not used, , , , , , leftBank
+E3, PIO, SRAM_ADDR[8], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+E4, VCCIO_3, not used, , , , , , leftBank
+E5, GND, not used, , , , , , UnknownBank
+E6, GND, not used, , , , , , UnknownBank
+E7, GND, not used, , , , , , UnknownBank
+E8, PIO, not used, , , , , , rightBank
+E9, PIO, SRAM_CE, Output, , SB_LVCMOS, No Pull Up, Simple Output, rightBank
+E10, PIO_GBIN, not used, , , , , , rightBank
+E11, PIO, SRAM_ADDR[15], Output, , SB_LVCMOS, No Pull Up, Simple Output, rightBank
+F1, PIO, not used, , , , , , leftBank
+F2, PIO, SRAM_ADDR[7], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+F3, PIO_GBIN, SRAM_ADDR[14], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+F4, PIO, not used, , , , , , leftBank
+F5, GND, not used, , , , , , UnknownBank
+F6, GND, not used, , , , , , UnknownBank
+F7, GND, not used, , , , , , UnknownBank
+F8, VCCIO_1, not used, , , , , , rightBank
+F9, PIO, not used, , , , , , rightBank
+F10, PIO, not used, , , , , , rightBank
+F11, PIO_GBIN, not used, , , , , , rightBank
+G1, PIO_GBIN, clk_i, Input, glb Buff, SB_LVCMOS, No Pull Up, Simple Input, leftBank
+G2, PIO, SRAM_ADDR[13], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+G3, PIO, not used, , , , , , leftBank
+G4, VCCIO_3, not used, , , , , , leftBank
+G5, GND, not used, , , , , , UnknownBank
+G6, GND, not used, , , , , , UnknownBank
+G7, GND, not used, , , , , , UnknownBank
+G8, PIO, not used, , , , , , rightBank
+G9, PIO, not used, , , , , , rightBank
+G10, PIO, not used, , , , , , rightBank
+G11, PIO, not used, , , , , , rightBank
+H1, PIO, not used, , , , , , leftBank
+H2, PIO, SRAM_ADDR[11], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+H3, PIO, SRAM_ADDR[12], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+H4, VCC, not used, , , , , , UnknownBank
+H5, GND, not used, , , , , , UnknownBank
+H6, VCCIO_2, not used, , , , , , bottomBank
+H7, PIO, not used, , , , , , bottomBank
+H8, VCC, not used, , , , , , UnknownBank
+H9, PIO, not used, , , , , , bottomBank
+H10, PIO, not used, , , , , , rightBank
+H11, PIO, not used, , , , , , rightBank
+J1, PIO, SRAM_ADDR[10], Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+J2, PIO, SRAM_OE, Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+J3, PIO, not used, , , , , , bottomBank
+J4, PIO, not used, , , , , , bottomBank
+J5, PIO, not used, , , , , , bottomBank
+J6, AVDD_BOT, not used, , , , , , UnknownBank
+J7, PIO, not used, , , , , , bottomBank
+J8, PIO, not used, , , , , , bottomBank
+J9, SPI_SI, FLASH_SDO, Input, , SB_LVCMOS, No Pull Up, Simple Input, bottomBank
+J10, PIO, not used, , , , , , rightBank
+J11, PIO, not used, , , , , , rightBank
+K1, PIO, DIS_SCK, Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+K2, PIO, DIS_RES, Output, , SB_LVCMOS, No Pull Up, Simple Output, leftBank
+K3, PIO, not used, , , , , , bottomBank
+K4, PIO, not used, , , , , , bottomBank
+K5, PIO, not used, , , , , , bottomBank
+K6, PIO_GBIN, not used, , , , , , bottomBank
+K7, PIO, TX, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+K8, CDONE, not used, , , , , , bottomBank
+K9, SPI_SO, FLASH_SDI, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+K10, SPI_SS_B, FLASH_CS, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+K11, PIO, not used, , , , , , rightBank
+L1, PIO, DIS_SDI, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+L2, PIO, DIS_DC, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+L3, PIO, DIS_CS, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+L4, PIO, not used, , , , , , bottomBank
+L5, PIO_GBIN, not used, , , , , , bottomBank
+L6, AGND_BOT, not used, , , , , , UnknownBank
+L7, PIO, RX, Input, , SB_LVCMOS, No Pull Up, Simple Input, bottomBank
+L8, PIO, not used, , , , , , bottomBank
+L9, CRESET_B, not used, , , , , , bottomBank
+L10, SPI_SCK, FLASH_SCK, Output, , SB_LVCMOS, No Pull Up, Simple Output, bottomBank
+L11, VDDIO_SPI, not used, , , , , , bottomBank
+Total Number of Used Pins, 49

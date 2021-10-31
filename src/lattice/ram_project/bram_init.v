@@ -1,0 +1,1 @@
+../../common/bram_init.v

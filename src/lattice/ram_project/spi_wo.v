@@ -1,0 +1,1 @@
+../../common/spi_wo.v

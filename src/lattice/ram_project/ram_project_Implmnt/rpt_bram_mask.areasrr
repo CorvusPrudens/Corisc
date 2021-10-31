@@ -1,0 +1,46 @@
+#### START OF AREA REPORT #####[
+
+Part:			ICE40HX8KCT256 (Lattice)
+
+-------------------------------------------------------------------------
+########   Utilization report for  Top level view:   bram_mask   ########
+=========================================================================
+
+SEQUENTIAL ELEMENTS
+Name      Total elements     Utilization     Notes
+--------------------------------------------------
+FLOPS     4096               100 %                
+==================================================
+Total SEQUENTIAL ELEMENTS in the block bram_mask:	4096 (56.67 % Utilization)
+
+
+COMBINATIONAL LOGIC
+Name     Total elements     Utilization     Notes
+-------------------------------------------------
+LUTS     3070               100 %                
+=================================================
+Total COMBINATIONAL LOGIC in the block bram_mask:	3070 (42.47 % Utilization)
+
+
+IO PADS
+Name     Total elements     Utilization     Notes
+-------------------------------------------------
+PADS     58                 100 %                
+=================================================
+Total IO PADS in the block bram_mask:	58 (0.80 % Utilization)
+
+---------------------------------------------------------------------
+########   Utilization report for  cell:   bitwise_mux_16s   ########
+Instance path:   bram_mask.bitwise_mux_16s                           
+=====================================================================
+
+COMBINATIONAL LOGIC
+Name     Total elements     Utilization     Notes
+-------------------------------------------------
+LUTS     32                 1.04 %               
+=================================================
+Total COMBINATIONAL LOGIC in the block bram_mask.bitwise_mux_16s:	32 (0.44 % Utilization)
+
+
+##### END OF AREA REPORT #####]
+

@@ -1,0 +1,127 @@
+#OPTIONS:"|-layerid|0|-orig_srs|/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/ram_project_Implmnt/synwork/ram_project_comp.srs|-prodtype|synplify_pro|-primux|-fixsmult|-infer_seqShift|-ice|-sdff_counter|-nram|-divnmod|-nostructver|-I|/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/|-I|/home/corvus/Applications/iCEcube2/synpbase/lib|-v2001|-devicelib|/home/corvus/Applications/iCEcube2/synpbase/lib/generic/sb_ice40.v|-encrypt|-pro|-ui|-fid2|-ram|-sharing|on|-ll|2000|-autosm|-lib|work"
+#CUR:"/home/corvus/Applications/iCEcube2/synpbase/linux_a_64/c_ver":1635311534
+#CUR:"/home/corvus/Applications/iCEcube2/synpbase/lib/generic/sb_ice40.v":1635642097
+#CUR:"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/hypermods.v":1635642097
+#CUR:"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/umr_capim.v":1635642097
+#CUR:"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/scemi_objects.v":1635642097
+#CUR:"/home/corvus/Applications/iCEcube2/synpbase/lib/vlog/scemi_pipes.svh":1635642097
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v":1635653918
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_registers.v":1635648028
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":1635643815
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/stack.v":1635647083
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":1635643815
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_alu.v":1635108532
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_memory.v":1635644313
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v":1635653889
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_interrupts.v":1635589165
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v":1635644401
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_microcode.v":1635653874
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v":1635649432
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v":1635325412
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/fifo.v":1635647068
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":1635643815
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sram16.v":1635482965
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v":1635586768
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v":1635647077
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi_wo.v":1635638545
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v":1635647058
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":1635643815
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v":1635644327
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v":1635647072
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi.v":1635491757
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":1635643815
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/crc.v":1635491556
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/../../common/include/chardata.hex":1635640115
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/../../common/include/initdata.hex":1635640088
+#CUR:"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/../../rv32i/include/microcode.hex":1635653874
+0			"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i.v" verilog
+1		*	"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_registers.v" verilog
+2		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v" verilog
+3		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/stack.v" verilog
+4		*	"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_alu.v" verilog
+5		*	"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_memory.v" verilog
+6		*	"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_control.v" verilog
+7		*	"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_interrupts.v" verilog
+8		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sign_ext.v" verilog
+9		*	"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_microcode.v" verilog
+10		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uartwrapper.v" verilog
+11		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/uart.v" verilog
+12		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/fifo.v" verilog
+13		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/sram16.v" verilog
+14		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/timer.v" verilog
+15		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/gpu.v" verilog
+16		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi_wo.v" verilog
+17		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/accel.v" verilog
+18		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_init_dual.v" verilog
+19		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/flash.v" verilog
+20		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/spi.v" verilog
+21		*	"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/crc.v" verilog
+#Dependency Lists(Uses List)
+0 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1
+1 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 0
+2 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 2 3 1 0
+3 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 2 1 0
+4 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 3 2 1 0
+5 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 4 3 2 1 0
+6 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 5 4 3 2 1 0
+7 21 20 19 18 17 16 15 14 13 12 11 10 9 8 6 5 4 3 2 1 0
+8 21 20 19 18 17 16 15 14 13 12 11 10 9 7 6 5 4 3 2 1 0
+9 21 20 19 18 17 16 15 14 13 12 11 10 8 7 6 5 4 3 2 1 0
+10 21 20 19 18 17 16 15 14 13 12 11 9 8 7 6 5 4 3 2 1 0
+11 21 20 19 18 17 16 15 14 13 12 10 9 8 7 6 5 4 3 2 1 0
+12 21 20 19 18 17 16 15 14 13 11 10 9 8 7 6 5 4 3 2 1 0
+13 21 20 19 18 17 16 15 14 12 11 10 9 8 7 6 5 4 3 2 1 0
+14 21 20 19 18 17 16 15 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+15 21 20 19 18 17 16 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+16 21 20 19 18 17 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+17 21 20 19 18 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+18 21 20 19 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+19 21 20 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+20 21 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+#Dependency Lists(Users Of)
+0 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1
+1 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 0
+2 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+3 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 2 1 0
+4 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 3 2 1 0
+5 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 4 3 2 1 0
+6 21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 5 4 3 2 1 0
+7 21 20 19 18 17 16 15 14 13 12 11 10 9 8 6 5 4 3 2 1 0
+8 21 20 19 18 17 16 15 14 13 12 11 10 9 7 6 5 4 3 2 1 0
+9 21 20 19 18 17 16 15 14 13 12 11 10 8 7 6 5 4 3 2 1 0
+10 21 20 19 18 17 16 15 14 13 12 11 9 8 7 6 5 4 3 2 1 0
+11 21 20 19 18 17 16 15 14 13 12 10 9 8 7 6 5 4 3 2 1 0
+12 21 20 19 18 17 16 15 14 13 11 10 9 8 7 6 5 4 3 2 1 0
+13 21 20 19 18 17 16 15 14 12 11 10 9 8 7 6 5 4 3 2 1 0
+14 21 20 19 18 17 16 15 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+15 21 20 19 18 17 16 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+16 21 20 19 18 17 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+17 21 20 19 18 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+18 21 20 19 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+19 21 20 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+20 21 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+21 20 19 18 17 16 15 14 13 12 11 10 9 8 7 6 5 4 3 2 1 0
+#Design Unit to File Association
+module work rv32i 0
+module work flash 19
+module work crc 21
+module work spi 20
+module work gpu 15
+module work accel 17
+module work bram_init_dual 18
+module work spi_wo 16
+module work timer 14
+module work sram16 13
+module work uartwrapper 10
+module work fifo 12
+module work uart 11
+module work rv32i_control 6
+module work rv32i_microcode 9
+module work sign_ext 8
+module work rv32i_interrupts 7
+module work rv32i_memory 5
+module work rv32i_alu 4
+module work rv32i_registers 1
+module work stack 3
+module work bram_dual 2
