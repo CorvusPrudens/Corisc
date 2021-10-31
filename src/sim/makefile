@@ -64,7 +64,7 @@ src/modules/utils.cpp \
 src/modules/spi_flash.cpp \
 src/modules/sram16.cpp \
 ${VERILATOR_INCL}/include/verilated.cpp \
-${VERILATOR_INCL}/include/verilated_vcd_c.cpp 
+${VERILATOR_INCL}/include/verilated_vcd_c.cpp  
 
 CPP_INCLUDES = \
 -Isrc \
@@ -76,13 +76,13 @@ CPP_INCLUDES = \
 CPP_FLAGS += \
 -std=c++17 \
 -DTRACE_FILE=\"$(TRACE_FILE)\" \
--DPROG_BIN=\"$(BUILD)/$(RISCV_TARGET).bin\"
+-DPROG_BIN=\"$(BUILD)/$(RISCV_TARGET).bin\" 
 
 ifeq ($(UNAME), Linux)
 # LINKER_FLAGS = -lglfw -lGLEW -lGL -lm -lX11 -lpthread -lXi -lXrandr -ldl
 LINKER_FLAGS = -lglfw -lGLEW -lGL
 else
-LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW -lsndfile
+LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW
 endif
 
 RISCV_SOURCES = \

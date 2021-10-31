@@ -5,11 +5,14 @@ volatile uint8_t newframe;
 
 static void (*FrameCallback)();
 
-volatile uint32_t* request_ptr;
-volatile uint16_t* sprite_ptr;
+volatile uint32_t* request_ptr = GPU_REQUEST_BUFFER;
+volatile uint16_t* sprite_ptr = GPU_SPRITE_BUFFER;
 
-const size_t request_end = (size_t) GPU_REQUEST_BUFFER + 1024;
-const size_t sprite_end = (size_t) GPU_SPRITE_BUFFER + 1024;
+uint16_t request_index;
+uint16_t sprite_index;
+
+const size_t request_end = 1024;
+const size_t sprite_end = 1024;
 
 SpriteSource text_source = {
   0,
@@ -30,6 +33,9 @@ SpriteInfo text_info = {
   0,
 };
 
+void GpuEndFrame();
+void GpuBeginFrame();
+
 void OPT_Os INTERRUPT GpuHandler()
 {
   newframe = 1;
@@ -37,7 +43,7 @@ void OPT_Os INTERRUPT GpuHandler()
 
 static void OPT_O3 WriteRequest(SpriteInfo* req)
 {
-  if ((size_t) request_ptr < request_end)
+  if ((size_t) request_index < request_end)
   {
     // We really need to get multiplication / division in here
     uint16_t frame_offset = 0;
@@ -55,20 +61,20 @@ static void OPT_O3 WriteRequest(SpriteInfo* req)
     request |= req->xpos << 16;
     request |= req->ypos << 24;
 
-    *request_ptr++ = request;
+    request_ptr[request_index++] = request;
   }
 }
 
 static void OPT_O3 LoadSprite(SpriteSource* sprite)
 {
-  if ((size_t) sprite_ptr + sprite->width - 1 < (size_t) sprite_end)
+  if (sprite_index + sprite->width - 1 < sprite_end)
   {
-    sprite->index = (uint16_t) (sprite_ptr - (size_t) GPU_SPRITE_BUFFER);
+    sprite->index = sprite_index;
     int16_t frame_offset = 0;
     for (int16_t f = 0; f < sprite->frames; f++)
     {
       for (int16_t i = 0; i < sprite->width; i++)
-        *sprite_ptr++ = sprite->location[i + frame_offset];
+        request_ptr[request_index++] = sprite->location[i + frame_offset];
       frame_offset += sprite->width;
     }
     sprite->loaded = 1;
@@ -102,12 +108,12 @@ void GpuProcess()
 // Hm.. this wouldn't indicate if a sprite is loaded!
 inline void OPT_Os ClearSprites()
 {
-  sprite_ptr = GPU_SPRITE_BUFFER;
+  sprite_index = 0;
 }
 
 inline void OPT_Os ClearRequests()
 {
-  request_ptr = GPU_REQUEST_BUFFER;
+  request_index = 0;
 }
 
 void OPT_O3 DrawSprite(SpriteInfo* info)
@@ -148,5 +154,5 @@ void OPT_Os GpuBeginFrame()
 void OPT_Os GpuEndFrame()
 {
   const uint32_t end_request = 0x0000FF00;
-  *request_ptr = end_request;
+  request_ptr[request_index] = end_request;
 }

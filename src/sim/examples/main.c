@@ -10,7 +10,14 @@ uint8_t xpos = 16;
 
 void OPT_Os FrameCallback()
 {
-  DrawString(hey, xpos++, 32);
+  uint8_t ypos = 16;
+  for (int i = 0; i < 10; i++)
+  {
+    DrawString(hey, xpos + (i << 2), ypos);
+    ypos += 6;
+  }
+  xpos++;
+    
 }
 
 void OPT_Os main()
