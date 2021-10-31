@@ -43,7 +43,7 @@ void OPT_Os INTERRUPT GpuHandler()
 
 static void OPT_O3 WriteRequest(SpriteInfo* req)
 {
-  if ((size_t) request_index < request_end)
+  if ((size_t) request_index < request_end && req->source->loaded)
   {
     // We really need to get multiplication / division in here
     uint16_t frame_offset = 0;
@@ -70,11 +70,11 @@ static void OPT_O3 LoadSprite(SpriteSource* sprite)
   if (sprite_index + sprite->width - 1 < sprite_end)
   {
     sprite->index = sprite_index;
-    int16_t frame_offset = 0;
-    for (int16_t f = 0; f < sprite->frames; f++)
+    uint16_t frame_offset = 0;
+    for (uint16_t f = 0; f < sprite->frames; f++)
     {
-      for (int16_t i = 0; i < sprite->width; i++)
-        request_ptr[request_index++] = sprite->location[i + frame_offset];
+      for (uint16_t i = 0; i < sprite->width; i++)
+        sprite_ptr[sprite_index++] = sprite->location[i + frame_offset];
       frame_offset += sprite->width;
     }
     sprite->loaded = 1;

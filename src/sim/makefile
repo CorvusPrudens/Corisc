@@ -55,8 +55,8 @@ RISCV_TARGET = riscv
 BOOTLOADER_TARGET = bootloader
 
 RISCV_LIBS = \
--L/home/corvus/Applications/riscv/riscv32-unknown-elf/lib/ \
--L/home/corvus/Applications/riscv/lib/gcc/riscv32-unknown-elf/11.1.0
+-L$(RISCV32_LIBS)/riscv32-unknown-elf/lib/ \
+-L$(RISCV32_LIBS)/lib/gcc/riscv32-unknown-elf/11.1.0
 # RISCV_LIB = /home/corvus/.local/xPacks/@xpack-dev-tools/riscv-none-embed-gcc/10.1.0-1.1.1/.content/lib/gcc/riscv-none-embed/10.1.0/rv32i/ilp32
 
 CPP_SOURCES = src/sim.cpp \
@@ -215,6 +215,9 @@ view:
 
 clean:
 	rm -rf $(BUILD)
+
+cleanr:
+	rm -rf $(SORTED_RISCV)
 
 clean_all: clean
 	rm -f $(ELF_UTIL)
