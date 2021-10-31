@@ -1,6 +1,6 @@
 #include "defs.h"
 
-char* string = "Hello, world!";
+const char* string = "Hello, world!";
 
 void OPT_Os write_string(const char* str)
 {

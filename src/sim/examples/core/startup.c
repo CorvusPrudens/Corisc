@@ -52,13 +52,12 @@ void OPT_Os INTERRUPT default_handler()
 // TODO -- should be set to OPT_Os, but we'll need a memcpy and memset def
 void OPT_O1 initialize_data()
 {
-  // Casting to uint16_t facilitates faster reads and writes, since that's the 
-  // port size of all the memory
-  uint16_t **pSource, **pDest;
-	for (pSource = (uint16_t**)&(_sidata), pDest =  (uint16_t**)&_sdata; pDest !=  (uint16_t**)&_edata; pSource++, pDest++)
+  // Casting to uint32_t facilitates faster reads and writes
+  uint32_t **pSource, **pDest;
+	for (pSource = (uint32_t**)&(_sidata), pDest =  (uint32_t**)&_sdata; pDest !=  (uint32_t**)&_edata; pSource++, pDest++)
 		*pDest = *pSource;
 
-	for (pDest =  (uint16_t**)&_sbss; pDest !=  (uint16_t**)&_ebss; pDest++)
+	for (pDest =  (uint32_t**)&_sbss; pDest !=  (uint32_t**)&_ebss; pDest++)
 		*pDest = 0;
 }
 

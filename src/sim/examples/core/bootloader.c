@@ -1,5 +1,6 @@
 
 #include "defs.h"
+#include "string.h"
 
 // uint8_t flash_buffer[256];
 uint8_t* progmem_ptr;
@@ -58,13 +59,6 @@ void OPT_Os load_progmem(uint8_t* start_addr, uint16_t start_page, size_t num_pa
     flash_read(start_addr, FLASH_PAGE_LEN, page);
     start_addr += FLASH_PAGE_LEN;
   }
-}
-
-void OPT_Os write_string(const char* str)
-{
-  for (const char* i = str; *i != 0; i++)
-    UART = *i;
-  UART = (uint8_t) 0;
 }
 
 inline void OPT_Os start_timer()

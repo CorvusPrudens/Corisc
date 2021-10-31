@@ -3,19 +3,19 @@
 
 #include "defs.h"
 
-extern volatile uint16_t MEM_GPU FrameBuffer[512];
-extern volatile uint32_t MEM_GPU RequestBuffer[256];
-extern volatile uint16_t MEM_GPU SpriteBuffer[1024];
-extern volatile uint16_t MEM_GPU CharacterBuffer[1024];
+#define GPU_FRAME_BUFFER ((volatile uint16_t*) 0x00100000)
+#define GPU_REQUEST_BUFFER ((volatile uint32_t*) 0x00100400)
+#define GPU_SPRITE_BUFFER ((volatile uint16_t*) 0x00100800)
+#define GPU_CHAR_BUFFER ((volatile uint16_t*) 0x00101000)
 
-#define GPU_CLEAR_ENABLE *((volatile uint16_t*) 0x00004000)
-#define GPU_CLEAR_WORD *((volatile uint16_t*) 0x00004002)
+#define GPU_CLEAR_ENABLE *((volatile uint16_t*) 0x00102000)
+#define GPU_CLEAR_WORD *((volatile uint16_t*) 0x00102002)
 
 #define CHAR_WIDTH 4
 
 typedef struct {
   uint16_t* location;
-  int16_t index;
+  uint16_t index;
   uint8_t width;
   uint8_t frames;
   uint8_t loaded;
@@ -33,12 +33,13 @@ typedef struct {
 } SpriteInfo;
 
 void GpuHandler();
-void GpuInit();
+void GpuInit(void (*callback)());
+void GpuProcess();
 void DrawSprite(SpriteInfo* info);
 void ClearSprites(); // maybe we should also have a `ClearSprite(SpriteSource* src)` function too
 void ClearRequests();
 void DrawChar(char c, uint8_t xpos, uint8_t ypos);
-void DrawString(char* s, uint8_t xpos, uint8_t ypos);
+void DrawString(const char* s, uint8_t xpos, uint8_t ypos);
 void SetGpuClear(uint8_t enable, uint16_t clear_word);
 // void WriteRequest(GpuRequest* req);
 

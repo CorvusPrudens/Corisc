@@ -4,8 +4,8 @@
 // Should this even really be a module?
 module sign_ext
   #(
-    XLEN = 32,
-    INPUT_LEN = 12
+    parameter XLEN = 32,
+    parameter INPUT_LEN = 12
   )
   (
     input wire [INPUT_LEN-1:0] data_i,

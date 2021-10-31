@@ -15,16 +15,18 @@ module bram
 
     input wire [(memSize_p - 1):0]  addr_i,
 
-    output wire [(dataWidth_p - 1):0] data_o
+    output reg [(dataWidth_p - 1):0] data_o
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p];
+  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
 
   always @(posedge clk_i) begin
     if (write_i) memory[addr_i] <= data_i;
   end
 
-  assign data_o = memory[addr_i];
+  always @(negedge clk_i) begin
+    data_o <= memory[addr_i];
+  end
 
   `ifdef FORMAL
     // FORMAL prove

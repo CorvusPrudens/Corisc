@@ -6,17 +6,20 @@
 // This ^ would work on every instruction that's not a jump or load / store, speeding
 // up execution by literally 50%!!!
 
-`include "bram_init.v"
+// `include "bram_init.v"
+`include "rv32i_interrupts.v"
+`include "sign_ext.v"
+`include "rv32i_microcode.v"
 
 module rv32i_control
   #(
-    XLEN = 32,
-    ILEN = 32,
-    REG_BITS = 5,
-    INST_BITS = 16,
-    VECTOR_TABLE = 32'h0,
-    MICRO_CODE = "microcode.hex",
-    INT_VECT_LEN = 5
+    parameter XLEN = 32,
+    parameter ILEN = 32,
+    parameter REG_BITS = 5,
+    parameter INST_BITS = 16,
+    parameter VECTOR_TABLE = 32'h0,
+    parameter MICRO_CODE = "microcode.hex",
+    parameter INT_VECT_LEN = 5
   )
   (
     input wire clk_i,
@@ -231,16 +234,22 @@ module rv32i_control
 
   wire [4:0] microcode_addr = microcode_mux;
 
-  bram_init #(
-    .memSize_p(5),
-    .dataWidth_p(32),
-    .initFile_p(MICRO_CODE)
-  ) INIT_BRAM (
+  // bram_init #(
+  //   .memSize_p(5),
+  //   .dataWidth_p(32),
+  //   .initFile_p(MICRO_CODE)
+  // ) MICROCODE_BRAM (
+  //   .clk_i(clk_i),
+  //   .write_i(1'b0),
+  //   .data_i(0),
+  //   .addr_i(microcode_addr),
+  //   .data_o(control_vector_raw)
+  // );
+
+  rv32i_microcode RV32I_MICROCODE (
     .clk_i(clk_i),
-    .write_i(1'b0),
-    .data_i(0),
-    .addr_i(microcode_addr),
-    .data_o(control_vector_raw)
+    .microcode_addr_i(microcode_addr),
+    .microcode_o(control_vector_raw)
   );
 
   always @(posedge clk_i) begin
@@ -373,7 +382,7 @@ module rv32i_control
     case (store_state)
       default: memory_o = rs2_i[15:0];
       2'b01: memory_o = memory_addr_o[0] ?  {rs2_i[7:0], 8'b0} : {8'b0, rs2_i[7:0]};
-      2'b10: memory_o = {rs2_i[23:16], rs2_i[31:24]};
+      2'b10: memory_o = rs2_i[31:16];
     endcase
   end 
 

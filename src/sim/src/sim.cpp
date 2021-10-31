@@ -13,15 +13,12 @@
 #endif
 
 #ifndef NUM_FRAMES
-#define NUM_FRAMES 10
+#define NUM_FRAMES 1
 #endif
 
 #ifndef PROG_BIN
 #define PROG_BIN "rv32i.bin"
 #endif
-
-#define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
-#define CLOCK_PS CLOCK_NS * 100.0 // Apparently 1ps is gtkwave's thing
 
 #define SCALE 5
 #define WIDTH 128
@@ -231,7 +228,7 @@ int main(int argc, char** argv)
 
     for (int j = 0; j < NUM_FRAMES; ) {
       for (int i = 0; i < CLOCKS_PER_FRAME; i++) {
-        go = messageManagerStatic(status, &sendword, out, true);
+        go = messageManagerStatic(status, &sendword, out, false);
         status = uart(tb, go, sendword, &out);
         tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
         if (tb->FRAME_SYNC) {

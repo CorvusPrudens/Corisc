@@ -18,12 +18,10 @@ module uartwrapper(
     output wire TX
   );
 
-  wire uartread;
   wire [7:0] uartin;
   wire [7:0] uartout;
   wire uartoutwrite;
   wire TXbusy;
-  wire outfull;
 
   wire TXfull;
   wire TXempty;

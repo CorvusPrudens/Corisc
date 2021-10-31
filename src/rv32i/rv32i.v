@@ -1,26 +1,37 @@
 `ifndef RV32I_GUARD
 `define RV32I_GUARD
 
+`ifdef SIM
+  `ifndef PROGRAM_PATH
+  `define PROGRAM_PATH "program.hex"
+  `endif
+
+  `ifndef MICROCODE_PATH
+  `define MICROCODE_PATH "microcode.hex"
+  `endif
+
+  `ifndef GPU_INIT_PATH
+  `define GPU_INIT_PATH "initdata.hex"
+  `endif
+`else
+  `define PROGRAM_PATH "program.hex"
+  `define MICROCODE_PATH "../../rv32i/include/microcode.hex"
+  `define GPU_INIT_PATH "../../common/include/initdata.hex"
+  `define ACCEL_CHARDATA "../../common/include/chardata.hex"
+`endif
+
 `include "rv32i_registers.v"
 `include "rv32i_alu.v"
 `include "rv32i_memory.v"
 `include "rv32i_control.v"
-`include "bram_init.v"
 `include "uartwrapper.v"
 `include "sram16.v"
 `include "timer.v"
 `include "gpu.v"
+`include "flash.v"
 
-`ifndef PROGRAM_PATH
-`define PROGRAM_PATH "program.hex"
-`endif
-
-`ifndef MICROCODE_PATH
-`define MICROCODE_PATH "microcode.hex"
-`endif
-
-`ifndef GPU_INIT_PATH
-`define GPU_INIT_PATH "initdata.hex"
+`ifdef BOOTLOADER
+`include "bram_init.v"
 `endif
 
 module rv32i(
@@ -184,8 +195,8 @@ module rv32i(
     `endif
     .REGION_1_B(32'h00001000),
     .REGION_1_E(32'h00001040),
-    .REGION_2_B(32'h00002000),
-    .REGION_2_E(32'h00004004),
+    .REGION_2_B(32'h00100000),
+    .REGION_2_E(32'h00108004),
     .REGION_3_B(32'h00005000),
     .REGION_3_E(32'h00005018),
     .REGION_4_B(32'h00009000),
@@ -254,7 +265,7 @@ module rv32i(
   timer TIMER (
     .clk_i(clk_i),
     .data_i(memory_in),
-    .addr_i(memory_addr[2:1] + 2'b10),
+    .addr_i({1'b0, memory_addr[2:1] + 2'b10}),
     .write_i(general_timer & memory_write),
     .data_o(timer_out),
     .intVec_o(int_src_timer)
@@ -268,7 +279,7 @@ module rv32i(
   ) GPU (
     .clk_i(clk_i),
     .write_i(memory_region[2] & memory_write),
-    .waddr_i(memory_addr[12:1]),
+    .waddr_i(memory_addr[13:1]),
     .data_i(memory_in),
     .SDO(DIS_SDI),
     .SCK(DIS_SCK),

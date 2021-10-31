@@ -4,8 +4,8 @@
 `include "bram_dual.v"
 
 module fifo #(
-    memSize_p = 8,
-    dataWidth_p = 16
+    parameter memSize_p = 8,
+    parameter dataWidth_p = 16
   )
   (
     input wire clk_i,

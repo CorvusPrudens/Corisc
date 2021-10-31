@@ -1,15 +1,15 @@
 #include "gpu.h"
+#include "string.h"
 
-volatile uint16_t MEM_GPU FrameBuffer[512];
-volatile uint32_t MEM_GPU RequestBuffer[256];
-volatile uint16_t MEM_GPU SpriteBuffer[1024];
-volatile uint16_t MEM_GPU CharacterBuffer[1024];
+volatile uint8_t newframe;
+
+static void (*FrameCallback)();
 
 volatile uint32_t* request_ptr;
 volatile uint16_t* sprite_ptr;
 
-const size_t request_end = (size_t) RequestBuffer + sizeof(RequestBuffer);
-const size_t sprite_end = (size_t) SpriteBuffer + sizeof(SpriteBuffer);
+const size_t request_end = (size_t) GPU_REQUEST_BUFFER + 1024;
+const size_t sprite_end = (size_t) GPU_SPRITE_BUFFER + 1024;
 
 SpriteSource text_source = {
   0,
@@ -32,7 +32,7 @@ SpriteInfo text_info = {
 
 void OPT_Os INTERRUPT GpuHandler()
 {
-
+  newframe = 1;
 }
 
 static void OPT_O3 WriteRequest(SpriteInfo* req)
@@ -40,11 +40,13 @@ static void OPT_O3 WriteRequest(SpriteInfo* req)
   if ((size_t) request_ptr < request_end)
   {
     // We really need to get multiplication / division in here
-    int16_t frame_offset = 0;
-    for (int16_t i = 0; i < req->frame; i++)
+    uint16_t frame_offset = 0;
+    for (uint16_t i = 0; i < req->frame; i++)
       frame_offset += req->source->width;
+
+    // uint16_t frame_offset = req->source->width * req->frame;
     
-    int32_t request = (req->source->index + frame_offset) << 8;
+    uint32_t request = (req->source->index + frame_offset) << 8;
     request |= req->color;
     request |= req->horizontal_flip << 1;
     request |= req->vertical_flip << 2;
@@ -61,7 +63,7 @@ static void OPT_O3 LoadSprite(SpriteSource* sprite)
 {
   if ((size_t) sprite_ptr + sprite->width - 1 < (size_t) sprite_end)
   {
-    sprite->index = sprite_ptr - SpriteBuffer;
+    sprite->index = (uint16_t) (sprite_ptr - (size_t) GPU_SPRITE_BUFFER);
     int16_t frame_offset = 0;
     for (int16_t f = 0; f < sprite->frames; f++)
     {
@@ -77,23 +79,35 @@ static void OPT_O3 LoadSprite(SpriteSource* sprite)
   }
 }
 
-void OPT_Os GpuInit()
+void OPT_Os GpuInit(void (*callback)())
 {
+  FrameCallback = callback;
   ClearRequests();
   ClearSprites();
   SetGpuClear(1, 0);
   INTERRUPT_MASK |= GPU_INT_BIT;
 }
 
+void GpuProcess()
+{
+  if (newframe)
+  {
+    newframe = 0;
+    GpuBeginFrame();
+    (*FrameCallback)();
+    GpuEndFrame();
+  }
+}
+
 // Hm.. this wouldn't indicate if a sprite is loaded!
 inline void OPT_Os ClearSprites()
 {
-  sprite_ptr = SpriteBuffer;
+  sprite_ptr = GPU_SPRITE_BUFFER;
 }
 
 inline void OPT_Os ClearRequests()
 {
-  request_ptr = RequestBuffer;
+  request_ptr = GPU_REQUEST_BUFFER;
 }
 
 void OPT_O3 DrawSprite(SpriteInfo* info)
@@ -105,13 +119,13 @@ void OPT_O3 DrawSprite(SpriteInfo* info)
 
 inline void OPT_O3 DrawChar(char c, uint8_t xpos, uint8_t ypos)
 {
-  text_source.index = (uint16_t) c << 2;
+  text_source.index = c;
   text_info.xpos = xpos;
   text_info.ypos = ypos;
   WriteRequest(&text_info);
 }
 
-void OPT_O3 DrawString(char* s, uint8_t xpos, uint8_t ypos)
+void OPT_O3 DrawString(const char* s, uint8_t xpos, uint8_t ypos)
 {
   for ( ; *s != 0; s++)
   {
@@ -124,4 +138,15 @@ inline void OPT_Os SetGpuClear(uint8_t enable, uint16_t clear_word)
 {
   GPU_CLEAR_ENABLE = enable;
   GPU_CLEAR_WORD = clear_word;
+}
+
+void OPT_Os GpuBeginFrame()
+{
+  ClearRequests();
+}
+
+void OPT_Os GpuEndFrame()
+{
+  const uint32_t end_request = 0x0000FF00;
+  *request_ptr = end_request;
 }

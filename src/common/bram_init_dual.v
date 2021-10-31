@@ -17,7 +17,7 @@ module bram_init_dual
     output reg [(dataWidth_p - 1):0] data_o
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p];
+  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
 
   initial $readmemh(initFile_p, memory);
 

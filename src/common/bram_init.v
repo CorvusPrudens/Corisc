@@ -13,10 +13,10 @@ module bram_init
     input wire [(dataWidth_p - 1):0] data_i,
     input wire [(memSize_p - 1):0]  addr_i,
 
-    output wire [(dataWidth_p - 1):0] data_o
+    output reg [(dataWidth_p - 1):0] data_o
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p];
+  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
 
   initial $readmemh(initFile_p, memory);
 
@@ -24,7 +24,10 @@ module bram_init
     if (write_i) memory[addr_i] <= data_i;
   end
 
-  assign data_o = memory[addr_i];
+  always @(negedge clk_i) begin
+    data_o <= memory[addr_i];
+  end
+  // assign data_o = memory[addr_i];
 
 endmodule
 `endif // INIT_BRAM_GUARD

@@ -20,7 +20,7 @@ module bram_mask
     output wire [XLEN-1:0] data_o
   );
 
-  reg [XLEN-1:0] memory [2**MEMORY_SIZE];
+  reg [XLEN-1:0] memory [2**MEMORY_SIZE-1:0];
 
   wire [XLEN-1:0] data_mux;
 

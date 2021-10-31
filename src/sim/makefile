@@ -19,21 +19,28 @@ VERILOG_INCLUDES = \
 -I../lattice \
 -I../common
 MICROCODE = ../rv32i/include/microcode.hex
+GPU_INIT_PATH = ../common/include/initdata.hex
+ACCEL_CHARDATA = ../common/include/chardata.hex
 
-ifeq ($(BOOTLOADER), 1)
 VERILOG_DEFS = \
 -DSIM \
 -DMICROCODE_PATH=\"$(MICROCODE)\" \
+-DGPU_INIT_PATH=\"$(GPU_INIT_PATH)\" \
+-DACCEL_CHARDATA=\"$(ACCEL_CHARDATA)\"
+
+ifeq ($(BOOTLOADER), 1)
+VERILOG_DEFS =+ \
 -DPROGRAM_PATH=\"$(PROGRAM)\" \
 -DBOOTLOADER
-
 CPP_FLAGS = -DBOOTLOADER
-else
-VERILOG_DEFS = \
--DSIM \
--DMICROCODE_PATH=\"$(MICROCODE)\"
 endif
 TARGET = rv32i
+
+# XPACK_LIB = /home/corvus/.local/xPacks/@xpack-dev-tools/riscv-none-embed-gcc/10.1.0-1.1.1/.content/bin
+
+# RCC = $(XPACK_LIB)/riscv-none-embed-gcc -march=rv32i -mabi=ilp32 --specs=nano.specs -mcmodel=medany
+# RLD = $(XPACK_LIB)/riscv-none-embed-ld 
+# ROBJ = $(XPACK_LIB)/riscv-none-embed-objdump
 
 ELF_UTIL = ../util/read_elf
 RCC = riscv32-unknown-elf-gcc
@@ -46,6 +53,11 @@ TEST_TARGET = startup
 
 RISCV_TARGET = riscv
 BOOTLOADER_TARGET = bootloader
+
+RISCV_LIBS = \
+-L/home/corvus/Applications/riscv/riscv32-unknown-elf/lib/ \
+-L/home/corvus/Applications/riscv/lib/gcc/riscv32-unknown-elf/11.1.0
+# RISCV_LIB = /home/corvus/.local/xPacks/@xpack-dev-tools/riscv-none-embed-gcc/10.1.0-1.1.1/.content/lib/gcc/riscv-none-embed/10.1.0/rv32i/ilp32
 
 CPP_SOURCES = src/sim.cpp \
 src/modules/utils.cpp \
@@ -67,6 +79,7 @@ CPP_FLAGS += \
 -DPROG_BIN=\"$(BUILD)/$(RISCV_TARGET).bin\"
 
 ifeq ($(UNAME), Linux)
+# LINKER_FLAGS = -lglfw -lGLEW -lGL -lm -lX11 -lpthread -lXi -lXrandr -ldl
 LINKER_FLAGS = -lglfw -lGLEW -lGL
 else
 LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW -lsndfile
@@ -75,11 +88,13 @@ endif
 RISCV_SOURCES = \
 examples/main.c \
 examples/core/startup.c \
-examples/modules/gpu.c
+examples/modules/gpu.c \
+examples/modules/string.c
 
 BOOTLOADER_SOURCES = \
 examples/core/bootloader.c \
-examples/core/startup.c
+examples/core/startup.c \
+examples/modules/string.c
 
 RISCV_INCLUDES = \
 -I./examples \
@@ -89,7 +104,7 @@ RISCV_INCLUDES = \
 
 RISCV_FLAGS = -Wunused-function
 
-RISCV_LINKER_FLAGS = 
+RISCV_LINKER_FLAGS = $(RISCV_LIBS) -lgcc -lc
 
 ifeq ($(DEBUG), 1)
 OPT = -O0
@@ -116,12 +131,12 @@ SORTED_BOOT = $(sort $(BOOTLOADER_OBJECTS))
 
 all: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate 
-	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) CLOCK_COUNT="-DCLOCK_COUNT=14318180"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) CLOCK_COUNT="-DNUM_FRAMES=60"
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 
 trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace 
-	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE" CLOCK_COUNT="-DNUM_FRAMES=3"
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 
 debug: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
@@ -166,16 +181,16 @@ $(BUILD)/%.ob: %.c makefile | $(BUILD)
 	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
 
 $(BUILD)/$(TARGET): $(SORTED_OBJECTS) makefile
-	$(CC) $(LINKER_FLAGS) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@
+	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@ $(LINKER_FLAGS)
 
 $(BUILD)/$(RISCV_TARGET).bin: $(SORTED_RISCV) $(LDSCRIPT) makefile
-	$(RLD) $(RISCV_LINKER_FLAGS) -T$(LDSCRIPT) $(SORTED_RISCV) \
+	$(RLD) -T$(LDSCRIPT) $(SORTED_RISCV) $(RISCV_LINKER_FLAGS) \
 		-o $(BUILD)/$(RISCV_TARGET).elf --print-memory-usage -Map $(BUILD)/$(RISCV_TARGET).map
 	$(ELF_UTIL) --bin $(BUILD)/$(RISCV_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(RISCV_TARGET).elf > $(BUILD)/$(RISCV_TARGET).obj
 
 $(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) $(BOOT_LDSCRIPT) makefile
-	$(RLD) $(RISCV_LINKER_FLAGS) -T$(BOOT_LDSCRIPT) $(SORTED_BOOT) \
+	$(RLD) -T$(BOOT_LDSCRIPT) $(RISCV_LINKER_FLAGS) $(SORTED_BOOT) \
 		-o $(BUILD)/$(BOOTLOADER_TARGET).elf --print-memory-usage -Map $(BUILD)/$(BOOTLOADER_TARGET).map
 	$(ELF_UTIL) -b $(BUILD)/$(BOOTLOADER_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(BOOTLOADER_TARGET).elf > $(BUILD)/$(BOOTLOADER_TARGET).obj

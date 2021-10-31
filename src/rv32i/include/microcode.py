@@ -3,6 +3,8 @@
 # strict 16-bit port size
 # mem_addr_store and memory_write can be combined (same for loads!)
 
+from math import ceil, sqrt
+
 operation_bits = {
   'memory_read': 0,
   'memory_write': 1,
@@ -119,8 +121,29 @@ operations = {
   ],
 }
 
+template = """`ifndef RV32I_MICROCODE_GUARD
+`define RV32I_MICROCODE_GUARD
+
+module rv32i_microcode
+  (
+    input wire clk_i,
+    input wire [4:0] microcode_addr_i,
+    output reg [31:0] microcode_o
+  );
+
+  always @(*) begin
+    case (microcode_addr_i)
+      default: microcode_o = 32'h0;
+{}
+    endcase
+  end
+
+endmodule
+`endif // RV32I_MICROCODE_GUARD
+"""
+
 def translate_opcode(operation_name, bits, bit_shifts, word_offset):
-  lines = [f'// {operation_name} (offset: {word_offset} words)\n']
+  lines = [f'      // {operation_name} (offset: {word_offset} words)']
   for step in bits:
     word = 0
     for item in step:
@@ -132,7 +155,29 @@ def translate_opcode(operation_name, bits, bit_shifts, word_offset):
     lines.append('{:08X}'.format(word))
   if len(lines) == 0:
     lines.append('{:08X}'.format(0))
-  return ' '.join(lines)
+  return lines
+
+def gen_lut(micro_dict, shifts, outfile):
+  total_len = 0 
+  for key, item in micro_dict.items():
+    for step in item:
+      total_len += 1
+  
+  width = ceil(sqrt(total_len))
+  lines = []
+  fmt = f'      {{}}\'h{{:0{ceil(width/4)}X}}: microcode_o = 32\'h{{}};'
+  with open(outfile, 'w') as file:
+    offsets = 0
+    index = 0
+    for key, item in micro_dict.items():
+      steps = translate_opcode(key, item, shifts, offsets)
+      lines.append(steps[0])
+      for step in steps[1:]:
+        lines.append(fmt.format(width, index, step))
+        index += 1
+      if (key != 'fetch'):
+        offsets += len(item)
+    file.write(template.format('\n'.join(lines)))
 
 
 def write_micro(micro_dict, shifts, outfile):
@@ -140,9 +185,10 @@ def write_micro(micro_dict, shifts, outfile):
   with open(outfile, 'w') as file:
     offsets = 0
     for key, item in micro_dict.items():
-      file.write(translate_opcode(key, item, shifts, offsets) + '\n')
+      file.write(' '.join(translate_opcode(key, item, shifts, offsets)[1:]) + '\n')
       if (key != 'fetch'):
         offsets += len(item)
 
 if __name__ == '__main__':
   write_micro(operations, operation_bits, 'microcode.hex')
+  gen_lut(operations, operation_bits, '../rv32i_microcode.v')

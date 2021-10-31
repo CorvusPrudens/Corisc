@@ -1,27 +1,29 @@
+`ifndef RV32I_MEMORY_GUARD
+`define RV32I_MEMORY_GUARD
 
 module rv32i_memory
   #(
-    XLEN = 32,
-    PORT_LEN = 32,
-    MAP_SIZE = 9,
-    REGION_0_B = 32'h00000000,
-    REGION_0_E = 32'h00000400,
-    REGION_1_B = 32'h00001000,
-    REGION_1_E = 32'h00001040,
-    REGION_2_B = 32'h00002000,
-    REGION_2_E = 32'h00002400,
-    REGION_3_B = 32'h00004000,
-    REGION_3_E = 32'h00004018,
-    REGION_4_B = 32'h00009000,
-    REGION_4_E = 32'h00009004,
-    REGION_5_B = 32'h0000A000,
-    REGION_5_E = 32'h0000A004,
-    REGION_6_B = 32'h0000B000,
-    REGION_6_E = 32'h0000B004,
-    REGION_7_B = 32'h00010000,
-    REGION_7_E = 32'h00020000,
-    REGION_8_B = 32'h00020000,
-    REGION_8_E = 32'h00030000
+    parameter XLEN = 32,
+    parameter PORT_LEN = 32,
+    parameter MAP_SIZE = 9,
+    parameter REGION_0_B = 32'h00000000,
+    parameter REGION_0_E = 32'h00000400,
+    parameter REGION_1_B = 32'h00001000,
+    parameter REGION_1_E = 32'h00001040,
+    parameter REGION_2_B = 32'h00002000,
+    parameter REGION_2_E = 32'h00002400,
+    parameter REGION_3_B = 32'h00004000,
+    parameter REGION_3_E = 32'h00004018,
+    parameter REGION_4_B = 32'h00009000,
+    parameter REGION_4_E = 32'h00009004,
+    parameter REGION_5_B = 32'h0000A000,
+    parameter REGION_5_E = 32'h0000A004,
+    parameter REGION_6_B = 32'h0000B000,
+    parameter REGION_6_E = 32'h0000B004,
+    parameter REGION_7_B = 32'h00010000,
+    parameter REGION_7_E = 32'h00020000,
+    parameter REGION_8_B = 32'h00020000,
+    parameter REGION_8_E = 32'h00030000
   )
   (
     input wire clk_i,
@@ -42,7 +44,7 @@ module rv32i_memory
     input wire [PORT_LEN-1:0] data7_i,
     input wire [PORT_LEN-1:0] data8_i,
 
-    output reg [MAP_SIZE-1:0] data_region_o,
+    output wire [MAP_SIZE-1:0] data_region_o,
 
     output reg [PORT_LEN-1:0] data_o,
     output reg illegal_access_o
@@ -102,3 +104,4 @@ module rv32i_memory
   `endif
 
 endmodule
+`endif // RV32I_MEMORY_GUARD

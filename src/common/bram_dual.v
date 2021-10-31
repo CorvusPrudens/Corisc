@@ -19,7 +19,7 @@ module bram_dual
     output reg [(dataWidth_p - 1):0] data_o = 0
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p];
+  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
 
   always @(posedge clk_i) begin
     if (write_i) memory[waddr_i] <= data_i;

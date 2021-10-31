@@ -369,11 +369,14 @@ module accel
     .data_o(sprDataOut)
   );
 
+  `ifndef ACCEL_CHARDATA
+  `define ACCEL_CHARDATA "chardata.hex"
+  `endif
+
   bram_init_dual #(
     .memSize_p(gpuSize_p + 1),
     .dataWidth_p(8),
-    .initFile_p("../cpu-arch/core/include/chardata.hex")
-    // .initFile_p("../units/include/bigchardata.hex")
+    .initFile_p(`ACCEL_CHARDATA)
   ) BRAM_CHR (
     .clk_i(clk_i),
     .write_i(chrWrite),
