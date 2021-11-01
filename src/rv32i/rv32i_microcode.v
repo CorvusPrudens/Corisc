@@ -8,7 +8,7 @@ module rv32i_microcode
     output reg [31:0] microcode_o
   );
 
-  always @(*) begin
+  always @(microcode_addr_i) begin
     case (microcode_addr_i)
       default: microcode_o = 32'h0;
       // fetch (offset: 0 words)

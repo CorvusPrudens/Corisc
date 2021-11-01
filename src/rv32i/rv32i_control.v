@@ -8,8 +8,8 @@
 
 // `include "bram_init.v"
 `include "rv32i_interrupts.v"
-`include "sign_ext.v"
-`include "rv32i_microcode.v"
+// `include "sign_ext.v"
+// `include "rv32i_microcode.v"
 
 module rv32i_control
   #(
@@ -85,7 +85,7 @@ module rv32i_control
   // TODO -- need to get exception support in here at some point
   reg [5:0] trap_vector = 0;
 
-  wire [31:0] control_vector_raw;
+  reg [31:0] control_vector_raw;
   wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
   // The ~clk_i helps prevent glitching as addresses etc settle
@@ -153,26 +153,26 @@ module rv32i_control
   // wire [19:0] j_immediate = {instruction[31], instruction[19:12], instruction[20], instruction[30:21]};
 
   wire [20:0] j_immediate_u = {instruction[31], instruction[19:12], instruction[20], instruction[30:21], 1'b0};
-  wire [XLEN-1:0] j_immediate;
+  wire [XLEN-1:0] j_immediate = {{XLEN-21{j_immediate_u[20]}}, j_immediate_u[20:0]};
 
-  sign_ext #(
-    .XLEN(XLEN),
-    .INPUT_LEN(21)
-  ) SIGN_EXT1 (
-    .data_i(j_immediate_u),
-    .data_o(j_immediate)
-  );
+  // sign_ext #(
+  //   .XLEN(XLEN),
+  //   .INPUT_LEN(21)
+  // ) SIGN_EXT1 (
+  //   .data_i(j_immediate_u),
+  //   .data_o(j_immediate)
+  // );
 
   wire [12:0] b_immediate_u = {instruction[31], instruction[7], instruction[30:25], instruction[11:8], 1'b0};
-  wire [XLEN-1:0] b_immediate;
+  wire [XLEN-1:0] b_immediate = {{XLEN-13{b_immediate_u[12]}}, b_immediate_u[12:0]};
 
-  sign_ext #(
-    .XLEN(XLEN),
-    .INPUT_LEN(13)
-  ) SIGN_EXT2 (
-    .data_i(b_immediate_u),
-    .data_o(b_immediate)
-  );
+  // sign_ext #(
+  //   .XLEN(XLEN),
+  //   .INPUT_LEN(13)
+  // ) SIGN_EXT2 (
+  //   .data_i(b_immediate_u),
+  //   .data_o(b_immediate)
+  // );
 
   wire [6:0] opcode = instruction[6:0];
   assign funct3_o = instruction[14:12];
@@ -182,11 +182,11 @@ module rv32i_control
   assign rs1_addr_o = instruction[19:15];
   assign rs2_addr_o = instruction[24:20];
 
-  wire [XLEN-1:0] load_offset;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT3 ( .data_i(i_immediate), .data_o(load_offset) );
+  wire [XLEN-1:0] load_offset = {{XLEN-12{i_immediate[11]}}, i_immediate[11:0]};
+  // sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT3 ( .data_i(i_immediate), .data_o(load_offset) );
   wire [XLEN-1:0] load_offset_add = load_offset + rs1_i;
-  wire [XLEN-1:0] store_offset;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT4 ( .data_i(s_immediate), .data_o(store_offset) );
+  wire [XLEN-1:0] store_offset = {{XLEN-12{s_immediate[11]}}, s_immediate[11:0]};
+  // sign_ext #( .XLEN(XLEN), .INPUT_LEN(12) ) SIGN_EXT4 ( .data_i(s_immediate), .data_o(store_offset) );
   wire [XLEN-1:0] store_offset_add = store_offset + rs1_i;
 
   wire vtable_tick = ~initial_reset ? reset_delay[0] : ~pc_save_uepc;
@@ -246,11 +246,55 @@ module rv32i_control
   //   .data_o(control_vector_raw)
   // );
 
-  rv32i_microcode RV32I_MICROCODE (
-    .clk_i(clk_i),
-    .microcode_addr_i(microcode_addr),
-    .microcode_o(control_vector_raw)
-  );
+  // rv32i_microcode RV32I_MICROCODE (
+  //   .clk_i(clk_i),
+  //   .microcode_addr_i(microcode_addr),
+  //   .microcode_o(control_vector_raw)
+  // );
+
+  always @(microcode_addr) begin
+    case (microcode_addr)
+      default: control_vector_raw = 32'h0;
+      // fetch (offset: 0 words)
+      5'h00: control_vector_raw = 32'h00000905;
+      5'h01: control_vector_raw = 32'h00001105;
+      // op_lb (offset: 0 words)
+      5'h02: control_vector_raw = 32'h00208409;
+      // op_lh (offset: 1 words)
+      5'h03: control_vector_raw = 32'h08008409;
+      // op_lw (offset: 2 words)
+      5'h04: control_vector_raw = 32'h04000009;
+      5'h05: control_vector_raw = 32'h02408409;
+      // op_fence (offset: 4 words)
+      5'h06: control_vector_raw = 32'h00000400;
+      // op_ai (offset: 5 words)
+      5'h07: control_vector_raw = 32'h0000C400;
+      // op_auipc (offset: 6 words)
+      5'h08: control_vector_raw = 32'h0001A400;
+      // op_sb (offset: 7 words)
+      5'h09: control_vector_raw = 32'h00800412;
+      // op_sh (offset: 8 words)
+      5'h0A: control_vector_raw = 32'h00000412;
+      // op_sw (offset: 9 words)
+      5'h0B: control_vector_raw = 32'h00000012;
+      5'h0C: control_vector_raw = 32'h03000412;
+      // op_a (offset: 11 words)
+      5'h0D: control_vector_raw = 32'h00008400;
+      // op_lui (offset: 12 words)
+      5'h0E: control_vector_raw = 32'h0000A400;
+      // op_b (offset: 13 words)
+      5'h0F: control_vector_raw = 32'h10080400;
+      // op_jalr (offset: 14 words)
+      5'h10: control_vector_raw = 32'h40148500;
+      // op_jal (offset: 15 words)
+      5'h11: control_vector_raw = 32'h20128500;
+      // op_mret (offset: 16 words)
+      5'h12: control_vector_raw = 32'h80000580;
+      // pseudo_op_interrupt (offset: 17 words)
+      5'h13: control_vector_raw = 32'h00000340;
+      5'h14: control_vector_raw = 32'h00000700;
+    endcase
+  end
 
   always @(posedge clk_i) begin
     if (write_lower_instr)
@@ -339,12 +383,12 @@ module rv32i_control
   end
 
   wire [7:0] byte_offset = memory_addr_o[0] ? memory_i[15:8] : memory_i[7:0];
-  wire [XLEN-1:0] signed_byte;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(8) ) SIGN_EXT5 ( .data_i(byte_offset), .data_o(signed_byte) );
+  wire [XLEN-1:0] signed_byte = {{XLEN-8{byte_offset[7]}}, byte_offset[7:0]};
+  // sign_ext #( .XLEN(XLEN), .INPUT_LEN(8) ) SIGN_EXT5 ( .data_i(byte_offset), .data_o(signed_byte) );
   wire [XLEN-1:0] byte_mux = funct3_o[2] ? {24'b0, byte_offset} : signed_byte;
 
-  wire [XLEN-1:0] memory_signed;
-  sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT6 ( .data_i(memory_i), .data_o(memory_signed) );
+  wire [XLEN-1:0] memory_signed = {{XLEN-16{memory_i[15]}}, memory_i[15:0]};
+  // sign_ext #( .XLEN(XLEN), .INPUT_LEN(16) ) SIGN_EXT6 ( .data_i(memory_i), .data_o(memory_signed) );
 
   wire [1:0] load_state = {load_byte, load_word};
   always @(*) begin
