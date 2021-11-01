@@ -46,6 +46,7 @@ ELF_UTIL = ../util/read_elf
 RCC = riscv32-unknown-elf-gcc
 RLD = riscv32-unknown-elf-ld
 ROBJ = riscv32-unknown-elf-objdump
+RAR = riscv32-unknown-elf-ar
 LDSCRIPT = ../util/rv32i.lds
 BOOT_LDSCRIPT = ../util/rv32i_boot.lds
 EXAMPLES = examples
@@ -53,10 +54,12 @@ TEST_TARGET = startup
 
 RISCV_TARGET = riscv
 BOOTLOADER_TARGET = bootloader
+CORLIB_TARGET = libcorvus
 
 RISCV_LIBS = \
 -L$(RISCV32_LIBS)/riscv32-unknown-elf/lib/ \
--L$(RISCV32_LIBS)/lib/gcc/riscv32-unknown-elf/11.1.0
+-L$(RISCV32_LIBS)/lib/gcc/riscv32-unknown-elf/11.1.0 \
+-L$(BUILD)
 # RISCV_LIB = /home/corvus/.local/xPacks/@xpack-dev-tools/riscv-none-embed-gcc/10.1.0-1.1.1/.content/lib/gcc/riscv-none-embed/10.1.0/rv32i/ilp32
 
 CPP_SOURCES = src/sim.cpp \
@@ -85,16 +88,16 @@ else
 LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW
 endif
 
-RISCV_SOURCES = \
-examples/main.c \
+CORLIB_FILES = \
 examples/core/startup.c \
 examples/modules/gpu.c \
 examples/modules/string.c
 
+RISCV_SOURCES = \
+examples/main.c 
+
 BOOTLOADER_SOURCES = \
-examples/core/bootloader.c \
-examples/core/startup.c \
-examples/modules/string.c
+examples/core/bootloader.c 
 
 RISCV_INCLUDES = \
 -I./examples \
@@ -104,7 +107,7 @@ RISCV_INCLUDES = \
 
 RISCV_FLAGS = -Wunused-function
 
-RISCV_LINKER_FLAGS = $(RISCV_LIBS) -lgcc -lc
+RISCV_LINKER_FLAGS = $(RISCV_LIBS) -lcorvus -lgcc -lc
 
 ifeq ($(DEBUG), 1)
 OPT = -O0
@@ -116,6 +119,10 @@ endif
 OBJECTS = $(addprefix $(BUILD)/,$(CPP_SOURCES:.cpp=.o))
 vpath %.cpp $(sort $(dir $(CPP_SOURCES)))
 SORTED_OBJECTS = $(sort $(OBJECTS))
+
+CORLIB_OBJECTS = $(addprefix $(BUILD)/,$(CORLIB_FILES:.c=.ol))
+vpath %.c $(sort $(dir $(CORLIB_FILES)))
+SORTED_CORLIB = $(sort $(CORLIB_OBJECTS))
 
 RISCV_OBJECTS = $(addprefix $(BUILD)/,$(RISCV_SOURCES:.c=.or))
 vpath %.c $(sort $(dir $(RISCV_SOURCES)))
@@ -132,26 +139,31 @@ SORTED_BOOT = $(sort $(BOOTLOADER_OBJECTS))
 all: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate 
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) CLOCK_COUNT="-DNUM_FRAMES=60"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 
 trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace 
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE" CLOCK_COUNT="-DNUM_FRAMES=3"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 
 debug: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_debug 
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) DEBUG=1
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin
 
 boot: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) CLOCK_COUNT="-DCLOCK_COUNT=14318180" BOOTLOADER=1
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
 	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex 
 
 boot_trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE" BOOTLOADER=1
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
 	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex
 
 $(BUILD):
@@ -170,6 +182,11 @@ $(BUILD)/%.o: %.cpp makefile | $(BUILD)
 	mkdir -p $(@D)
 	$(CC) $(OPT) $(CPP_FLAGS) $(CLOCK_COUNT) $(CPP_INCLUDES) $(TRACE) -c $< -o $@ 
 
+$(BUILD)/%.ol: %.c makefile | $(BUILD)
+	mkdir -p $(@D)
+	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
+	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -S $< -o $@.s
+
 $(BUILD)/%.or: %.c makefile | $(BUILD)
 	mkdir -p $(@D)
 	$(RCC) $(RISCV_FLAGS) $(RISCV_INCLUDES) -c $< -o $@
@@ -182,6 +199,9 @@ $(BUILD)/%.ob: %.c makefile | $(BUILD)
 
 $(BUILD)/$(TARGET): $(SORTED_OBJECTS) makefile
 	$(CC) $(SORTED_OBJECTS) $(VERILATION)/V$(TARGET)__ALL.o -o $@ $(LINKER_FLAGS)
+
+$(BUILD)/$(CORLIB_TARGET).a: $(SORTED_CORLIB) makefile
+	$(RAR) -r $@ $(SORTED_CORLIB)
 
 $(BUILD)/$(RISCV_TARGET).bin: $(SORTED_RISCV) $(LDSCRIPT) makefile
 	$(RLD) -T$(LDSCRIPT) $(SORTED_RISCV) $(RISCV_LINKER_FLAGS) \
@@ -217,7 +237,7 @@ clean:
 	rm -rf $(BUILD)
 
 cleanr:
-	rm -rf $(SORTED_RISCV)
+	rm -rf $(SORTED_RISCV) $(SORTED_BOOT) $(SORTED_CORLIB) $(BUILD)/$(CORLIB_TARGET).a
 
 clean_all: clean
 	rm -f $(ELF_UTIL)
