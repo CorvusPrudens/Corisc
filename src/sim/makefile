@@ -17,16 +17,25 @@ VERILOG_INCLUDES = \
 -I../rv32i \
 -I../rv32i/include \
 -I../lattice \
--I../common
+-I../common \
+-I../common/apu
+
 MICROCODE = ../rv32i/include/microcode.hex
 GPU_INIT_PATH = ../common/include/initdata.hex
 ACCEL_CHARDATA = ../common/include/chardata.hex
+
+APU_PATH = ../common/apu
 
 VERILOG_DEFS = \
 -DSIM \
 -DMICROCODE_PATH=\"$(MICROCODE)\" \
 -DGPU_INIT_PATH=\"$(GPU_INIT_PATH)\" \
--DACCEL_CHARDATA=\"$(ACCEL_CHARDATA)\"
+-DACCEL_CHARDATA=\"$(ACCEL_CHARDATA)\" \
+-DTRIPROM_PATH=\"$(APU_PATH)/triprom.hex\" \
+-DNOISEPROM_PATH=\"$(APU_PATH)/noiseprom.hex\" \
+-DPULSEPROM_PATH=\"$(APU_PATH)/pulseprom.hex\" \
+-DTNDPROM_PATH=\"$(APU_PATH)/tndprom.hex\" \
+-DVRC6PROM_PATH=\"$(APU_PATH)/vrc6prom.hex\" 
 
 ifeq ($(BOOTLOADER), 1)
 VERILOG_DEFS =+ \

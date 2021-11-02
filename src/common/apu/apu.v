@@ -1,3 +1,5 @@
+`ifndef APU_GUARD
+`define APU_GUARD
 
 /*
   The structure for these registers can be explained
@@ -7,6 +9,26 @@
 */
 
 `include "audiotable.v"
+
+`ifndef TRIPROM_PATH
+`define TRIPROM_PATH "triprom.hex"
+`endif
+
+`ifndef NOISEPROM_PATH
+`define NOISEPROM_PATH "noiseprom.hex"
+`endif
+
+`ifndef PULSEPROM_PATH
+`define PULSEPROM_PATH "pulseprom.hex"
+`endif
+
+`ifndef TNDPROM_PATH
+`define TNDPROM_PATH "tndprom.hex"
+`endif
+
+`ifndef VRC6PROM_PATH
+`define VRC6PROM_PATH "vrc6prom.hex"
+`endif
 
 module apu (
     input wire clk_i,
@@ -30,7 +52,7 @@ module apu (
 
   always @(posedge clk_i) begin
     case ({select_vrc6_3_i, select_vrc6_2_i, select_vrc6_1_i, select_2a03_i})
-      default:
+      default: ;
       4'b0001:
         begin
           if (write_i) 
@@ -71,10 +93,10 @@ module apu (
 
   always @(posedge clk_i) begin
     clk_acc_2 <= ~clk_acc_2;
-    if (clk_acc[1]) 
-      clk_acc <= 2'b0;
+    if (clk_acc_1[1]) 
+      clk_acc_1 <= 2'b0;
     else
-      clk_acc <= clk_acc + 1'b1;
+      clk_acc_1 <= clk_acc_1 + 1'b1;
   end
 
   wire en_pulse1 = regs_2a03[21][0];
@@ -157,14 +179,14 @@ module apu (
   assign dutyTable2[3] = 8'b0011_1111;
 
   reg [3:0] tritable [0:31];
-  initial $readmemh("../cpu-arch/periphs/apu/triprom.hex", tritable);
+  initial $readmemh(`TRIPROM_PATH, tritable);
 
   reg [11:0] noisetable [0:15];
-  initial $readmemh("../cpu-arch/periphs/apu/noiseprom.hex", noisetable);
+  initial $readmemh(`NOISEPROM_PATH, noisetable);
 
   always @(posedge clk_i) begin
 
-    if (APUCKL) begin
+    if (APUCLK) begin
       // simplified control for testing
       if (en_pulse1) begin
         if (acc_pulse1 == 0) begin
@@ -234,7 +256,7 @@ module apu (
   // verilator lint_off BLKSEQ
   always @(posedge clk_i) begin
 
-    if (APU_CLK) begin
+    if (APUCLK) begin
       if (en_noise) begin
         if (acc_noise == 0) begin
 
@@ -258,7 +280,7 @@ module apu (
   // always @(posedge CPUCLK) begin
   always @(posedge clk_i) begin
 
-    if (CPU_CLK) begin
+    if (CPUCLK) begin
       if (en_tri) begin
         if (acc_tri == 0) begin
           acc_tri <= timer_tri;
@@ -284,7 +306,7 @@ module apu (
 
   audiotable #(
       .memWidth_p(5),
-      .dataFile_p("../cpu-arch/periphs/apu/pulseprom.hex")
+      .dataFile_p(`PULSEPROM_PATH)
     ) PULSEPROM(
       .clk_i(clk_i),
       .addr_i(pulse_levels),
@@ -293,7 +315,7 @@ module apu (
 
   audiotable #(
       .memWidth_p(8),
-      .dataFile_p("../cpu-arch/periphs/apu/tndprom.hex")
+      .dataFile_p(`TNDPROM_PATH)
     ) TNDPROM(
       .clk_i(clk_i),
       .addr_i(trimult + noisemult),
@@ -302,7 +324,7 @@ module apu (
 
   audiotable #(
       .memWidth_p(6),
-      .dataFile_p("../cpu-arch/periphs/apu/vrc6prom.hex")
+      .dataFile_p(`VRC6PROM_PATH)
     ) VRC6PROM(
       .clk_i(clk_i),
       .addr_i(vrc6_sum),
@@ -314,3 +336,5 @@ module apu (
   // assign master = mixed_pulses;
 
 endmodule
+
+`endif // APU_GUARD

@@ -13,6 +13,7 @@
   `ifndef GPU_INIT_PATH
   `define GPU_INIT_PATH "initdata.hex"
   `endif
+
 `else
   `define PROGRAM_PATH "program.hex"
   `define MICROCODE_PATH "../../rv32i/include/microcode.hex"
@@ -40,6 +41,7 @@ module rv32i(
     output TX,
 
     `ifdef SIM
+    output wire [15:0] DAC_INTERFACE,
     output wire FRAME_SYNC,
     output wire [15:0] SRAM_O,
     input wire [15:0] SRAM_I,
@@ -61,7 +63,17 @@ module rv32i(
     output wire DIS_RES,
     output wire DIS_SDI,
     output wire DIS_SCK,
-    output wire DIS_DC
+    output wire DIS_DC,
+
+    output wire D_EMP,
+    output wire D_DATA,
+    output wire D_LRCLK,
+    output wire D_FMT,
+    output wire D_BCK,
+    output wire D_SYSCK,
+    output wire D_MUTE,
+
+    output wire HB_O
   );
 
   `ifdef SIM
@@ -197,8 +209,8 @@ module rv32i(
     .REGION_1_E(32'h00001040),
     .REGION_2_B(32'h00100000),
     .REGION_2_E(32'h00108004),
-    .REGION_3_B(32'h00005000),
-    .REGION_3_E(32'h00005018),
+    .REGION_3_B(32'h00004000),
+    .REGION_3_E(32'h00004018),
     .REGION_4_B(32'h00009000),
     .REGION_4_E(32'h00009004),
     .REGION_5_B(32'h0000A000),
@@ -235,6 +247,19 @@ module rv32i(
   ///////////////////////////////////////////////////////////////
   // Memory mapped modules
   ///////////////////////////////////////////////////////////////
+
+  apu APU (
+    .clk_i(clk_i),
+    .addr_i(memory_addr[4:0]),
+    .data_i(memory_in[7:0]),
+    .data_o(apu_out),
+    .write_i(memory_write),
+    .select_2a03_i(memory_region[3]),
+    .select_vrc6_1_i(memory_region[4]),
+    .select_vrc6_2_i(memory_region[5]),
+    .select_vrc6_3_i(memory_region[6]),
+    .master_o(apuMaster)
+  );
 
   uartwrapper UARTWRAPPER (
     .clk_i(clk_i),
@@ -339,6 +364,54 @@ module rv32i(
 
   ///////////////////////////////////////////////////////////////
   // Memory mapped modules end
+  ///////////////////////////////////////////////////////////////
+
+  ///////////////////////////////////////////////////////////////
+  // Audio Section 
+  ///////////////////////////////////////////////////////////////
+
+  reg  [24:0] clkdiv = 0;
+
+  always @(posedge clk_i) begin
+    clkdiv <= clkdiv + 1'b1;
+  end
+
+  assign HB_O = clkdiv[22];
+
+  assign D_SYSCK = clkdiv[0];
+  assign D_LRCLK = clkdiv[7];
+  assign D_BCK = clkdiv[1];
+  assign D_FMT = 1'b1;
+  assign D_EMP = 1'b1;
+  assign D_MUTE = 1'b0;
+  assign D_DATA = osc;
+
+  wire [3:0] oscpos = 4'hF - clkdiv[5:2];
+  reg [15:0] audiobuff;
+  reg [22:0] audioAcc = 0;
+  reg osc;
+
+  always @(posedge clk_i) begin
+      if (clkdiv[6:0] == 7'b0) begin
+        audiobuff <= audioAcc[22:7] + {7'b0, apuMaster[15:7]};
+        audioAcc <= 0;
+      end else begin
+        audioAcc <= audioAcc + {7'b0, apuMaster};
+      end
+  end
+
+  always @(negedge clk_i) begin
+    osc <= audiobuff[oscpos];
+  end
+
+  wire [15:0] apuMaster;
+
+  `ifdef SIM
+  assign DAC_INTERFACE = apuMaster;
+  `endif
+
+  ///////////////////////////////////////////////////////////////
+  // Audio Section end 
   ///////////////////////////////////////////////////////////////
 
   rv32i_control #(
