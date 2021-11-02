@@ -10,20 +10,18 @@
 
 module apu (
     input wire clk_i,
-    input wire [15:0] addr_i,
+    input wire [4:0] addr_i,
     input wire [7:0] data_i,
     output reg [7:0] data_o,
     input wire write_i,
 
+    input wire select_2a03_i,
+    input wire select_vrc6_1_i,
+    input wire select_vrc6_2_i,
+    input wire select_vrc6_3_i,
+
     output wire [15:0] master_o
   );
-
-  wire [4:0] register_addr = addr_i[4:0];
-
-  wire select_2a03   = addr_i[15:12] == 4'b0101;
-  wire select_vrc6_1 = addr_i[15:12] == 4'b1001;
-  wire select_vrc6_2 = addr_i[15:12] == 4'b1010;
-  wire select_vrc6_3 = addr_i[15:12] == 4'b1011;
 
   reg [7:0] regs_2a03 [21:0];
   reg [7:0] regs_vrc6_1 [3:0];
@@ -31,58 +29,59 @@ module apu (
   reg [7:0] regs_vrc6_3 [3:0];
 
   always @(posedge clk_i) begin
-    case ({select_vrc6_3, select_vrc6_2, select_vrc6_1, select_2a03})
+    case ({select_vrc6_3_i, select_vrc6_2_i, select_vrc6_1_i, select_2a03_i})
       default:
       4'b0001:
         begin
           if (write_i) 
-            regs_2a03[register_addr] <= data_i;
+            regs_2a03[addr_i] <= data_i;
           else 
-            data_o <= regs_2a03[register_addr];
+            data_o <= regs_2a03[addr_i];
         end
       4'b0010:
         begin
           if (write_i) 
-            regs_vrc6_1[register_addr[1:0]] <= data_i;
+            regs_vrc6_1[addr_i[1:0]] <= data_i;
           else 
-            data_o <= regs_vrc6_1[register_addr[1:0]];
+            data_o <= regs_vrc6_1[addr_i[1:0]];
         end
       4'b0100:
         begin
           if (write_i) 
-            regs_vrc6_2[register_addr[1:0]] <= data_i;
+            regs_vrc6_2[addr_i[1:0]] <= data_i;
           else 
-            data_o <= regs_vrc6_2[register_addr[1:0]];
+            data_o <= regs_vrc6_2[addr_i[1:0]];
         end
       4'b1000:
         begin
           if (write_i) 
-            regs_vrc6_3[register_addr[1:0]] <= data_i;
+            regs_vrc6_3[addr_i[1:0]] <= data_i;
           else 
-            data_o <= regs_vrc6_3[register_addr[1:0]];
+            data_o <= regs_vrc6_3[addr_i[1:0]];
         end
     endcase
   end
 
   parameter CLK_DIV = 3;
 
-  reg [7:0] registers [0:33];
+  reg [1:0] clk_acc_1;
+  reg clk_acc_2;
+  wire APUCLK = clk_acc_1[1];
+  wire CPUCLK = clk_acc_2;
 
-  reg [(CLK_DIV - 1):0] clk_acc;
-  wire APUCLK;
-  wire CPUCLK;
+  always @(posedge clk_i) begin
+    clk_acc_2 <= ~clk_acc_2;
+    if (clk_acc[1]) 
+      clk_acc <= 2'b0;
+    else
+      clk_acc <= clk_acc + 1'b1;
+  end
 
   wire en_pulse1 = regs_2a03[21][0];
   wire en_pulse2 = regs_2a03[21][1];
   wire en_tri = regs_2a03[21][2];
   wire en_noise = regs_2a03[21][3];
   wire en_dmc = regs_2a03[21][4];
-
-  // VRC6 starts at 24!!
-
-  // wire en_pulse3 = registers[26][7];
-  // wire en_pulse4 = registers[30][7];
-  // wire en_saw = registers[33][7];
 
   wire en_pulse3 = regs_vrc6_1[2][7];
   wire en_pulse4 = regs_vrc6_2[2][7];
@@ -125,15 +124,6 @@ module apu (
   wire noise_mode = regs_2a03[14][7];
   reg noise_feedback;
 
-  // wire pulse3_mode = registers[24][7];
-  // wire [3:0] pulse3_vol = registers[24][3:0];
-  // wire [2:0] pulse3_duty = registers[24][6:4];
-  // wire [11:0] timer_pulse3 = {registers[26][3:0], registers[25]};
-  // wire pulse4_mode = registers[28][7];
-  // wire [3:0] pulse4_vol = registers[28][3:0];
-  // wire [2:0] pulse4_duty = registers[28][6:4];
-  // wire [11:0] timer_pulse4 = {registers[30][3:0], registers[29]};
-  // wire [11:0] timer_saw = {registers[33][3:0], registers[32]};
   wire pulse3_mode = regs_vrc6_1[0][7];
   wire [3:0] pulse3_vol = regs_vrc6_1[0][3:0];
   wire [2:0] pulse3_duty = regs_vrc6_1[0][6:4];
@@ -154,11 +144,6 @@ module apu (
 
   reg [14:0] noise_shift = 15'h01;
 
-  always @(posedge clk_i) clk_acc <= clk_acc + 1'b1;
-
-  assign APUCLK = clk_acc[CLK_DIV - 1];
-  assign CPUCLK = clk_acc[CLK_DIV - 2];
-
   wire [7:0] dutyTable1 [0:3];
   assign dutyTable1[0] = 8'b1000_0000;
   assign dutyTable1[1] = 8'b1100_0000;
@@ -177,103 +162,110 @@ module apu (
   reg [11:0] noisetable [0:15];
   initial $readmemh("../cpu-arch/periphs/apu/noiseprom.hex", noisetable);
 
-  always @(posedge APUCLK) begin
+  always @(posedge clk_i) begin
 
-    // simplified control for testing
-    if (en_pulse1) begin
-      if (acc_pulse1 == 0) begin
-        acc_pulse1 <= timer_pulse1;
-        pulse1_duty_step <= pulse1_duty_step - 1'b1;
-        pulse1_level <=
-          dutyTable1[pulse1_duty][pulse1_duty_step] ? pulse1_vol : 4'b0;
-      end else acc_pulse1 <= acc_pulse1 - 1'b1;
-    end else pulse1_level <= 4'b0;
+    if (APUCKL) begin
+      // simplified control for testing
+      if (en_pulse1) begin
+        if (acc_pulse1 == 0) begin
+          acc_pulse1 <= timer_pulse1;
+          pulse1_duty_step <= pulse1_duty_step - 1'b1;
+          pulse1_level <=
+            dutyTable1[pulse1_duty][pulse1_duty_step] ? pulse1_vol : 4'b0;
+        end else acc_pulse1 <= acc_pulse1 - 1'b1;
+      end else pulse1_level <= 4'b0;
 
-    if (en_pulse2) begin
-      if (acc_pulse2 == 0) begin
-        acc_pulse2 <= timer_pulse2;
-        pulse2_duty_step <= pulse2_duty_step - 1'b1;
-        pulse2_level <=
-          dutyTable2[pulse2_duty][pulse2_duty_step] ? pulse2_vol : 4'b0;
-      end else acc_pulse2 <= acc_pulse2 - 1'b1;
-    end else pulse2_level <= 4'b0;
+      if (en_pulse2) begin
+        if (acc_pulse2 == 0) begin
+          acc_pulse2 <= timer_pulse2;
+          pulse2_duty_step <= pulse2_duty_step - 1'b1;
+          pulse2_level <=
+            dutyTable2[pulse2_duty][pulse2_duty_step] ? pulse2_vol : 4'b0;
+        end else acc_pulse2 <= acc_pulse2 - 1'b1;
+      end else pulse2_level <= 4'b0;
 
-    if (en_pulse3) begin
-      if (acc_pulse3 == 0) begin
-        acc_pulse3 <= timer_pulse3;
-        pulse3_duty_step <= pulse3_duty_step + 1'b1;
-        if (~pulse3_mode)
-          pulse3_level <= pulse3_duty_step > {1'b0, pulse3_duty} ? 4'b0 : pulse3_vol;
-        else pulse3_level <= 4'hF;
-      end else acc_pulse3 <= acc_pulse3 - 1'b1;
-    end else begin
-      pulse3_level <= 4'h0;
-      acc_pulse3 <= 12'b0;
-    end
+      if (en_pulse3) begin
+        if (acc_pulse3 == 0) begin
+          acc_pulse3 <= timer_pulse3;
+          pulse3_duty_step <= pulse3_duty_step + 1'b1;
+          if (~pulse3_mode)
+            pulse3_level <= pulse3_duty_step > {1'b0, pulse3_duty} ? 4'b0 : pulse3_vol;
+          else pulse3_level <= 4'hF;
+        end else acc_pulse3 <= acc_pulse3 - 1'b1;
+      end else begin
+        pulse3_level <= 4'h0;
+        acc_pulse3 <= 12'b0;
+      end
 
-    if (en_pulse4) begin
-      if (acc_pulse4 == 0) begin
-        acc_pulse4 <= timer_pulse4;
-        pulse4_duty_step <= pulse4_duty_step + 1'b1;
-        if (~pulse4_mode)
-          pulse4_level <=
-            pulse4_duty_step > {1'b0, pulse4_duty} ? 4'b0 : pulse4_vol;
-        else pulse4_level <= 4'hF;
-      end else acc_pulse4 <= acc_pulse4 - 1'b1;
-    end else begin
-      pulse4_level <= 4'h0;
-      acc_pulse4 <= 12'b0;
-    end
+      if (en_pulse4) begin
+        if (acc_pulse4 == 0) begin
+          acc_pulse4 <= timer_pulse4;
+          pulse4_duty_step <= pulse4_duty_step + 1'b1;
+          if (~pulse4_mode)
+            pulse4_level <=
+              pulse4_duty_step > {1'b0, pulse4_duty} ? 4'b0 : pulse4_vol;
+          else pulse4_level <= 4'hF;
+        end else acc_pulse4 <= acc_pulse4 - 1'b1;
+      end else begin
+        pulse4_level <= 4'h0;
+        acc_pulse4 <= 12'b0;
+      end
 
-    if (en_saw) begin
-      if (acc_saw == 0) begin
-        acc_saw <= timer_saw;
-        if (saw_step == 0) begin
-          saw_level_acc <= 8'b0;
-          saw_step <= saw_step + 1'b1;
-        end else if (saw_step == 13) saw_step <= 0;
-        else if (saw_step[0] == 1'b0) begin
-          saw_level_acc <= saw_level_acc + {2'b0, saw_rate};
-          saw_step <= saw_step + 1'b1;
-        end else saw_step <= saw_step + 1'b1;
-      end else acc_saw <= acc_saw - 1'b1;
-    end else begin
-      saw_level_acc <= 8'b0;
+      if (en_saw) begin
+        if (acc_saw == 0) begin
+          acc_saw <= timer_saw;
+          if (saw_step == 0) begin
+            saw_level_acc <= 8'b0;
+            saw_step <= saw_step + 1'b1;
+          end else if (saw_step == 13) saw_step <= 0;
+          else if (saw_step[0] == 1'b0) begin
+            saw_level_acc <= saw_level_acc + {2'b0, saw_rate};
+            saw_step <= saw_step + 1'b1;
+          end else saw_step <= saw_step + 1'b1;
+        end else acc_saw <= acc_saw - 1'b1;
+      end else begin
+        saw_level_acc <= 8'b0;
+      end
+
     end
 
   end
 
   // verilator lint_off BLKSEQ
-  always @(posedge APUCLK) begin
+  always @(posedge clk_i) begin
 
-    if (en_noise) begin
-      if (acc_noise == 0) begin
+    if (APU_CLK) begin
+      if (en_noise) begin
+        if (acc_noise == 0) begin
 
-        acc_noise = noisetable[noise_period];
+          acc_noise = noisetable[noise_period];
 
-        if (noise_mode) begin
-          noise_feedback = noise_shift[6] ^ noise_shift[0];
-          noise_shift = {noise_feedback, noise_shift[14:1]};
-        end else begin
-          noise_feedback = noise_shift[1] ^ noise_shift[0];
-          noise_shift = {noise_feedback, noise_shift[14:1]};
-        end
-      end else acc_noise = acc_noise - 1'b1;
-    end else noise_shift = 15'h01;
+          if (noise_mode) begin
+            noise_feedback = noise_shift[6] ^ noise_shift[0];
+            noise_shift = {noise_feedback, noise_shift[14:1]};
+          end else begin
+            noise_feedback = noise_shift[1] ^ noise_shift[0];
+            noise_shift = {noise_feedback, noise_shift[14:1]};
+          end
+        end else acc_noise = acc_noise - 1'b1;
+      end else noise_shift = 15'h01;
+    end
 
   end
   // verilator lint_on BLKSEQ
 
   // NOTE -- triangle ticks at twice APUCLK rate
   // always @(posedge CPUCLK) begin
-  always @(posedge CPUCLK) begin
+  always @(posedge clk_i) begin
 
-    if (en_tri) begin
-      if (acc_tri == 0) begin
-        acc_tri <= timer_tri;
-        tri_step <= tri_step + 1'b1;
-        tri_level <= tritable[tri_step];
-      end else acc_tri <= acc_tri - 1'b1;
+    if (CPU_CLK) begin
+      if (en_tri) begin
+        if (acc_tri == 0) begin
+          acc_tri <= timer_tri;
+          tri_step <= tri_step + 1'b1;
+          tri_level <= tritable[tri_step];
+        end else acc_tri <= acc_tri - 1'b1;
+      end
     end
 
   end
