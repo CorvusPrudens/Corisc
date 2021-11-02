@@ -50,6 +50,17 @@ module apu (
   reg [7:0] regs_vrc6_2 [3:0];
   reg [7:0] regs_vrc6_3 [3:0];
 
+
+  always @(negedge clk_i) begin
+    case ({select_vrc6_3_i, select_vrc6_2_i, select_vrc6_1_i, select_2a03_i})
+      default: ;
+      4'b0001: data_o <= regs_2a03[addr_i];
+      4'b0010: data_o <= regs_vrc6_1[addr_i[1:0]];
+      4'b0100: data_o <= regs_vrc6_2[addr_i[1:0]];
+      4'b1000: data_o <= regs_vrc6_3[addr_i[1:0]];
+    endcase
+  end
+
   always @(posedge clk_i) begin
     case ({select_vrc6_3_i, select_vrc6_2_i, select_vrc6_1_i, select_2a03_i})
       default: ;
@@ -57,29 +68,21 @@ module apu (
         begin
           if (write_i) 
             regs_2a03[addr_i] <= data_i;
-          else 
-            data_o <= regs_2a03[addr_i];
         end
       4'b0010:
         begin
           if (write_i) 
             regs_vrc6_1[addr_i[1:0]] <= data_i;
-          else 
-            data_o <= regs_vrc6_1[addr_i[1:0]];
         end
       4'b0100:
         begin
           if (write_i) 
             regs_vrc6_2[addr_i[1:0]] <= data_i;
-          else 
-            data_o <= regs_vrc6_2[addr_i[1:0]];
         end
       4'b1000:
         begin
           if (write_i) 
             regs_vrc6_3[addr_i[1:0]] <= data_i;
-          else 
-            data_o <= regs_vrc6_3[addr_i[1:0]];
         end
     endcase
   end
