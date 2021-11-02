@@ -247,19 +247,19 @@ module rv32i(
     .TX(TX)
   );
 
-  flash FLASH (
-    .clk_i(clk_i),
-    .data_i(memory_in),
-    .data_o(flash_out),
-    .addr_i(memory_addr[2:1]),
-    .write_i(general_flash & memory_write),
-    .read_i(general_flash & memory_read),
-    .CS(FLASH_CS),
-    .SDO(FLASH_SDI),
-    .SCK(FLASH_SCK),
-    .SDI(FLASH_SDO),
-    .reset_states(1'b0)
-  );
+  // flash FLASH (
+  //   .clk_i(clk_i),
+  //   .data_i(memory_in),
+  //   .data_o(flash_out),
+  //   .addr_i(memory_addr[2:1]),
+  //   .write_i(general_flash & memory_write),
+  //   .read_i(general_flash & memory_read),
+  //   .CS(FLASH_CS),
+  //   .SDO(FLASH_SDI),
+  //   .SCK(FLASH_SCK),
+  //   .SDI(FLASH_SDO),
+  //   .reset_states(1'b0)
+  // );
 
   wire int_src_timer;
   timer TIMER (
@@ -272,22 +272,22 @@ module rv32i(
   );
 
   wire int_src_gpu;
-  gpu #(
-    .gpuSize_p(9),
-    .gpuInputWidth_p(12),
-    .initData_p(`GPU_INIT_PATH)
-  ) GPU (
-    .clk_i(clk_i),
-    .write_i(memory_region[2] & memory_write),
-    .waddr_i(memory_addr[13:1]),
-    .data_i(memory_in),
-    .SDO(DIS_SDI),
-    .SCK(DIS_SCK),
-    .DC(DIS_DC),
-    .CS(DIS_CS),
-    .RES(DIS_RES),
-    .intVec_o(int_src_gpu)
-  );
+  // gpu #(
+  //   .gpuSize_p(9),
+  //   .gpuInputWidth_p(12),
+  //   .initData_p(`GPU_INIT_PATH)
+  // ) GPU (
+  //   .clk_i(clk_i),
+  //   .write_i(memory_region[2] & memory_write),
+  //   .waddr_i(memory_addr[13:1]),
+  //   .data_i(memory_in),
+  //   .SDO(DIS_SDI),
+  //   .SCK(DIS_SCK),
+  //   .DC(DIS_DC),
+  //   .CS(DIS_CS),
+  //   .RES(DIS_RES),
+  //   .intVec_o(int_src_gpu)
+  // );
 
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
   // of 16 will actually ignore the lsb of the address
@@ -341,6 +341,16 @@ module rv32i(
   // Memory mapped modules end
   ///////////////////////////////////////////////////////////////
 
+  // TODO -- obviously these won't work like this, but making sure rs1 and rs2 are registered
+  // can significantly improve clock speeds
+  reg [XLEN-1:0] rs1_registered /* synthesis syn_keep=1 */;
+  reg [XLEN-1:0] rs2_registered /* synthesis syn_keep=1 */;
+
+  always @(posedge clk_i) begin
+    rs1_registered <= rs1;
+    rs2_registered <= rs2;
+  end
+
   rv32i_control #(
     .XLEN(XLEN),
     .ILEN(XLEN),
@@ -370,8 +380,8 @@ module rv32i(
     .registers_in_o(registers_data),
     .alu_out_i(alu_result),
     .alu_operand2_o(alu_operand2),
-    .rs1_i(rs1),
-    .rs2_i(rs2),
+    .rs1_i(rs1_registered),
+    .rs2_i(rs2_registered),
     .pc_i(pc),
     .pc_o(registers_pc_data),
     .pc_write_o(registers_pc_write),

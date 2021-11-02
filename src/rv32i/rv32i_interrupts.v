@@ -13,7 +13,7 @@ module rv32i_interrupts
     input wire [INT_VECT_LEN-1:0] interrupt_mask_i,
     output wire [INT_VECT_LEN-1:0] interrupt_mask_o,
     input wire interrupt_mask_write_i,
-    output wire [XLEN-1:0] interrupt_vector_offset_o,
+    output reg [XLEN-1:0] interrupt_vector_offset_o,
     output reg [1:0] interrupt_state_o,
     input wire interrupt_advance_i
   );
@@ -84,6 +84,9 @@ module rv32i_interrupts
     endcase
   end
 
-  assign interrupt_vector_offset_o = { {XLEN-5{1'b0}}, interrupt_vector_offset, 2'b0};
+  wire [INT_VECT_LEN-1:0] interrupt_vector_offset_comb = { {XLEN-5{1'b0}}, interrupt_vector_offset, 2'b0};
+
+  always @(posedge clk_i)
+    interrupt_vector_offset_o <= interrupt_vector_offset_comb;
 
 endmodule
