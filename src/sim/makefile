@@ -75,6 +75,7 @@ CPP_SOURCES = src/sim.cpp \
 src/modules/utils.cpp \
 src/modules/spi_flash.cpp \
 src/modules/sram16.cpp \
+src/modules/audio.cpp \
 ${VERILATOR_INCL}/include/verilated.cpp \
 ${VERILATOR_INCL}/include/verilated_vcd_c.cpp  
 
@@ -92,15 +93,16 @@ CPP_FLAGS += \
 
 ifeq ($(UNAME), Linux)
 # LINKER_FLAGS = -lglfw -lGLEW -lGL -lm -lX11 -lpthread -lXi -lXrandr -ldl
-LINKER_FLAGS = -lglfw -lGLEW -lGL
+LINKER_FLAGS = -lglfw -lGLEW -lGL -lsndfile
 else
-LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW
+LINKER_FLAGS = -framework OpenGL -lglfw -lGLEW -lsndfile
 endif
 
 CORLIB_FILES = \
 examples/core/startup.c \
 examples/modules/gpu.c \
-examples/modules/string.c
+examples/modules/string.c \
+examples/modules/apu.c
 
 RISCV_SOURCES = \
 examples/main.c 
@@ -153,7 +155,7 @@ all: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 
 trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace 
-	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE" CLOCK_COUNT="-DNUM_FRAMES=3"
+	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE" CLOCK_COUNT="-DNUM_FRAMES=2"
 	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
 	$(MAKE) -j$(NPROC) $(BUILD)/$(RISCV_TARGET).bin 
 

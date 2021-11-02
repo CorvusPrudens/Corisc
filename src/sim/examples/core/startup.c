@@ -6,25 +6,18 @@ extern void *_sbss, *_ebss;
 
 void entry();
 int main();
-void systick();
+void ApuHandler();
 void GpuHandler();
 void default_handler();
 
 void * MEM_VECTOR_TABLE vector_table[] = {
   &entry,
-  &systick,
+  &ApuHandler,
   &GpuHandler,
   &default_handler,
   &default_handler,
   &default_handler,
 };
-
-volatile uint32_t counter = 0;
-
-void OPT_Os INTERRUPT systick()
-{
-  counter++;
-}
 
 void OPT_Os INTERRUPT default_handler()
 {

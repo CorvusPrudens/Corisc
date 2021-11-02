@@ -2,6 +2,7 @@
 #include "defs.h"
 #include "gpu.h"
 #include "string.h"
+#include "apu.h"
 
 const char* hey = "Hello, there! How's it going?";
 const char* str2 = "I feel nice... I think I'm ready to make some pretty pictures ^.^";
@@ -58,7 +59,7 @@ uint16_t downwell[] = {
 };
 
 SpriteSource downwell_src = {
-  &downwell,
+  (uint16_t*) &downwell,
   0,
   16,
   14,
@@ -93,9 +94,19 @@ void OPT_Os FrameCallback()
     downwell_info.frame = 0;
 }
 
+uint16_t freq = 0;
+
+void OPT_Os MusicCallback()
+{
+  Set2a03Pulse(freq++, 15, 0, 0);
+  if (freq > 8192)
+    freq = 0;
+}
+
 void OPT_Os main()
 {
   GpuInit(&FrameCallback);
+  ApuInit(&MusicCallback);
 
   while (1)
   {

@@ -38,6 +38,7 @@
 #include "spi_flash.h"
 #include "sram16.h"
 #include "utils.h"
+#include "audio.h"
 
 Sram16 sram;
 Flash flash;
@@ -224,6 +225,12 @@ int main(int argc, char** argv)
       printf("Bootloader test failed :c\n");
   #else
 
+    // Audio vars
+    float sampleSecs = NUM_FRAMES/60.0;
+    int numAudioFrames = (int)(sampleSecs*SAMPLE_RATE);
+    int16_t *sndBuff = (int16_t*) malloc((numAudioFrames + 1024)*sizeof(int16_t));
+    for (int i = 0; i < numAudioFrames + 1024; i++) sndBuff[i] = 0;
+
     LoadProgram(PROG_BIN, (uint8_t*) sram.memory);
 
     for (int j = 0; j < NUM_FRAMES; ) {
@@ -231,6 +238,7 @@ int main(int argc, char** argv)
         go = messageManagerStatic(status, &sendword, out, false);
         status = uart(tb, go, sendword, &out);
         tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
+        audioProcess(sndBuff, tb->DAC_INTERFACE);
         if (tb->FRAME_SYNC) {
           updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
           writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
@@ -247,6 +255,21 @@ int main(int argc, char** argv)
         break;
       }
     }
+
+    if (countedFrames < numAudioFrames) {
+      numAudioFrames = countedFrames;
+    }
+    post_process(sndBuff, numAudioFrames);
+    const char path[] = "./build/output.wav";
+    SNDFILE* audiofile = create_wav(path, numAudioFrames);
+    if(!audiofile){
+      printf ("Unable to open \"%s\"!\n", path);
+      puts(sf_strerror (NULL));
+      return 1;
+    }
+    write_audio_buffer(audiofile, sndBuff, numAudioFrames);
+    sf_close(audiofile);
+    free(sndBuff);
 
   #endif
 
