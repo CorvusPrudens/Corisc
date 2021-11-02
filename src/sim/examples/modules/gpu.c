@@ -50,6 +50,8 @@ static void OPT_O3 WriteRequest(SpriteInfo* req)
     for (uint16_t i = 0; i < req->frame; i++)
       frame_offset += req->source->width;
 
+    // if (!req->enable_text)
+    //   UART = frame_offset;
     // uint16_t frame_offset = req->source->width * req->frame;
     
     uint32_t request = (req->source->index + frame_offset) << 8;

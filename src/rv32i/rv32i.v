@@ -251,7 +251,7 @@ module rv32i(
   apu APU (
     .clk_i(clk_i),
     .addr_i(memory_addr[4:0]),
-    .data_i(memory_in[7:0]),
+    .data_i(memory_addr[0] ? memory_in[15:0] : memory_in[7:0]),
     .data_o(apu_out),
     .write_i(memory_write),
     .select_2a03_i(memory_region[3]),
