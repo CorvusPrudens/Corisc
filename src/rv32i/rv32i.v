@@ -158,7 +158,8 @@ module rv32i(
   wire [MEM_LEN-1:0] bootloader_out;
   reg  [MEM_LEN-1:0] general_out;
   wire [MEM_LEN-1:0] gpu_out = 0;
-  wire [MEM_LEN-1:0] apu_out = 0;
+  wire [7:0] raw_apu_out;
+  wire [MEM_LEN-1:0] apu_out = memory_addr[0] ? {raw_apu_out, 8'b0} : {8'b0, raw_apu_out};
   wire [MEM_LEN-1:0] vrc6_1_out = 0;
   wire [MEM_LEN-1:0] vrc6_2_out = 0;
   wire [MEM_LEN-1:0] vrc6_3_out = 0;
@@ -252,7 +253,7 @@ module rv32i(
     .clk_i(clk_i),
     .addr_i(memory_addr[4:0]),
     .data_i(memory_addr[0] ? memory_in[15:8] : memory_in[7:0]),
-    .data_o(apu_out),
+    .data_o(raw_apu_out),
     .write_i(memory_write),
     .select_2a03_i(memory_region[3]),
     .select_vrc6_1_i(memory_region[4]),
