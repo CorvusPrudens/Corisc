@@ -10,7 +10,7 @@
 
 module apu (
     input wire clk_i,
-    input wire [5:0] addr_i,
+    input wire [15:0] addr_i,
     input wire [7:0] data_i,
     output reg [7:0] data_o,
     input wire write_i,
@@ -18,28 +18,75 @@ module apu (
     output wire [15:0] master_o
   );
 
+  wire [4:0] register_addr = addr_i[4:0];
+
+  wire select_2a03   = addr_i[15:12] == 4'b0101;
+  wire select_vrc6_1 = addr_i[15:12] == 4'b1001;
+  wire select_vrc6_2 = addr_i[15:12] == 4'b1010;
+  wire select_vrc6_3 = addr_i[15:12] == 4'b1011;
+
+  reg [7:0] regs_2a03 [21:0];
+  reg [7:0] regs_vrc6_1 [3:0];
+  reg [7:0] regs_vrc6_2 [3:0];
+  reg [7:0] regs_vrc6_3 [3:0];
+
+  always @(posedge clk_i) begin
+    case ({select_vrc6_3, select_vrc6_2, select_vrc6_1, select_2a03})
+      default:
+      4'b0001:
+        begin
+          if (write_i) 
+            regs_2a03[register_addr] <= data_i;
+          else 
+            data_o <= regs_2a03[register_addr];
+        end
+      4'b0010:
+        begin
+          if (write_i) 
+            regs_vrc6_1[register_addr[1:0]] <= data_i;
+          else 
+            data_o <= regs_vrc6_1[register_addr[1:0]];
+        end
+      4'b0100:
+        begin
+          if (write_i) 
+            regs_vrc6_2[register_addr[1:0]] <= data_i;
+          else 
+            data_o <= regs_vrc6_2[register_addr[1:0]];
+        end
+      4'b1000:
+        begin
+          if (write_i) 
+            regs_vrc6_3[register_addr[1:0]] <= data_i;
+          else 
+            data_o <= regs_vrc6_3[register_addr[1:0]];
+        end
+    endcase
+  end
+
   parameter CLK_DIV = 3;
 
   reg [7:0] registers [0:33];
-
-  always @(posedge clk_i) begin
-    if (write_i) registers[addr_i] <= data_i;
-    else data_o <= registers[addr_i];
-  end
 
   reg [(CLK_DIV - 1):0] clk_acc;
   wire APUCLK;
   wire CPUCLK;
 
-  wire en_pulse1 = registers[21][0];
-  wire en_pulse2 = registers[21][1];
-  wire en_tri = registers[21][2];
-  wire en_noise = registers[21][3];
-  wire en_dmc = registers[21][4];
+  wire en_pulse1 = regs_2a03[21][0];
+  wire en_pulse2 = regs_2a03[21][1];
+  wire en_tri = regs_2a03[21][2];
+  wire en_noise = regs_2a03[21][3];
+  wire en_dmc = regs_2a03[21][4];
 
-  wire en_pulse3 = registers[26][7];
-  wire en_pulse4 = registers[30][7];
-  wire en_saw = registers[33][7];
+  // VRC6 starts at 24!!
+
+  // wire en_pulse3 = registers[26][7];
+  // wire en_pulse4 = registers[30][7];
+  // wire en_saw = registers[33][7];
+
+  wire en_pulse3 = regs_vrc6_1[2][7];
+  wire en_pulse4 = regs_vrc6_2[2][7];
+  wire en_saw = regs_vrc6_3[2][7];
 
   reg [3:0] pulse1_level;
   reg [2:0] pulse1_duty_step;
@@ -59,34 +106,43 @@ module apu (
   reg [7:0] saw_level_acc;
   wire [4:0] saw_level = saw_level_acc[7:3];
   reg [3:0] saw_step;
-  wire [5:0] saw_rate = registers[31][5:0];
+  wire [5:0] saw_rate = regs_vrc6_3[0][5:0];
 
 
   wire [4:0] pulse_levels = pulse1_level + pulse2_level;
   // reg [7:0] tnd;
 
-  wire [10:0] timer_pulse1 = {registers[3][2:0], registers[2]};
-  wire [10:0] timer_pulse2 = {registers[7][2:0], registers[6]};
-  wire [10:0] timer_tri = {registers[11][2:0], registers[10]};
-  wire [3:0] pulse1_vol = registers[0][3:0];
-  wire [1:0] pulse1_duty = registers[0][7:6];
-  wire [3:0] pulse2_vol = registers[4][3:0];
-  wire [1:0] pulse2_duty = registers[4][7:6];
+  wire [10:0] timer_pulse1 = {regs_2a03[3][2:0], regs_2a03[2]};
+  wire [10:0] timer_pulse2 = {regs_2a03[7][2:0], regs_2a03[6]};
+  wire [10:0] timer_tri = {regs_2a03[11][2:0], regs_2a03[10]};
+  wire [3:0] pulse1_vol = regs_2a03[0][3:0];
+  wire [1:0] pulse1_duty = regs_2a03[0][7:6];
+  wire [3:0] pulse2_vol = regs_2a03[4][3:0];
+  wire [1:0] pulse2_duty = regs_2a03[4][7:6];
 
-  wire [3:0] noise_vol = registers[12][3:0];
-  wire [3:0] noise_period = registers[14][3:0];
-  wire noise_mode = registers[14][7];
+  wire [3:0] noise_vol = regs_2a03[12][3:0];
+  wire [3:0] noise_period = regs_2a03[14][3:0];
+  wire noise_mode = regs_2a03[14][7];
   reg noise_feedback;
 
-  wire pulse3_mode = registers[24][7];
-  wire [3:0] pulse3_vol = registers[24][3:0];
-  wire [2:0] pulse3_duty = registers[24][6:4];
-  wire [11:0] timer_pulse3 = {registers[26][3:0], registers[25]};
-  wire pulse4_mode = registers[28][7];
-  wire [3:0] pulse4_vol = registers[28][3:0];
-  wire [2:0] pulse4_duty = registers[28][6:4];
-  wire [11:0] timer_pulse4 = {registers[30][3:0], registers[29]};
-  wire [11:0] timer_saw = {registers[33][3:0], registers[32]};
+  // wire pulse3_mode = registers[24][7];
+  // wire [3:0] pulse3_vol = registers[24][3:0];
+  // wire [2:0] pulse3_duty = registers[24][6:4];
+  // wire [11:0] timer_pulse3 = {registers[26][3:0], registers[25]};
+  // wire pulse4_mode = registers[28][7];
+  // wire [3:0] pulse4_vol = registers[28][3:0];
+  // wire [2:0] pulse4_duty = registers[28][6:4];
+  // wire [11:0] timer_pulse4 = {registers[30][3:0], registers[29]};
+  // wire [11:0] timer_saw = {registers[33][3:0], registers[32]};
+  wire pulse3_mode = regs_vrc6_1[0][7];
+  wire [3:0] pulse3_vol = regs_vrc6_1[0][3:0];
+  wire [2:0] pulse3_duty = regs_vrc6_1[0][6:4];
+  wire [11:0] timer_pulse3 = {regs_vrc6_1[2][3:0], regs_vrc6_1[1]};
+  wire pulse4_mode = regs_vrc6_2[0][7];
+  wire [3:0] pulse4_vol = regs_vrc6_2[0][3:0];
+  wire [2:0] pulse4_duty = regs_vrc6_2[0][6:4];
+  wire [11:0] timer_pulse4 = {regs_vrc6_2[2][3:0], regs_vrc6_2[1]};
+  wire [11:0] timer_saw = {regs_vrc6_3[2][3:0], regs_vrc6_3[1]};
 
   reg [10:0] acc_pulse1;
   reg [10:0] acc_pulse2;
