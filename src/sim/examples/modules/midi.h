@@ -29,32 +29,17 @@
 #define NUM_CHANS 7
 
 typedef struct {
-  uint8_t volume;
-  uint8_t lastNote;
-  uint16_t tempFreq;
-
-  uint16_t bendDepth;
-
-  uint16_t vibrato;
-  uint16_t vibratoCycles;
-
-  uint16_t portDepth;
-  uint16_t portAccum;
-  uint16_t portStep;
-  uint16_t portFinalFreq;
-  uint16_t portNextFreq;
-  uint16_t portDirection; // a direction of 0 indicates inactive
-  uint16_t portPrevNote;
-} ChannelData;
-
-extern ChannelData channels[NUM_CHANS];
-
-typedef struct {
   uint8_t channel;
   uint8_t type;
-  uint8_t byte1;
-  uint8_t byte2;
-  uint8_t byte3;
+  uint8_t data[3];
 } MidiMessage;
+
+// TODO -- this functionality could totally be done in hardware if necessary
+uint8_t MidiFetch();
+// To be defined in the application
+extern void MidiNoteOff(MidiMessage* message);
+extern void MidiNoteOn(MidiMessage* message);
+extern void MidiCC(MidiMessage* message);
+extern void MidiPitchBend(MidiMessage* message);
 
 #endif

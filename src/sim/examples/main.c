@@ -1,7 +1,7 @@
 
 #include "defs.h"
 #include "gpu.h"
-#include "string.h"
+#include "serial.h"
 #include "apu.h"
 
 const char* hey = "Hello, there! How's it going?";

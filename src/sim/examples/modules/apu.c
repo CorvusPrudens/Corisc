@@ -4,6 +4,16 @@
 uint32_t MusicCounter;
 static void (*MusicCallback)();
 
+SetVoice voice_setters[NUM_VOICES] = {
+  &Set2a03Pulse1,
+  &Set2a03Pulse2,
+  &SetTriangle,
+  &SetNoise,
+  &SetVrc6Pulse1,
+  &SetVrc6Pulse2,
+  &SetSaw,
+};
+
 static void EnableAll();
 
 // The setup and teardown cost definitely sucks, but we'll have to deal with it for now
@@ -25,34 +35,55 @@ void OPT_Os ApuInit(void (*callback)())
   INTERRUPT_MASK |= TIMER_INT_BIT;
 }
 
-void OPT_Os Set2a03Pulse(uint16_t pitch, uint8_t volume, uint8_t duty, uint8_t index)
+void OPT_O3 Set2a03Pulse1(uint16_t pitch, uint8_t volume, uint8_t duty)
 {
-  volatile uint8_t* pulse = index ? PULSE2_CONF : PULSE1_CONF;
-  uint8_t temp = *pulse & 0b00110000;
+  uint8_t temp = *PULSE1_CONF & 0b00110000;
   temp |= volume & 0b1111;
   temp |= duty << 6;
-  *pulse = temp;
-  pulse += 2;
-  *pulse++ = pitch;
-  temp = *pulse & 0b11111000;
+  *PULSE1_CONF = temp;
+  *PULSE1_TIMERL = pitch;
+  temp = *PULSE1_TIMERH & 0b11111000;
   temp |= (pitch >> 8) & 0b0111;
-  *pulse = temp;
+  *PULSE1_TIMERH = temp;
 }
 
-void OPT_Os SetVrc6Pulse(uint16_t pitch, uint8_t volume, uint8_t duty, uint8_t index)
+void OPT_O3 Set2a03Pulse2(uint16_t pitch, uint8_t volume, uint8_t duty)
 {
-  volatile uint8_t* pulse = index ? PULSE4_CONF : PULSE3_CONF;
-  uint8_t temp = *pulse & 0b10000000;
+  uint8_t temp = *PULSE2_CONF & 0b00110000;
+  temp |= volume & 0b1111;
+  temp |= duty << 6;
+  *PULSE2_CONF = temp;
+  *PULSE2_TIMERL = pitch;
+  temp = *PULSE2_TIMERH & 0b11111000;
+  temp |= (pitch >> 8) & 0b0111;
+  *PULSE2_TIMERH = temp;
+}
+
+void OPT_O3 SetVrc6Pulse1(uint16_t pitch, uint8_t volume, uint8_t duty)
+{
+  uint8_t temp = *PULSE3_CONF & 0b10000000;
   temp |= volume & 0b1111;
   temp |= (duty << 6) & 0b10000000;
-  *pulse++ = temp;
-  *pulse++ = pitch;
-  temp = *pulse & 0b11110000;
+  *PULSE3_CONF = temp;
+  *PULSE3_TIMERL = pitch;
+  temp = *PULSE3_TIMERH & 0b11110000;
   temp |= (pitch >> 8) & 0b1111;
-  *pulse = temp;
+  *PULSE3_TIMERH = temp;
 }
 
-void OPT_Os SetTriangle(uint16_t pitch, uint8_t volume)
+void OPT_O3 SetVrc6Pulse2(uint16_t pitch, uint8_t volume, uint8_t duty)
+{
+  uint8_t temp = *PULSE4_CONF & 0b10000000;
+  temp |= volume & 0b1111;
+  temp |= (duty << 6) & 0b10000000;
+  *PULSE4_CONF = temp;
+  *PULSE4_TIMERL = pitch;
+  temp = *PULSE4_TIMERH & 0b11110000;
+  temp |= (pitch >> 8) & 0b1111;
+  *PULSE4_TIMERH = temp;
+}
+
+void OPT_O3 SetTriangle(uint16_t pitch, uint8_t volume, uint8_t effect)
 {
   if (volume) 
   {
@@ -67,7 +98,7 @@ void OPT_Os SetTriangle(uint16_t pitch, uint8_t volume)
   }
 }
 
-void OPT_Os SetSaw(uint16_t pitch, uint8_t volume)
+void OPT_O3 SetSaw(uint16_t pitch, uint8_t volume, uint8_t effect)
 {
   *SAW_VOL = volume;
   *SAW_TIMERL = pitch;
@@ -76,7 +107,7 @@ void OPT_Os SetSaw(uint16_t pitch, uint8_t volume)
   *SAW_TIMERH = temp;
 }
 
-void OPT_Os SetNoise(uint8_t pitch, uint8_t volume, uint8_t type)
+void OPT_O3 SetNoise(uint16_t pitch, uint8_t volume, uint8_t type)
 {
   uint8_t temp = *NOISE_CONF & 0b11110000;
   temp |= volume & 0b11110000;

@@ -101,9 +101,10 @@ endif
 CORLIB_FILES = \
 examples/core/startup.c \
 examples/modules/gpu.c \
-examples/modules/string.c \
+examples/modules/serial.c \
 examples/modules/apu.c \
-examples/modules/midi.c
+examples/modules/midi.c \
+examples/modules/voice.c
 
 RISCV_SOURCES = \
 examples/main.c 

@@ -6,14 +6,22 @@ extern void *_sbss, *_ebss;
 
 void entry();
 int main();
+
+#ifndef BOOTLOADER
 void ApuHandler();
 void GpuHandler();
+#endif
 void default_handler();
 
 void * MEM_VECTOR_TABLE vector_table[] = {
   &entry,
+  #ifndef BOOTLOADER
   &ApuHandler,
   &GpuHandler,
+  #else
+  &default_handler,
+  &default_handler,
+  #endif
   &default_handler,
   &default_handler,
   &default_handler,

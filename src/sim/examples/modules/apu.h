@@ -3,6 +3,9 @@
 
 #include "defs.h"
 
+// TODO -- get DCM working and make this 8
+#define NUM_VOICES 7
+
 #define PULSE1_CONF (volatile uint8_t*) 0x4000
 #define PULSE1_SWEEP (volatile uint8_t*) 0x4001
 #define PULSE1_TIMERL (volatile uint8_t*) 0x4002
@@ -45,15 +48,22 @@
 #define SAW_TIMERL (volatile uint8_t*) 0xB001
 #define SAW_TIMERH (volatile uint8_t*) 0xB002
 
+typedef void (*SetVoice)(uint16_t pitch, uint8_t volume, uint8_t duty);
+
 extern uint32_t MusicCounter;
 void ApuHandler();
 
 void ApuInit(void (*callback)());
-void Set2a03Pulse(uint16_t pitch, uint8_t volume, uint8_t duty, uint8_t index);
-void SetVrc6Pulse(uint16_t pitch, uint8_t volume, uint8_t duty, uint8_t index);
-void SetTriangle(uint16_t pitch, uint8_t volume);
-void SetSaw(uint16_t pitch, uint8_t volume);
-void SetNoise(uint8_t pitch, uint8_t volume, uint8_t type);
+void Set2a03Pulse1(uint16_t pitch, uint8_t volume, uint8_t duty);
+void Set2a03Pulse2(uint16_t pitch, uint8_t volume, uint8_t duty);
+void SetVrc6Pulse1(uint16_t pitch, uint8_t volume, uint8_t duty);
+void SetVrc6Pulse2(uint16_t pitch, uint8_t volume, uint8_t duty);
+void SetTriangle(uint16_t pitch, uint8_t volume, uint8_t effect);
+void SetSaw(uint16_t pitch, uint8_t volume, uint8_t effect);
+void SetNoise(uint16_t pitch, uint8_t volume, uint8_t effect);
+
+extern SetVoice voice_setters[NUM_VOICES];
+
 void SilenceAll();
 // void SetDcm(); // TODO -- need to figure this one out
 
