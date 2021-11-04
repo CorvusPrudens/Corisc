@@ -22,13 +22,15 @@ module bram_init_dual
   initial $readmemh(initFile_p, memory);
 
   always @(posedge clk_i) begin
-    if (write_i) memory[waddr_i] <= data_i;
+    if (write_i) begin
+      memory[waddr_i] <= data_i;
+      if (waddr_i == raddr_i)
+        data_o <= data_i;
+      else
+        data_o <= memory[raddr_i];
+    end else
+      data_o <= memory[raddr_i];
   end
-
-  always @(negedge clk_i) begin
-    data_o <= memory[raddr_i];
-  end 
-  
 
 endmodule
 `endif // INIT_BRAM_DUAL_GUARD

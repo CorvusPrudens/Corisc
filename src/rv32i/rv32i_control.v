@@ -6,7 +6,7 @@
 // This ^ would work on every instruction that's not a jump or load / store, speeding
 // up execution by literally 50%!!!
 
-// `include "bram_init.v"
+`include "bram_init_rom.v"
 `include "rv32i_interrupts.v"
 // `include "sign_ext.v"
 // `include "rv32i_microcode.v"
@@ -234,17 +234,15 @@ module rv32i_control
 
   wire [4:0] microcode_addr = microcode_mux;
 
-  // bram_init #(
-  //   .memSize_p(5),
-  //   .dataWidth_p(32),
-  //   .initFile_p(MICRO_CODE)
-  // ) MICROCODE_BRAM (
-  //   .clk_i(clk_i),
-  //   .write_i(1'b0),
-  //   .data_i(0),
-  //   .addr_i(microcode_addr),
-  //   .data_o(control_vector_raw)
-  // );
+  bram_init_rom #(
+    .memSize_p(5),
+    .dataWidth_p(32),
+    .initFile_p(MICRO_CODE)
+  ) MICROCODE_BRAM (
+    .clk_i(clk_i),
+    .addr_i(microcode_addr),
+    .data_o(control_vector_raw)
+  );
 
   // rv32i_microcode RV32I_MICROCODE (
   //   .clk_i(clk_i),
@@ -252,49 +250,49 @@ module rv32i_control
   //   .microcode_o(control_vector_raw)
   // );
 
-  always @(microcode_addr) begin
-    case (microcode_addr)
-      default: control_vector_raw = 32'h0;
-      // fetch (offset: 0 words)
-      5'h00: control_vector_raw = 32'h00000905;
-      5'h01: control_vector_raw = 32'h00001105;
-      // op_lb (offset: 0 words)
-      5'h02: control_vector_raw = 32'h00208409;
-      // op_lh (offset: 1 words)
-      5'h03: control_vector_raw = 32'h08008409;
-      // op_lw (offset: 2 words)
-      5'h04: control_vector_raw = 32'h04000009;
-      5'h05: control_vector_raw = 32'h02408409;
-      // op_fence (offset: 4 words)
-      5'h06: control_vector_raw = 32'h00000400;
-      // op_ai (offset: 5 words)
-      5'h07: control_vector_raw = 32'h0000C400;
-      // op_auipc (offset: 6 words)
-      5'h08: control_vector_raw = 32'h0001A400;
-      // op_sb (offset: 7 words)
-      5'h09: control_vector_raw = 32'h00800412;
-      // op_sh (offset: 8 words)
-      5'h0A: control_vector_raw = 32'h00000412;
-      // op_sw (offset: 9 words)
-      5'h0B: control_vector_raw = 32'h00000012;
-      5'h0C: control_vector_raw = 32'h03000412;
-      // op_a (offset: 11 words)
-      5'h0D: control_vector_raw = 32'h00008400;
-      // op_lui (offset: 12 words)
-      5'h0E: control_vector_raw = 32'h0000A400;
-      // op_b (offset: 13 words)
-      5'h0F: control_vector_raw = 32'h10080400;
-      // op_jalr (offset: 14 words)
-      5'h10: control_vector_raw = 32'h40148500;
-      // op_jal (offset: 15 words)
-      5'h11: control_vector_raw = 32'h20128500;
-      // op_mret (offset: 16 words)
-      5'h12: control_vector_raw = 32'h80000580;
-      // pseudo_op_interrupt (offset: 17 words)
-      5'h13: control_vector_raw = 32'h00000340;
-      5'h14: control_vector_raw = 32'h00000700;
-    endcase
-  end
+  // always @(microcode_addr) begin
+  //   case (microcode_addr)
+  //     default: control_vector_raw = 32'h0;
+  //     // fetch (offset: 0 words)
+  //     5'h00: control_vector_raw = 32'h00000905;
+  //     5'h01: control_vector_raw = 32'h00001105;
+  //     // op_lb (offset: 0 words)
+  //     5'h02: control_vector_raw = 32'h00208409;
+  //     // op_lh (offset: 1 words)
+  //     5'h03: control_vector_raw = 32'h08008409;
+  //     // op_lw (offset: 2 words)
+  //     5'h04: control_vector_raw = 32'h04000009;
+  //     5'h05: control_vector_raw = 32'h02408409;
+  //     // op_fence (offset: 4 words)
+  //     5'h06: control_vector_raw = 32'h00000400;
+  //     // op_ai (offset: 5 words)
+  //     5'h07: control_vector_raw = 32'h0000C400;
+  //     // op_auipc (offset: 6 words)
+  //     5'h08: control_vector_raw = 32'h0001A400;
+  //     // op_sb (offset: 7 words)
+  //     5'h09: control_vector_raw = 32'h00800412;
+  //     // op_sh (offset: 8 words)
+  //     5'h0A: control_vector_raw = 32'h00000412;
+  //     // op_sw (offset: 9 words)
+  //     5'h0B: control_vector_raw = 32'h00000012;
+  //     5'h0C: control_vector_raw = 32'h03000412;
+  //     // op_a (offset: 11 words)
+  //     5'h0D: control_vector_raw = 32'h00008400;
+  //     // op_lui (offset: 12 words)
+  //     5'h0E: control_vector_raw = 32'h0000A400;
+  //     // op_b (offset: 13 words)
+  //     5'h0F: control_vector_raw = 32'h10080400;
+  //     // op_jalr (offset: 14 words)
+  //     5'h10: control_vector_raw = 32'h40148500;
+  //     // op_jal (offset: 15 words)
+  //     5'h11: control_vector_raw = 32'h20128500;
+  //     // op_mret (offset: 16 words)
+  //     5'h12: control_vector_raw = 32'h80000580;
+  //     // pseudo_op_interrupt (offset: 17 words)
+  //     5'h13: control_vector_raw = 32'h00000340;
+  //     5'h14: control_vector_raw = 32'h00000700;
+  //   endcase
+  // end
 
   always @(posedge clk_i) begin
     if (write_lower_instr)

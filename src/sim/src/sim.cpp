@@ -13,7 +13,7 @@
 #endif
 
 #ifndef NUM_FRAMES
-#define NUM_FRAMES 1
+#define NUM_FRAMES 0.1
 #endif
 
 #ifndef PROG_BIN
@@ -233,28 +233,47 @@ int main(int argc, char** argv)
 
     LoadProgram(PROG_BIN, (uint8_t*) sram.memory);
 
-    for (int j = 0; j < NUM_FRAMES; ) {
-      for (int i = 0; i < CLOCKS_PER_FRAME; i++) {
-        go = messageManagerStatic(status, &sendword, out, false);
-        status = uart(tb, go, sendword, &out);
-        tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
-        audioProcess(sndBuff, tb->DAC_INTERFACE);
-        if (tb->FRAME_SYNC) {
-          updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
-          writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
-          j++;
-          currentFrame++;
+    if (NUM_FRAMES >= 1)
+    {
+      for (int j = 0; j < NUM_FRAMES; ) {
+        for (int i = 0; i < CLOCKS_PER_FRAME; i++) {
+          go = messageManagerStatic(status, &sendword, out, false);
+          status = uart(tb, go, sendword, &out);
+          tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
+          audioProcess(sndBuff, tb->DAC_INTERFACE);
+          if (tb->FRAME_SYNC) {
+            updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
+            writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
+            j++;
+            currentFrame++;
+          }
+        }
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, glBuffer);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
+        if (endExecution) {
+          break;
         }
       }
-      glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, glBuffer);
-      glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-      glfwSwapBuffers(window);
-      glfwPollEvents();
-      if (endExecution) {
-        break;
-      }
     }
+    else
+    {
+      for (int i = 0; i < CLOCKS_PER_FRAME * NUM_FRAMES; i++) {
+          go = messageManagerStatic(status, &sendword, out, false);
+          status = uart(tb, go, sendword, &out);
+          tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
+          audioProcess(sndBuff, tb->DAC_INTERFACE);
+          if (tb->FRAME_SYNC) {
+            updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
+            writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
+            j++;
+            currentFrame++;
+          }
+        }
+    }
+    
 
     if (countedFrames < numAudioFrames) {
       numAudioFrames = countedFrames;
