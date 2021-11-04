@@ -1,7 +1,7 @@
 `ifndef INIT_BRAM_ROM_GUARD
 `define INIT_BRAM_ROM_GUARD
 
-module bram_init
+module bram_init_rom
   #(
     parameter memSize_p = 8,
     parameter dataWidth_p = 16,

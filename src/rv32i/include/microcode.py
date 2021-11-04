@@ -66,10 +66,12 @@ operations = {
   ],
 
   'op_ai' : [
+    ['op2_immediate'],
     ['op2_immediate', 'registers_write', 'micro_reset'],
   ],
 
   'op_auipc' : [
+    ['register_input_imm', 'add_pc_upper'],
     ['register_input_imm', 'add_pc_upper', 'registers_write', 'micro_reset'],
   ],
 
@@ -88,10 +90,12 @@ operations = {
   ],
 
   'op_a' : [
+    [],
     ['registers_write', 'micro_reset'],
   ],
 
   'op_lui' : [
+    ['register_input_imm'],
     ['register_input_imm', 'registers_write', 'micro_reset'],
   ],
 

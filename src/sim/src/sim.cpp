@@ -13,7 +13,7 @@
 #endif
 
 #ifndef NUM_FRAMES
-#define NUM_FRAMES 0.1
+#define NUM_FRAMES 0.01f
 #endif
 
 #ifndef PROG_BIN
@@ -268,7 +268,6 @@ int main(int argc, char** argv)
           if (tb->FRAME_SYNC) {
             updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
             writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
-            j++;
             currentFrame++;
           }
         }
