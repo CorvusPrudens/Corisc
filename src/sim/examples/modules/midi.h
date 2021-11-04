@@ -49,4 +49,12 @@ typedef struct {
 
 extern ChannelData channels[NUM_CHANS];
 
+typedef struct {
+  uint8_t channel;
+  uint8_t type;
+  uint8_t byte1;
+  uint8_t byte2;
+  uint8_t byte3;
+} MidiMessage;
+
 #endif
