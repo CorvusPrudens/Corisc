@@ -44,30 +44,23 @@ module rv32i_memory
     input wire [PORT_LEN-1:0] data7_i,
     input wire [PORT_LEN-1:0] data8_i,
 
-    output wire [MAP_SIZE-1:0] data_region_o,
+    output reg [MAP_SIZE-1:0] data_region_o,
 
     output reg [PORT_LEN-1:0] data_o,
     output reg illegal_access_o
   );
 
-  wire [MAP_SIZE-1:0] regions;
-
-  assign regions[0] = addr_i >= REGION_0_B && addr_i < REGION_0_E;
-  assign regions[1] = addr_i >= REGION_1_B && addr_i < REGION_1_E;
-  assign regions[2] = addr_i >= REGION_2_B && addr_i < REGION_2_E;
-  assign regions[3] = addr_i >= REGION_3_B && addr_i < REGION_3_E;
-  assign regions[4] = addr_i >= REGION_4_B && addr_i < REGION_4_E;
-  assign regions[5] = addr_i >= REGION_5_B && addr_i < REGION_5_E;
-  assign regions[6] = addr_i >= REGION_6_B && addr_i < REGION_6_E;
-  assign regions[7] = addr_i >= REGION_7_B && addr_i < REGION_7_E;
-  assign regions[8] = addr_i >= REGION_8_B && addr_i < REGION_8_E;
-
-  genvar i;
-  generate
-    for (i = 0; i < MAP_SIZE; i = i + 1) begin
-      assign data_region_o[i] = regions[i];
-    end
-  endgenerate
+  always @(posedge clk_i) begin
+    data_region_o[0] <= addr_i >= REGION_0_B && addr_i < REGION_0_E;
+    data_region_o[1] <= addr_i >= REGION_1_B && addr_i < REGION_1_E;
+    data_region_o[2] <= addr_i >= REGION_2_B && addr_i < REGION_2_E;
+    data_region_o[3] <= addr_i >= REGION_3_B && addr_i < REGION_3_E;
+    data_region_o[4] <= addr_i >= REGION_4_B && addr_i < REGION_4_E;
+    data_region_o[5] <= addr_i >= REGION_5_B && addr_i < REGION_5_E;
+    data_region_o[6] <= addr_i >= REGION_6_B && addr_i < REGION_6_E;
+    data_region_o[7] <= addr_i >= REGION_7_B && addr_i < REGION_7_E;
+    data_region_o[8] <= addr_i >= REGION_8_B && addr_i < REGION_8_E;
+  end
 
   reg [PORT_LEN-1:0] data;
 
