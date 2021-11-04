@@ -262,14 +262,14 @@ module rv32i(
   // );
 
   wire int_src_timer;
-  timer TIMER (
-    .clk_i(clk_i),
-    .data_i(memory_in),
-    .addr_i({1'b0, memory_addr[2:1] + 2'b10}),
-    .write_i(general_timer & memory_write),
-    .data_o(timer_out),
-    .intVec_o(int_src_timer)
-  );
+  // timer TIMER (
+  //   .clk_i(clk_i),
+  //   .data_i(memory_in),
+  //   .addr_i({1'b0, memory_addr[2:1] + 2'b10}),
+  //   .write_i(general_timer & memory_write),
+  //   .data_o(timer_out),
+  //   .intVec_o(int_src_timer)
+  // );
 
   wire int_src_gpu;
   // gpu #(

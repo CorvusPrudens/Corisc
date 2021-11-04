@@ -69,18 +69,23 @@ module rv32i_memory
     end
   endgenerate
 
+  reg [PORT_LEN-1:0] data;
+
+  always @(posedge clk_i)
+    data_o <= data;
+
   always @(*) begin
     case (data_region_o)
-      default: data_o = data0_i;
-      9'b000000001: data_o = data0_i;
-      9'b000000010: data_o = data1_i;
-      9'b000000100: data_o = data2_i;
-      9'b000001000: data_o = data3_i;
-      9'b000010000: data_o = data4_i;
-      9'b000100000: data_o = data5_i;
-      9'b001000000: data_o = data6_i;
-      9'b010000000: data_o = data7_i;
-      9'b100000000: data_o = data8_i;
+      default: data = data0_i;
+      9'b000000001: data = data0_i;
+      9'b000000010: data = data1_i;
+      9'b000000100: data = data2_i;
+      9'b000001000: data = data3_i;
+      9'b000010000: data = data4_i;
+      9'b000100000: data = data5_i;
+      9'b001000000: data = data6_i;
+      9'b010000000: data = data7_i;
+      9'b100000000: data = data8_i;
     endcase
   end
 

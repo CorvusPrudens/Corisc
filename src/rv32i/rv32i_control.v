@@ -6,7 +6,7 @@
 // This ^ would work on every instruction that's not a jump or load / store, speeding
 // up execution by literally 50%!!!
 
-// `include "bram_init.v"
+`include "bram_init_rom.v"
 `include "rv32i_interrupts.v"
 // `include "sign_ext.v"
 // `include "rv32i_microcode.v"
@@ -85,7 +85,7 @@ module rv32i_control
   // TODO -- need to get exception support in here at some point
   reg [5:0] trap_vector = 0;
 
-  reg [31:0] control_vector_raw;
+  wire [31:0] control_vector_raw;
   wire [31:0] control_vector = initial_reset ? control_vector_raw : 32'b0;
 
   // The ~clk_i helps prevent glitching as addresses etc settle
@@ -192,12 +192,17 @@ module rv32i_control
   wire vtable_tick = ~initial_reset ? reset_delay[0] : ~pc_save_uepc;
   wire [XLEN-1:0] vtable_addr = {VECTOR_TABLE[31:2], vtable_tick, 1'b0} + interrupt_vector_offset;
 
+  reg [XLEN-1:0] memory_addr_reg;
+
+  always @(posedge clk_i)
+    memory_addr_o <= memory_addr_reg;
+
   always @(*) begin
     case (mem_addr_src)
-      default: memory_addr_o = vtable_addr;
-      3'b001: memory_addr_o = program_counter_i;
-      3'b010: memory_addr_o = add_mem_addr ? load_offset_add + 32'd2 : load_offset_add;
-      3'b100: memory_addr_o = add_mem_addr ? store_offset_add + 32'd2 : store_offset_add;
+      default: memory_addr_reg = vtable_addr;
+      3'b001: memory_addr_reg = program_counter_i;
+      3'b010: memory_addr_reg = add_mem_addr ? load_offset_add + 32'd2 : load_offset_add;
+      3'b100: memory_addr_reg = add_mem_addr ? store_offset_add + 32'd2 : store_offset_add;
     endcase 
   end
 
@@ -234,17 +239,15 @@ module rv32i_control
 
   wire [4:0] microcode_addr = microcode_mux;
 
-  // bram_init #(
-  //   .memSize_p(5),
-  //   .dataWidth_p(32),
-  //   .initFile_p(MICRO_CODE)
-  // ) MICROCODE_BRAM (
-  //   .clk_i(clk_i),
-  //   .write_i(1'b0),
-  //   .data_i(0),
-  //   .addr_i(microcode_addr),
-  //   .data_o(control_vector_raw)
-  // );
+  bram_init #(
+    .memSize_p(5),
+    .dataWidth_p(32),
+    .initFile_p(MICRO_CODE)
+  ) MICROCODE_BRAM (
+    .clk_i(clk_i),
+    .addr_i(microcode_addr),
+    .data_o(control_vector_raw)
+  );
 
   // rv32i_microcode RV32I_MICROCODE (
   //   .clk_i(clk_i),
@@ -252,49 +255,93 @@ module rv32i_control
   //   .microcode_o(control_vector_raw)
   // );
 
-  always @(microcode_addr) begin
-    case (microcode_addr)
-      default: control_vector_raw = 32'h0;
-      // fetch (offset: 0 words)
-      5'h00: control_vector_raw = 32'h00000905;
-      5'h01: control_vector_raw = 32'h00001105;
-      // op_lb (offset: 0 words)
-      5'h02: control_vector_raw = 32'h00208409;
-      // op_lh (offset: 1 words)
-      5'h03: control_vector_raw = 32'h08008409;
-      // op_lw (offset: 2 words)
-      5'h04: control_vector_raw = 32'h04000009;
-      5'h05: control_vector_raw = 32'h02408409;
-      // op_fence (offset: 4 words)
-      5'h06: control_vector_raw = 32'h00000400;
-      // op_ai (offset: 5 words)
-      5'h07: control_vector_raw = 32'h0000C400;
-      // op_auipc (offset: 6 words)
-      5'h08: control_vector_raw = 32'h0001A400;
-      // op_sb (offset: 7 words)
-      5'h09: control_vector_raw = 32'h00800412;
-      // op_sh (offset: 8 words)
-      5'h0A: control_vector_raw = 32'h00000412;
-      // op_sw (offset: 9 words)
-      5'h0B: control_vector_raw = 32'h00000012;
-      5'h0C: control_vector_raw = 32'h03000412;
-      // op_a (offset: 11 words)
-      5'h0D: control_vector_raw = 32'h00008400;
-      // op_lui (offset: 12 words)
-      5'h0E: control_vector_raw = 32'h0000A400;
-      // op_b (offset: 13 words)
-      5'h0F: control_vector_raw = 32'h10080400;
-      // op_jalr (offset: 14 words)
-      5'h10: control_vector_raw = 32'h40148500;
-      // op_jal (offset: 15 words)
-      5'h11: control_vector_raw = 32'h20128500;
-      // op_mret (offset: 16 words)
-      5'h12: control_vector_raw = 32'h80000580;
-      // pseudo_op_interrupt (offset: 17 words)
-      5'h13: control_vector_raw = 32'h00000340;
-      5'h14: control_vector_raw = 32'h00000700;
-    endcase
-  end
+  // always @(microcode_addr) begin
+  //   case (microcode_addr)
+  //     default: control_vector_raw = 32'h0;
+  //     // fetch (offset: 0 words)
+  //     5'h00: control_vector_raw = 32'h00000905;
+  //     5'h01: control_vector_raw = 32'h00001105;
+  //     // op_lb (offset: 0 words)
+  //     5'h02: control_vector_raw = 32'h00208409;
+  //     // op_lh (offset: 1 words)
+  //     5'h03: control_vector_raw = 32'h08008409;
+  //     // op_lw (offset: 2 words)
+  //     5'h04: control_vector_raw = 32'h04000009;
+  //     5'h05: control_vector_raw = 32'h02408409;
+  //     // op_fence (offset: 4 words)
+  //     5'h06: control_vector_raw = 32'h00000400;
+  //     // op_ai (offset: 5 words)
+  //     5'h07: control_vector_raw = 32'h0000C400;
+  //     // op_auipc (offset: 6 words)
+  //     5'h08: control_vector_raw = 32'h0001A400;
+  //     // op_sb (offset: 7 words)
+  //     5'h09: control_vector_raw = 32'h00800412;
+  //     // op_sh (offset: 8 words)
+  //     5'h0A: control_vector_raw = 32'h00000412;
+  //     // op_sw (offset: 9 words)
+  //     5'h0B: control_vector_raw = 32'h00000012;
+  //     5'h0C: control_vector_raw = 32'h03000412;
+  //     // op_a (offset: 11 words)
+  //     5'h0D: control_vector_raw = 32'h00008400;
+  //     // op_lui (offset: 12 words)
+  //     5'h0E: control_vector_raw = 32'h0000A400;
+  //     // op_b (offset: 13 words)
+  //     5'h0F: control_vector_raw = 32'h10080400;
+  //     // op_jalr (offset: 14 words)
+  //     5'h10: control_vector_raw = 32'h40148500;
+  //     // op_jal (offset: 15 words)
+  //     5'h11: control_vector_raw = 32'h20128500;
+  //     // op_mret (offset: 16 words)
+  //     5'h12: control_vector_raw = 32'h80000580;
+  //     // pseudo_op_interrupt (offset: 17 words)
+  //     5'h13: control_vector_raw = 32'h00000340;
+  //     5'h14: control_vector_raw = 32'h00000700;
+  //   endcase
+  // end
+
+  // always @(posedge clk_i) begin
+  //   case (microcode_addr)
+  //     default: control_vector_raw <= 32'h0;
+  //     // fetch (offset: 0 words)
+  //     5'h00: control_vector_raw <= 32'h00000905;
+  //     5'h01: control_vector_raw <= 32'h00001105;
+  //     // op_lb (offset: 0 words)
+  //     5'h02: control_vector_raw <= 32'h00208409;
+  //     // op_lh (offset: 1 words)
+  //     5'h03: control_vector_raw <= 32'h08008409;
+  //     // op_lw (offset: 2 words)
+  //     5'h04: control_vector_raw <= 32'h04000009;
+  //     5'h05: control_vector_raw <= 32'h02408409;
+  //     // op_fence (offset: 4 words)
+  //     5'h06: control_vector_raw <= 32'h00000400;
+  //     // op_ai (offset: 5 words)
+  //     5'h07: control_vector_raw <= 32'h0000C400;
+  //     // op_auipc (offset: 6 words)
+  //     5'h08: control_vector_raw <= 32'h0001A400;
+  //     // op_sb (offset: 7 words)
+  //     5'h09: control_vector_raw <= 32'h00800412;
+  //     // op_sh (offset: 8 words)
+  //     5'h0A: control_vector_raw <= 32'h00000412;
+  //     // op_sw (offset: 9 words)
+  //     5'h0B: control_vector_raw <= 32'h00000012;
+  //     5'h0C: control_vector_raw <= 32'h03000412;
+  //     // op_a (offset: 11 words)
+  //     5'h0D: control_vector_raw <= 32'h00008400;
+  //     // op_lui (offset: 12 words)
+  //     5'h0E: control_vector_raw <= 32'h0000A400;
+  //     // op_b (offset: 13 words)
+  //     5'h0F: control_vector_raw <= 32'h10080400;
+  //     // op_jalr (offset: 14 words)
+  //     5'h10: control_vector_raw <= 32'h40148500;
+  //     // op_jal (offset: 15 words)
+  //     5'h11: control_vector_raw <= 32'h20128500;
+  //     // op_mret (offset: 16 words)
+  //     5'h12: control_vector_raw <= 32'h80000580;
+  //     // pseudo_op_interrupt (offset: 17 words)
+  //     5'h13: control_vector_raw <= 32'h00000340;
+  //     5'h14: control_vector_raw <= 32'h00000700;
+  //   endcase
+  // end
 
   always @(posedge clk_i) begin
     if (write_lower_instr)
@@ -342,13 +389,18 @@ module rv32i_control
 
   wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i - 32'd4 : {u_immediate, 12'b0};
 
+  reg [XLEN-1:0] registers_in;
+
+  always @(posedge clk_i)
+    registers_in_o <= registers_in;
+
   wire [2:0] registers_in_state = {register_input_pc, (load_word | load_half | load_byte), registers_input_imm};
   always @(*) begin
     case (registers_in_state)
-      default: registers_in_o = alu_out_i;
-      3'b001: registers_in_o = upper_immediate;
-      3'b010: registers_in_o = load_mux;
-      3'b100: registers_in_o = pc_i;
+      default: registers_in = alu_out_i;
+      3'b001: registers_in = upper_immediate;
+      3'b010: registers_in = load_mux;
+      3'b100: registers_in = pc_i;
     endcase
   end
 
@@ -363,15 +415,20 @@ module rv32i_control
     if (pc_save_uepc)
       uepc <= pc_i - 32'd4;
 
+  reg [XLEN-1:0] pc_reg;
+
+  always @(posedge clk_i)
+    pc_o <= pc_reg;
+
   always @(*) begin
     case (pc_src)
-      default: pc_o = pc_i + (INST_BITS / 8);
-      6'b000001: pc_o = j_immediate + instruction_addr;
-      6'b000010: pc_o = {j_reg[XLEN-1:1], 1'b0};
-      6'b000100: pc_o = b_immediate + instruction_addr;
-      6'b001000: pc_o = reset_delay[0] ? {memory_i, pc_i[15:0]} : {pc_i[31:16], memory_i};
-      6'b010000: pc_o = pc_save_uepc ? {pc_i[31:16], memory_i} : {memory_i, pc_i[15:0]};
-      6'b100000: pc_o = uepc;
+      default: pc_reg = pc_i + (INST_BITS / 8);
+      6'b000001: pc_reg = j_immediate + instruction_addr;
+      6'b000010: pc_reg = {j_reg[XLEN-1:1], 1'b0};
+      6'b000100: pc_reg = b_immediate + instruction_addr;
+      6'b001000: pc_reg = reset_delay[0] ? {memory_i, pc_i[15:0]} : {pc_i[31:16], memory_i};
+      6'b010000: pc_reg = pc_save_uepc ? {pc_i[31:16], memory_i} : {memory_i, pc_i[15:0]};
+      6'b100000: pc_reg = uepc;
     endcase
   end
 
@@ -433,15 +490,20 @@ module rv32i_control
   reg pc_write_mux;
   assign pc_write_o = mem_addr_vtable ? 1'b1 : pc_write_mux;
 
+  reg pc_write_mux_reg;
+
+  always @(posedge clk_i)
+    pc_write_mux <= pc_write_mux_reg;
+
   always @(*) begin
     case ({cond_write_pc, funct3_o})
-      default: pc_write_mux = pc_write | ~initial_reset;
-      4'b1000: pc_write_mux = alu_equal_i;
-      4'b1001: pc_write_mux = ~alu_equal_i;
-      4'b1100: pc_write_mux = alu_less_signed_i;
-      4'b1101: pc_write_mux = ~alu_less_signed_i;
-      4'b1110: pc_write_mux = alu_less_i;
-      4'b1111: pc_write_mux = ~alu_less_i;
+      default: pc_write_mux_reg = pc_write | ~initial_reset;
+      4'b1000: pc_write_mux_reg = alu_equal_i;
+      4'b1001: pc_write_mux_reg = ~alu_equal_i;
+      4'b1100: pc_write_mux_reg = alu_less_signed_i;
+      4'b1101: pc_write_mux_reg = ~alu_less_signed_i;
+      4'b1110: pc_write_mux_reg = alu_less_i;
+      4'b1111: pc_write_mux_reg = ~alu_less_i;
     endcase
   end
 
@@ -452,27 +514,35 @@ module rv32i_control
   wire rs1_link = (rs1_addr_o == x1) | (rs1_addr_o == x5);
   wire rd_rs1_eq = rd_addr_o == rs1_addr_o;
 
+  reg pop_ras_reg;
+  reg push_ras_reg;
+
+  always @(posedge clk_i) begin
+    pop_ras_o <= pop_ras_reg;
+    push_ras_o <= push_ras_reg;
+  end
+
   always @(*) begin
     case ({rd_link & (jal_ras | jalr_ras), rs1_link & jalr_ras})
       default: 
         begin
-          pop_ras_o = 1'b0;
-          push_ras_o = 1'b0;
+          pop_ras_reg = 1'b0;
+          push_ras_reg = 1'b0;
         end
       2'b01: 
         begin
-          pop_ras_o = 1'b1;
-          push_ras_o = 1'b0;
+          pop_ras_reg = 1'b1;
+          push_ras_reg = 1'b0;
         end
       2'b10:
         begin
-          pop_ras_o = 1'b0;
-          push_ras_o = 1'b1;
+          pop_ras_reg = 1'b0;
+          push_ras_reg = 1'b1;
         end
       2'b11:
         begin
-          pop_ras_o = rd_rs1_eq ? 1'b1 : 1'b0;
-          push_ras_o = 1'b1;
+          pop_ras_reg = rd_rs1_eq ? 1'b1 : 1'b0;
+          push_ras_reg = 1'b1;
         end
     endcase
   end

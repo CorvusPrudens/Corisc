@@ -29,27 +29,34 @@ module rv32i_alu
   localparam OP_SRL  = 4'b0101;
   localparam OP_SRA  = 4'b1101;
 
-  // TODO -- a combinational and gated version should be tested for speed!
-  wire [XLEN-1:0] add = operand1_i + operand2_i;
-  wire [XLEN-1:0] sub = operand1_i - operand2_i;
+  reg [XLEN-1:0] op1;
+  reg [XLEN-1:0] op2;
 
-  assign equal_o = operand1_i == operand2_i;
+  always @(posedge clk_i) begin
+    op1 <= operand1_i;
+    op2 <= operand2_i;
+  end
 
-  assign less_o = operand1_i < operand2_i;
-  wire signed [XLEN-1:0] operand1_signed = operand1_i;
-  wire signed [XLEN-1:0] operand2_signed = operand2_i;
+  wire [XLEN-1:0] add = op1 + op2;
+  wire [XLEN-1:0] sub = op1 - op2;
+
+  assign equal_o = op1 == op2;
+
+  assign less_o = op1 < op2;
+  wire signed [XLEN-1:0] operand1_signed = op1;
+  wire signed [XLEN-1:0] operand2_signed = op2;
   assign less_signed_o = operand1_signed < operand2_signed;
 
   wire [XLEN-1:0] slt = {{XLEN-1{1'b0}}, less_o};
   wire [XLEN-1:0] sltu = {{XLEN-1{1'b0}}, less_signed_o};
 
-  wire [XLEN-1:0] and_ = operand1_i & operand2_i;
-  wire [XLEN-1:0] or_ = operand1_i | operand2_i;
-  wire [XLEN-1:0] xor_ = operand1_i ^ operand2_i;
+  wire [XLEN-1:0] and_ = op1 & op2;
+  wire [XLEN-1:0] or_ = op1 | op2;
+  wire [XLEN-1:0] xor_ = op1 ^ op2;
 
-  wire [XLEN-1:0] sll = operand1_i << operand2_i[4:0];
-  wire [XLEN-1:0] srl = operand1_i >> operand2_i[4:0];
-  wire [XLEN-1:0] sra = operand1_i >>> operand2_i[4:0];
+  wire [XLEN-1:0] sll = op1 << op2[4:0];
+  wire [XLEN-1:0] srl = op1 >> op2[4:0];
+  wire [XLEN-1:0] sra = op1 >>> op2[4:0];
 
   always @(*) begin
     case (operation_i)

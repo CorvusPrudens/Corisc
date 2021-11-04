@@ -19,15 +19,22 @@ module bram_dual
     output reg [(dataWidth_p - 1):0] data_o = 0
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
+  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0] /* synthesis syn_ramstyle = "no_rw_check" */;
 
   always @(posedge clk_i) begin
-    if (write_i) memory[waddr_i] <= data_i;
+    if (write_i) begin
+      memory[waddr_i] <= data_i;
+      if (waddr_i == raddr_i)
+        data_o <= data_i;
+      else
+        data_o <= memory[raddr_i];
+    end else
+      data_o <= memory[raddr_i];
   end
 
-  always @(negedge clk_i) begin
-    data_o <= memory[raddr_i];
-  end
+  // always @(negedge clk_i) begin
+  //   data_o <= memory[raddr_i];
+  // end
 
   `ifdef FORMAL
     // FORMAL prove
