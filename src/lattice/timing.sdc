@@ -2,12 +2,12 @@
 
 # iCEcube SDC
 
-# Version:            2017.08.27940
+# Version:            2020.12.27943
 
-# File Generated:     Feb 21 2021 16:22:53
+# File Generated:     Nov 3 2021 22:37:17
 
 # ##############################################################################
 
 ####---- CreateClock list ----1
-create_clock  -period 34.92 -name {CLK_I} [get_ports {CLK_I}] 
+create_clock  -period 0.01 -name {CLK_I} [get_ports {clk_i}] 
 

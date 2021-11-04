@@ -1,7 +1,7 @@
 #--  Synopsys, Inc.
 #--  Version L-2016.09L+ice40
 #--  Project file /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/ram_project_Implmnt/run_options.txt
-#--  Written on Sat Oct 30 22:20:16 2021
+#--  Written on Wed Nov  3 22:42:36 2021
 
 
 #project files

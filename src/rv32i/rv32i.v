@@ -1,6 +1,8 @@
 `ifndef RV32I_GUARD
 `define RV32I_GUARD
 
+/* verilator lint_off UNDRIVEN */
+
 `ifdef SIM
   `ifndef PROGRAM_PATH
   `define PROGRAM_PATH "program.hex"
@@ -27,9 +29,9 @@
 `include "rv32i_control.v"
 `include "uartwrapper.v"
 `include "sram16.v"
-`include "timer.v"
+// `include "timer.v"
 `include "gpu.v"
-`include "flash.v"
+// `include "flash.v"
 
 `ifdef BOOTLOADER
 `include "bram_init.v"
@@ -249,18 +251,18 @@ module rv32i(
   // Memory mapped modules
   ///////////////////////////////////////////////////////////////
 
-  apu APU (
-    .clk_i(clk_i),
-    .addr_i(memory_addr[4:0]),
-    .data_i(memory_addr[0] ? memory_in[15:8] : memory_in[7:0]),
-    .data_o(raw_apu_out),
-    .write_i(memory_write),
-    .select_2a03_i(memory_region[3]),
-    .select_vrc6_1_i(memory_region[4]),
-    .select_vrc6_2_i(memory_region[5]),
-    .select_vrc6_3_i(memory_region[6]),
-    .master_o(apuMaster)
-  );
+  // apu APU (
+  //   .clk_i(clk_i),
+  //   .addr_i(memory_addr[4:0]),
+  //   .data_i(memory_addr[0] ? memory_in[15:8] : memory_in[7:0]),
+  //   .data_o(raw_apu_out),
+  //   .write_i(memory_write),
+  //   .select_2a03_i(memory_region[3]),
+  //   .select_vrc6_1_i(memory_region[4]),
+  //   .select_vrc6_2_i(memory_region[5]),
+  //   .select_vrc6_3_i(memory_region[6]),
+  //   .master_o(apuMaster)
+  // );
 
   uartwrapper UARTWRAPPER (
     .clk_i(clk_i),
@@ -273,47 +275,47 @@ module rv32i(
     .TX(TX)
   );
 
-  flash FLASH (
-    .clk_i(clk_i),
-    .data_i(memory_in),
-    .data_o(flash_out),
-    .addr_i(memory_addr[2:1]),
-    .write_i(general_flash & memory_write),
-    .read_i(general_flash & memory_read),
-    .CS(FLASH_CS),
-    .SDO(FLASH_SDI),
-    .SCK(FLASH_SCK),
-    .SDI(FLASH_SDO),
-    .reset_states(1'b0)
-  );
+  // flash FLASH (
+  //   .clk_i(clk_i),
+  //   .data_i(memory_in),
+  //   .data_o(flash_out),
+  //   .addr_i(memory_addr[2:1]),
+  //   .write_i(general_flash & memory_write),
+  //   .read_i(general_flash & memory_read),
+  //   .CS(FLASH_CS),
+  //   .SDO(FLASH_SDI),
+  //   .SCK(FLASH_SCK),
+  //   .SDI(FLASH_SDO),
+  //   .reset_states(1'b0)
+  // );
 
   wire int_src_timer;
-  timer TIMER (
-    .clk_i(clk_i),
-    .data_i(memory_in),
-    .addr_i({1'b0, memory_addr[2:1] + 2'b10}),
-    .write_i(general_timer & memory_write),
-    .data_o(timer_out),
-    .intVec_o(int_src_timer)
-  );
+  // timer TIMER (
+  //   .clk_i(clk_i),
+  //   .data_i(memory_in),
+  //   .addr_i({1'b0, memory_addr[2:1] + 2'b10}),
+  //   .write_i(general_timer & memory_write),
+  //   .data_o(timer_out),
+  //   .intVec_o(int_src_timer)
+  // );
 
   wire int_src_gpu;
-  gpu #(
-    .gpuSize_p(9),
-    .gpuInputWidth_p(12),
-    .initData_p(`GPU_INIT_PATH)
-  ) GPU (
-    .clk_i(clk_i),
-    .write_i(memory_region[2] & memory_write),
-    .waddr_i(memory_addr[13:1]),
-    .data_i(memory_in),
-    .SDO(DIS_SDI),
-    .SCK(DIS_SCK),
-    .DC(DIS_DC),
-    .CS(DIS_CS),
-    .RES(DIS_RES),
-    .intVec_o(int_src_gpu)
-  );
+  // gpu #(
+  //   .gpuSize_p(9),
+  //   .gpuInputWidth_p(12),
+  //   .initData_p(`GPU_INIT_PATH)
+  // ) GPU (
+  //   .clk_i(clk_i),
+  //   .write_i(memory_region[2] & memory_write),
+  //   .waddr_i(memory_addr[13:1]),
+  //   .data_i(memory_in),
+  //   .SDO(DIS_SDI),
+  //   .SCK(DIS_SCK),
+  //   .DC(DIS_DC),
+  //   .CS(DIS_CS),
+  //   .RES(DIS_RES),
+  //   .intVec_o(int_src_gpu)
+  // );
 
   // Keep in mind that RISC-V is _byte_ addressed, so memories with word sizes
   // of 16 will actually ignore the lsb of the address

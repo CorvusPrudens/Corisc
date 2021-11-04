@@ -58,7 +58,7 @@ void __attribute__((naked, noreturn)) entry()
 {
   asm("la sp, _estack");
 
-  // initialize_data();
+  initialize_data();
 
   main();
   for (;;);

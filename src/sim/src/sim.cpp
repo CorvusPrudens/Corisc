@@ -13,7 +13,7 @@
 #endif
 
 #ifndef NUM_FRAMES
-#define NUM_FRAMES 0.01f
+#define NUM_FRAMES 2
 #endif
 
 #ifndef PROG_BIN

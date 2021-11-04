@@ -1,7 +1,7 @@
 # Synopsys Constraint Checker, version maplat, Build 1612R, built Dec  5 2016
 # Copyright (C) 1994-2016 Synopsys, Inc. All rights reserved. This Synopsys software and all associated documentation are proprietary to Synopsys, Inc. and may only be used pursuant to the terms and conditions of a written license agreement with Synopsys, Inc. All other use, reproduction, modification, or distribution of the Synopsys software or the associated documentation is strictly prohibited.
 
-# Written on Sat Oct 30 22:20:19 2021
+# Written on Wed Nov  3 22:42:39 2021
 
 
 ##### DESIGN INFO #######################################################
@@ -27,10 +27,7 @@ Clock Relationships
 Starting                           Ending                             |     rise to rise     |     fall to fall     |     rise to fall     |     fall to rise                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 rv32i|clk_i                        rv32i|clk_i                        |     1000.000         |     1000.000         |     500.000          |     500.000                          
-rv32i|clk_i                        flash|spi_clk_derived_clock        |     1000.000         |     1000.000         |     No paths         |     500.000                          
 rv32i|clk_i                        spi_wo|clkdiv_derived_clock[3]     |     No paths         |     1000.000         |     No paths         |     500.000                          
-flash|spi_clk_derived_clock        rv32i|clk_i                        |     1000.000         |     No paths         |     500.000          |     No paths                         
-flash|spi_clk_derived_clock        flash|spi_clk_derived_clock        |     1000.000         |     No paths         |     500.000          |     No paths                         
 spi_wo|clkdiv_derived_clock[3]     rv32i|clk_i                        |     1000.000         |     No paths         |     500.000          |     No paths                         
 spi_wo|clkdiv_derived_clock[3]     spi_wo|clkdiv_derived_clock[3]     |     1000.000         |     No paths         |     500.000          |     No paths                         
 =================================================================================================================================================================================
@@ -45,9 +42,18 @@ p:DIS_CS
 p:DIS_DC
 p:DIS_RES
 p:DIS_SDI
+p:D_BCK
+p:D_DATA
+p:D_EMP
+p:D_FMT
+p:D_LRCLK
+p:D_MUTE
+p:D_SYSCK
 p:FLASH_CS
+p:FLASH_SCK
 p:FLASH_SDI
 p:FLASH_SDO
+p:HB_O
 p:RX
 p:SRAM_ADDR[0]
 p:SRAM_ADDR[1]

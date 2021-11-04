@@ -49,14 +49,17 @@ operations = {
   # funct3 is in the first half word, so we can load seperate 
   # microcode for lb, lh, and lw
   'op_lb' : [
+    [],
     ['memory_read', 'mem_addr_load', 'load_byte', 'registers_write', 'micro_reset'],
   ],
 
   'op_lh' : [
+    [],
     ['memory_read', 'mem_addr_load', 'load_half', 'registers_write', 'micro_reset'],
   ],
 
   'op_lw' : [
+    [],
     ['memory_read', 'mem_addr_load', 'build_temp'],
     ['memory_read', 'mem_addr_load', 'add_mem_addr', 'load_word', 'registers_write', 'micro_reset'],
   ],
@@ -71,20 +74,22 @@ operations = {
   ],
 
   'op_auipc' : [
-    ['register_input_imm', 'add_pc_upper'],
     ['register_input_imm', 'add_pc_upper', 'registers_write', 'micro_reset'],
   ],
 
   # remember to preserve other byte when doing byte-writes
   'op_sb' : [
+    [],
     ['memory_write', 'mem_addr_store', 'store_byte', 'micro_reset'],
   ],
 
   'op_sh' : [
+    [],
     ['memory_write', 'mem_addr_store', 'micro_reset'],
   ],
 
   'op_sw' : [
+    [],
     ['memory_write', 'mem_addr_store'],
     ['memory_write', 'mem_addr_store', 'add_mem_addr', 'store_word', 'micro_reset']
   ],
@@ -95,19 +100,21 @@ operations = {
   ],
 
   'op_lui' : [
-    ['register_input_imm'],
     ['register_input_imm', 'registers_write', 'micro_reset'],
   ],
 
   'op_b' : [
+    [],
     ['pc_src_b', 'cond_write_pc', 'micro_reset'],
   ],
 
   'op_jalr' : [
+    [],
     ['register_input_pc', 'registers_write', 'pc_src_jr', 'write_pc', 'jalr_ras', 'micro_reset'],
   ],
 
   'op_jal' : [
+    [],
     ['register_input_pc', 'registers_write', 'pc_src_j', 'write_pc', 'jal_ras', 'micro_reset'],
   ],
 
@@ -116,6 +123,7 @@ operations = {
   #   ['micro_reset'],
   # ],
   'op_mret' : [
+    [],
     ['write_pc', 'pc_restore_uepc', 'clear_interrupt', 'micro_reset'],
   ],
 
@@ -191,7 +199,9 @@ def write_micro(micro_dict, shifts, outfile):
     for key, item in micro_dict.items():
       file.write(' '.join(translate_opcode(key, item, shifts, offsets)[1:]) + '\n')
       if (key != 'fetch'):
+        print(offsets)
         offsets += len(item)
+        
 
 if __name__ == '__main__':
   write_micro(operations, operation_bits, 'microcode.hex')

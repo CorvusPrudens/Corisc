@@ -85,7 +85,7 @@ module rv32i_control
   // TODO -- need to get exception support in here at some point
   reg [5:0] trap_vector = 0;
 
-  reg [31:0] control_vector_raw;
+  wire [31:0] control_vector_raw;
   wire [31:0] control_vector = first_step ? control_vector_raw : 32'b0;
 
   // The ~clk_i helps prevent glitching as addresses etc settle
@@ -216,33 +216,30 @@ module rv32i_control
   // assign pc_write_o = control_vector[8];
 
   // We'll use a reg array here to store microinstruction steps
-  reg [4:0] microcode_step = 0;
+  reg [5:0] microcode_step = 0;
 
   always @(posedge clk_i) begin
     if (~microcode_reset & initial_reset)
       microcode_step <= microcode_step + 1'b1;
     else if (microcode_reset)
-      microcode_step <= 5'b1;
+      microcode_step <= 6'b1;
     else
-      microcode_step <= 5'b0;
-
-    if (initial_reset)
-      first_step <= 1'b1;
+      microcode_step <= 6'b0;
   end
 
   localparam FETCH_SIZE = 2;
-  reg [4:0] operand_offset = 0;
+  reg [5:0] operand_offset = 0;
 
   // for the fetch cycles, the address should
   // always point to the beginning of the memory
-  wire [4:0] microcode_mux = microcode_step < FETCH_SIZE ? 
+  wire [5:0] microcode_mux = microcode_step < FETCH_SIZE ? 
     microcode_step : microcode_reset ? 0
     : microcode_step + operand_offset;
 
-  wire [4:0] microcode_addr = microcode_mux;
+  wire [5:0] microcode_addr = microcode_mux;
 
   bram_init_rom #(
-    .memSize_p(5),
+    .memSize_p(6),
     .dataWidth_p(32),
     .initFile_p(MICRO_CODE)
   ) MICROCODE_BRAM (
@@ -317,33 +314,33 @@ module rv32i_control
             begin
               case (memory_i[13:12])
                 default: operand_offset <= 0;
-                2'b01: operand_offset <= 1;
-                2'b10: operand_offset <= 2;
+                2'b01: operand_offset <= 2;
+                2'b10: operand_offset <= 4;
               endcase 
             end
-          OP_FENCE: operand_offset <= 4;
-          OP_AI:    operand_offset <= 5;
-          OP_AUIPC: operand_offset <= 7;
+          OP_FENCE: operand_offset <= 7;
+          OP_AI:    operand_offset <= 8;
+          OP_AUIPC: operand_offset <= 10;
           OP_S:
             begin
               case (memory_i[13:12])
-                default: operand_offset <= 9;
-                2'b01: operand_offset <= 10;
-                2'b10: operand_offset <= 11;
+                default: operand_offset <= 11;
+                2'b01: operand_offset <= 13;
+                2'b10: operand_offset <= 15;
               endcase 
             end
-          OP_A:     operand_offset <= 13;
-          OP_LUI:   operand_offset <= 15;
-          OP_B:     operand_offset <= 17;
-          OP_JALR:  operand_offset <= 18;
-          OP_JAL:   operand_offset <= 19;
-          OP_SYS:   operand_offset <= 20; // TODO I know I know, non-compliant... but we'll always assume this is an mret
+          OP_A:     operand_offset <= 18;
+          OP_LUI:   operand_offset <= 20;
+          OP_B:     operand_offset <= 21;
+          OP_JALR:  operand_offset <= 23;
+          OP_JAL:   operand_offset <= 25;
+          OP_SYS:   operand_offset <= 27; // TODO I know I know, non-compliant... but we'll always assume this is an mret
           default:  operand_offset <= 4; // simple nop
       endcase
     end
   end
 
-  localparam INTERRUPT_OFFSET = 21;
+  localparam INTERRUPT_OFFSET = 29;
 
   wire [XLEN-1:0] upper_immediate = add_pc_upper ? {u_immediate, 12'b0} + pc_i - 32'd4 : {u_immediate, 12'b0};
 
@@ -406,15 +403,18 @@ module rv32i_control
 
   reg [2:0] reset_delay = 0;
   always @(posedge clk_i) begin
-    if (~reset_delay[2])
+    if (~reset_delay[2]) begin
       reset_delay <= reset_delay + 1'b1;
-    else begin
+      first_step <= 1'b0;
+      initial_reset <= 1'b0;
+    end else begin
       if (reset_i) begin
-        initial_reset <= 1'b0;
         reset_delay <= 3'b0;
-        first_step <= 1'b0;
-      end else
+      end else begin
         initial_reset <= 1'b1;
+        if (initial_reset)
+          first_step <= 1'b1;
+      end
     end
   end
 

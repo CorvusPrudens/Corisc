@@ -108,12 +108,12 @@ void OPT_Os MusicCallback()
 
 void OPT_Os main()
 {
-  // GpuInit(&FrameCallback);
+  GpuInit(&FrameCallback);
   // ApuInit(&MusicCallback);
 
-  // while (1)
-  // {
-  //   GpuProcess();
-  // }
+  while (1)
+  {
+    GpuProcess();
+  }
   UART = 100;
 }

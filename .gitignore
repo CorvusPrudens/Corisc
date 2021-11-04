@@ -13,6 +13,11 @@ formal
 *.out
 settings.json
 tasks.json
+src/lattice/ram_project/ram_project_Implmnt/sbt
+src/lattice/ram_project/ram_project_Implmnt/synlog
+src/lattice/ram_project/ram_project_Implmnt/syntmp
+src/lattice/ram_project/ram_project_Implmnt/synwork
+src/lattice/ram_project/stdout.log.bak
 
 # User-specific files
 *.rsuser
