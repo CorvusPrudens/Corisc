@@ -106,14 +106,21 @@ void OPT_Os MusicCallback()
     freq = 0;
 }
 
-void OPT_Os main()
-{
-  GpuInit(&FrameCallback);
-  // ApuInit(&MusicCallback);
+// int global1 = 100;
+// int global2 = 120;
 
-  while (1)
-  {
-    GpuProcess();
-  }
-  UART = 100;
+void main()
+{
+  // GpuInit(&FrameCallback);
+  // // ApuInit(&MusicCallback);
+
+  // while (1)
+  // {
+  //   GpuProcess();
+  // }
+  int global1 = 100;
+  int global2 = 120;
+  UART = global1;
+  UART = global2;
+  UART = global1 + global2;
 }

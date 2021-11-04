@@ -4,10 +4,10 @@
 
 # Version:            2020.12.27943
 
-# File Generated:     Nov 3 2021 22:37:17
+# File Generated:     Nov 4 2021 01:06:20
 
 # ##############################################################################
 
 ####---- CreateClock list ----1
-create_clock  -period 0.01 -name {CLK_I} [get_ports {clk_i}] 
+create_clock  -period 11.64 -name {CLK_I} [get_ports {clk_i}] 
 

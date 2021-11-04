@@ -41,26 +41,42 @@ operation_bits = {
 }
 
 operations = {
+
+  'vtable_lookup' : [
+    ['mem_addr_vtable'], # write to memory address register
+    ['mem_addr_vtable'], # allow memory region decode
+    ['pc_save_uepc', 'mem_addr_vtable', 'memory_read'], # reads are 1 clock latent
+    ['write_pc', 'mem_addr_vtable', 'memory_read'],
+    ['write_pc', 'mem_addr_vtable', 'micro_reset'], # the micro_reset isn't strictly needed here...
+  ],
+
   'fetch': [
-    ['mem_addr_pc', 'memory_read', 'write_pc', 'write_lower_instr'],
-    ['mem_addr_pc', 'memory_read', 'write_pc', 'write_upper_instr'],
+    ['mem_addr_pc'], # write to memory address register
+    ['mem_addr_pc'], # allow memory region decode
+    ['mem_addr_pc', 'memory_read'], # reads are 1 clock latent
+    ['write_pc', 'memory_read', 'write_lower_instr'],
+    ['write_pc', 'write_upper_instr'],
   ],
 
   # funct3 is in the first half word, so we can load seperate 
   # microcode for lb, lh, and lw
   'op_lb' : [
-    [],
+    [], # load register address
+    ['mem_addr_load'], # write to memory address register
+    ['mem_addr_load'], # permit address region decode
     ['memory_read', 'mem_addr_load', 'load_byte', 'registers_write', 'micro_reset'],
   ],
 
   'op_lh' : [
-    [],
+    [], # load register address
+    ['mem_addr_load'], # permit address region decode
     ['memory_read', 'mem_addr_load', 'load_half', 'registers_write', 'micro_reset'],
   ],
 
   'op_lw' : [
-    [],
-    ['memory_read', 'mem_addr_load', 'build_temp'],
+    [], # load register address
+    ['mem_addr_load', 'memory_read'], # permit address region decode
+    ['mem_addr_load', 'build_temp', 'add_mem_addr'], # this requires that word-reads are 32-bit aligned at all times
     ['memory_read', 'mem_addr_load', 'add_mem_addr', 'load_word', 'registers_write', 'micro_reset'],
   ],
 
@@ -69,8 +85,9 @@ operations = {
   ],
 
   'op_ai' : [
-    ['op2_immediate'],
-    ['op2_immediate', 'registers_write', 'micro_reset'],
+    ['op2_immediate'], # fill registers
+    ['op2_immediate'], # fill alu inputs
+    ['op2_immediate', 'registers_write', 'micro_reset'], # perform operation
   ],
 
   'op_auipc' : [
@@ -79,24 +96,28 @@ operations = {
 
   # remember to preserve other byte when doing byte-writes
   'op_sb' : [
-    [],
+    [], # load register addresses
+    ['mem_addr_store'], # Permit memory address decode
     ['memory_write', 'mem_addr_store', 'store_byte', 'micro_reset'],
   ],
 
   'op_sh' : [
-    [],
+    [], # load register addresses
+    ['mem_addr_store'], # Permit memory address decode
     ['memory_write', 'mem_addr_store', 'micro_reset'],
   ],
 
   'op_sw' : [
-    [],
-    ['memory_write', 'mem_addr_store'],
+    [], # load register addresses
+    ['mem_addr_store'], # Permit memory address decode
+    ['memory_write', 'mem_addr_store'], # this requires that word-reads are 32-bit aligned at all times
     ['memory_write', 'mem_addr_store', 'add_mem_addr', 'store_word', 'micro_reset']
   ],
 
   'op_a' : [
-    [],
-    ['registers_write', 'micro_reset'],
+    [], # fill registers
+    [], # fill alu inputs
+    ['registers_write', 'micro_reset'], # perform operation
   ],
 
   'op_lui' : [
@@ -104,7 +125,8 @@ operations = {
   ],
 
   'op_b' : [
-    [],
+    [], # supply register addresses
+    [], # perform ALU check
     ['pc_src_b', 'cond_write_pc', 'micro_reset'],
   ],
 
@@ -127,10 +149,6 @@ operations = {
     ['write_pc', 'pc_restore_uepc', 'clear_interrupt', 'micro_reset'],
   ],
 
-  'pseudo_op_interrupt' : [
-    ['pc_save_uepc', 'write_pc', 'mem_addr_vtable'],
-    ['write_pc', 'mem_addr_vtable', 'micro_reset'],
-  ],
 }
 
 template = """`ifndef RV32I_MICROCODE_GUARD
@@ -187,7 +205,7 @@ def gen_lut(micro_dict, shifts, outfile):
       for step in steps[1:]:
         lines.append(fmt.format(width, index, step))
         index += 1
-      if (key != 'fetch'):
+      if (key not in ['vtable_lookup', 'fetch']):
         offsets += len(item)
     file.write(template.format('\n'.join(lines)))
 
@@ -198,7 +216,7 @@ def write_micro(micro_dict, shifts, outfile):
     offsets = 0
     for key, item in micro_dict.items():
       file.write(' '.join(translate_opcode(key, item, shifts, offsets)[1:]) + '\n')
-      if (key != 'fetch'):
+      if (key not in ['vtable_lookup', 'fetch']):
         print(offsets)
         offsets += len(item)
         

@@ -30,7 +30,7 @@
 `include "uartwrapper.v"
 `include "sram16.v"
 // `include "timer.v"
-`include "gpu.v"
+// `include "gpu.v"
 // `include "flash.v"
 
 `ifdef BOOTLOADER
