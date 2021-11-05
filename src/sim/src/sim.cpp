@@ -209,7 +209,7 @@ int main(int argc, char** argv)
     {
       go = messageManagerStatic(status, &sendword, out, false);
       status = uart(tb, go, sendword, &out);
-      tick(tb, tfp, sram, flash, ++logicStep);
+      tick(tb, tfp, sram, flash, displaybuff, ++logicStep);
     }
 
     bool success = true;
@@ -268,7 +268,6 @@ int main(int argc, char** argv)
           if (tb->FRAME_SYNC) {
             updatePixels(displaybuff, glBuffer, WIDTH, HEIGHT);
             writeFrame(displaybuff, "./build/frames.bin", WIDTH, HEIGHT);
-            j++;
             currentFrame++;
           }
         }

@@ -39,7 +39,7 @@ void OPT_O3 VoiceProcess()
 static inline uint8_t OPT_O3 check_mode(uint8_t voice)
 {
   if (voice < 0)
-    return;
+    return 0;
   return voice_mode[voice];
 }
 
@@ -103,6 +103,6 @@ void OPT_O3 MidiPitchBend(MidiMessage* message)
   int8_t voice = voice_midi_map_reverse[message->channel];
   if (check_mode(voice))
   {
-    
+
   }
 }

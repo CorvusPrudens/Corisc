@@ -96,8 +96,8 @@ class Elf
           uint8_t* outdata = bytes_ + output_section->sh_offset;
           size_t length = output_section->sh_size;
 
-          if (index + length > padding)
-            throw 99;
+          // if (index + length > padding)
+          //   throw 99;
 
           for (size_t i = 0; i < length; i++)
           {
@@ -204,7 +204,7 @@ int main(int argc, char** argv)
   size_t program_size;
   if (boot)
   {
-    sections = {".vector_table", ".text", ".bootloader", ".bootdata", ".data"};
+    sections = {".vector_table", ".text",  ".data"};
     program_size = 1024;
   }
   else

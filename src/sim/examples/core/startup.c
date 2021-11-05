@@ -1,5 +1,5 @@
 #include "defs.h"
-// #include "test.c"
+
 extern void *_estack;
 extern void *_sidata, *_sdata, *_edata;
 extern void *_sbss, *_ebss;
@@ -49,8 +49,6 @@ void OPT_Os INTERRUPT default_handler()
 //   return dest;
 // }
 
-// TODO -- -O2 or higher causes this to fail
-// TODO -- should be set to OPT_Os, but we'll need a memcpy and memset def
 void OPT_O1 initialize_data()
 {
   // Casting to uint32_t facilitates faster reads and writes

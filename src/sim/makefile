@@ -38,10 +38,11 @@ VERILOG_DEFS = \
 -DVRC6PROM_PATH=\"$(APU_PATH)/vrc6prom.hex\" 
 
 ifeq ($(BOOTLOADER), 1)
-VERILOG_DEFS =+ \
+VERILOG_DEFS += \
 -DPROGRAM_PATH=\"$(PROGRAM)\" \
 -DBOOTLOADER
-CPP_FLAGS = -DBOOTLOADER
+
+CPP_FLAGS ?= -DBOOTLOADER
 endif
 TARGET = rv32i
 
@@ -104,7 +105,8 @@ examples/modules/gpu.c \
 examples/modules/serial.c \
 examples/modules/apu.c \
 examples/modules/midi.c \
-examples/modules/voice.c
+examples/modules/voice.c \
+examples/modules/flash.c
 
 RISCV_SOURCES = \
 examples/main.c 
@@ -119,6 +121,10 @@ RISCV_INCLUDES = \
 -I./examples/modules
 
 RISCV_FLAGS = -Wunused-function
+
+ifeq ($(BOOTLOADER), 1)
+RISCV_FLAGS += -DBOOTLOADER
+endif
 
 RISCV_LINKER_FLAGS = $(RISCV_LIBS) -lcorvus -lgcc -lc
 
@@ -170,13 +176,13 @@ debug: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 boot: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) CLOCK_COUNT="-DCLOCK_COUNT=14318180" BOOTLOADER=1
-	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex 
 
 boot_trace: $(ELF_UTIL) $(VERILATION) $(MICROCODE)
 	$(MAKE) verilate_trace PROGRAM=$(BUILD)/$(BOOTLOADER_TARGET).hex BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(TARGET) TRACE="-DTRACE" BOOTLOADER=1
-	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a
+	$(MAKE) -j$(NPROC) $(BUILD)/$(CORLIB_TARGET).a BOOTLOADER=1
 	$(MAKE) -j$(NPROC) $(BUILD)/$(BOOTLOADER_TARGET).hex
 
 $(BUILD):
@@ -223,7 +229,7 @@ $(BUILD)/$(RISCV_TARGET).bin: $(SORTED_RISCV) $(LDSCRIPT) makefile
 	$(ROBJ) -D -s $(BUILD)/$(RISCV_TARGET).elf > $(BUILD)/$(RISCV_TARGET).obj
 
 $(BUILD)/$(BOOTLOADER_TARGET).hex: $(SORTED_BOOT) $(BOOT_LDSCRIPT) makefile
-	$(RLD) -T$(BOOT_LDSCRIPT) $(RISCV_LINKER_FLAGS) $(SORTED_BOOT) \
+	$(RLD) -T$(BOOT_LDSCRIPT) $(SORTED_BOOT) $(RISCV_LINKER_FLAGS) \
 		-o $(BUILD)/$(BOOTLOADER_TARGET).elf --print-memory-usage -Map $(BUILD)/$(BOOTLOADER_TARGET).map
 	$(ELF_UTIL) -b $(BUILD)/$(BOOTLOADER_TARGET).elf -o $@
 	$(ROBJ) -D -s $(BUILD)/$(BOOTLOADER_TARGET).elf > $(BUILD)/$(BOOTLOADER_TARGET).obj
