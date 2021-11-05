@@ -48,7 +48,7 @@ void OPT_O3 MidiNoteOff(MidiMessage* message)
   int8_t voice = voice_midi_map_reverse[message->channel];
   if (check_mode(voice))
   {
-
+    voices[voice].volume = 0;
   }
 }
 
@@ -57,7 +57,8 @@ void OPT_O3 MidiNoteOn(MidiMessage* message)
   int8_t voice = voice_midi_map_reverse[message->channel];
   if (check_mode(voice))
   {
-
+    voices[voice].tempFreq = (*voice_midi_getters[voice])(message->data[0]);
+    voices[voice].volume = message->data[1] >> 4;
   }
 }
 
@@ -66,7 +67,34 @@ void OPT_O3 MidiCC(MidiMessage* message)
   int8_t voice = voice_midi_map_reverse[message->channel];
   if (check_mode(voice))
   {
+    switch (message->data[0])
+    {
+      case CC_EFFECT:
+      {
 
+      }
+      break;
+      case CC_VOL:
+      {
+
+      }
+      break;
+      case CC_VIB:
+      {
+
+      }
+      break;
+      case CC_PORT:
+      {
+
+      }
+      break;
+      case CC_SCREEN:
+      {
+
+      }
+      break;
+    }
   }
 }
 
@@ -75,6 +103,6 @@ void OPT_O3 MidiPitchBend(MidiMessage* message)
   int8_t voice = voice_midi_map_reverse[message->channel];
   if (check_mode(voice))
   {
-
+    
   }
 }

@@ -3,6 +3,7 @@
 #include "gpu.h"
 #include "serial.h"
 #include "apu.h"
+#include "voice.h"
 
 const char* hey = "Hello, there! How's it going?";
 const char* str2 = "I feel nice... I think I'm ready to make some pretty pictures ^.^";
@@ -98,16 +99,12 @@ uint16_t freq = 0;
 
 void OPT_Os MusicCallback()
 {
-  Set2a03Pulse(freq++, 15, 0, 0);
-  Set2a03Pulse(8192 - freq, 15, 0, 1);
-  SetTriangle(8192 - freq, 1);
-  SetNoise(7, 7, 0);
-  if (freq > 8192)
-    freq = 0;
+  VoiceProcess();
 }
 
 void OPT_Os main()
 {
+  VoiceInit();
   GpuInit(&FrameCallback);
   ApuInit(&MusicCallback);
 

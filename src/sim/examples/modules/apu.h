@@ -48,6 +48,7 @@
 #define SAW_TIMERL (volatile uint8_t*) 0xB001
 #define SAW_TIMERH (volatile uint8_t*) 0xB002
 
+typedef uint16_t (*GetVoiceMidi)(uint8_t note_number);
 typedef void (*SetVoice)(uint16_t pitch, uint8_t volume, uint8_t duty);
 
 extern uint32_t MusicCounter;
@@ -62,7 +63,13 @@ void SetTriangle(uint16_t pitch, uint8_t volume, uint8_t effect);
 void SetSaw(uint16_t pitch, uint8_t volume, uint8_t effect);
 void SetNoise(uint16_t pitch, uint8_t volume, uint8_t effect);
 
+uint16_t Get2a03Midi(uint8_t note_number);
+uint16_t GetNoiseMidi(uint8_t note_number);
+uint16_t GetVrc6Midi(uint8_t note_number);
+uint16_t GetSawMidi(uint8_t note_number);
+
 extern SetVoice voice_setters[NUM_VOICES];
+extern GetVoiceMidi voice_midi_getters[NUM_VOICES];
 
 void SilenceAll();
 // void SetDcm(); // TODO -- need to figure this one out

@@ -14,6 +14,16 @@ SetVoice voice_setters[NUM_VOICES] = {
   &SetSaw,
 };
 
+GetVoiceMidi voice_midi_getters[NUM_VOICES] = {
+  &Get2a03Midi,
+  &Get2a03Midi,
+  &Get2a03Midi,
+  &GetNoiseMidi,
+  &GetVrc6Midi,
+  &GetVrc6Midi,
+  &GetSawMidi,
+};
+
 static void EnableAll();
 
 // The setup and teardown cost definitely sucks, but we'll have to deal with it for now
@@ -113,6 +123,26 @@ void OPT_O3 SetNoise(uint16_t pitch, uint8_t volume, uint8_t type)
   temp |= volume & 0b11110000;
   *NOISE_CONF = temp;
   *NOISE_TIMER = (type << 8) | (pitch & 0b1111);
+}
+
+uint16_t OPT_O3 Get2a03Midi(uint8_t note_number)
+{
+  
+}
+
+uint16_t OPT_O3 GetNoiseMidi(uint8_t note_number)
+{
+
+}
+
+uint16_t OPT_O3 GetVrc6Midi(uint8_t note_number)
+{
+
+}
+
+uint16_t OPT_O3 GetSawMidi(uint8_t note_number)
+{
+
 }
 
 // This actually excludes the Triangle, since the enable is how volume is controlled
