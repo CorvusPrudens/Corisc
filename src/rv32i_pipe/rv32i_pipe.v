@@ -23,9 +23,9 @@ module rv32i_pipe
   //////////////////////////////////////////////////////////////
 
   wire [XLEN-1:0] decode_immediate_data;
+  wire decode_immediate;
   wire decode_data_ready_o;
   wire [3:0] alu_operation_decode;
-  wire decode_immediate;
   wire [REG_BITS-1:0] decode_rd_addr;
   wire [REG_BITS-1:0] decode_rs1_addr;
   wire [REG_BITS-1:0] decode_rs2_addr;
@@ -65,8 +65,9 @@ module rv32i_pipe
   //////////////////////////////////////////////////////////////
 
   // Whether the next instruction is allowed to read rs1 and rs2 depends on if the 
-  // previous one(s) will write to them. If it doesn't, then the reads can proceed
-  wire opfetch_wait_on_alu = alu_rd_addr > 0 && ((decode_rs1_addr == alu_rd_addr) || (decode_rs2_addr == alu_rd_addr));
+  // previous one(s) will write to them. If it doesn't, then the reads can proceed.
+  // Write intention is implicitly encoded in the reg address -- a zero means no write will occur
+  wire opfetch_wait_on_alu = (alu_rd_addr > 0) && ((decode_rs1_addr == alu_rd_addr) || (decode_rs2_addr == alu_rd_addr));
   // TODO -- how many stages do we need to wait for?
   // wire opfetch_wait_on_writeback = alu_rd_addr > 0 && ((decode_rs1_addr == alu_rd_addr) || (decode_rs2_addr == alu_rd_addr));
   wire opfetch_busy = opfetch_wait_on_alu;

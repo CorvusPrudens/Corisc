@@ -102,6 +102,13 @@ void OPT_Os MusicCallback()
   VoiceProcess();
 }
 
+int OPT_Os SimpleCalc(int a, int b)
+{
+  a += 20;
+  b += a;
+  return b;
+}
+
 void OPT_Os main()
 {
   VoiceInit();
