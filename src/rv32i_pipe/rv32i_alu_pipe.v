@@ -1,11 +1,12 @@
 `ifndef RV32I_ALU_PIPE
 `define RV32I_ALU_PIPE
 
-module rv32i_alu_pip 
+module rv32i_alu_pipe
   #(
-    parameter XLEN
+    parameter XLEN = 32
   )
   (
+    input wire clk_i,
     input wire data_ready_i,
     output reg data_ready_o,
 
@@ -20,35 +21,20 @@ module rv32i_alu_pip
     output reg less_o,
     output reg less_signed_o,
 
-
-    input wire downstream_stall_i,
-    input wire downstream_execute_i,
-    output wire stall_o,
-    output wire execute_o,
-
-    input wire clear_i,
-    input wire reset_i
+    input wire clear_i
   );
 
   /////////////////////////////////////////
   // Pipeline logic
   /////////////////////////////////////////
 
-  wire reset = reset_i | clear_i;
   wire [XLEN-1:0] result;
-  wire local_stall; // this goes high if this stage is waiting on something for its internal operation
-
-  assign stall_o = data_ready_o & (downstream_stall_i | local_stall);
-  assign execute_o = data_ready_i & ~stall_o;
 
   always @(posedge clk_i) begin
-    if (reset)
+    if (clear_i)
       data_ready_o <= 1'b0;
-    if (execute_o) begin
+    else
       data_ready_o <= data_ready_i; // this assumes one clock cycle per operation (?)
-      // This is where we do the thing
-    end else if (downstream_execute_i)
-      data_ready_o <= 1'b0;
   end 
 
   /////////////////////////////////////////
@@ -77,9 +63,9 @@ module rv32i_alu_pip
   wire [XLEN-1:0] sra = operand1_i >>> operand2_i[4:0];
 
   always @(posedge clk_i) begin
-    if (reset) begin
+    if (clear_i) begin
       result_o <= 0;
-    end else if (execute_o) begin
+    end else if (data_ready_i) begin
       case (operation_i)
         default: result_o <= 0;
         OP_ADD:  result_o <= operand1_i + operand2_i;
@@ -97,11 +83,11 @@ module rv32i_alu_pip
   end
 
   always @(posedge clk_i) begin
-    if (reset) begin
+    if (clear_i) begin
       equal_o <= 0;
       less_o <= 0;
       less_signed_o <= 0;
-    end else if (execute_o) begin
+    end else if (data_ready_i) begin // these might need to not change except on data_ready_i and ~stall
       equal_o <= equal;
       less_o <= less;
       less_signed_o <= less_signed;
@@ -114,6 +100,42 @@ module rv32i_alu_pip
   //   if (execute & equal & conditional)
   //     jump_signal_o <= 1'b1
   // end
+
+  `ifdef FORMAL
+
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    // // We'll assume no data is input while stalled
+    // always @(posedge clk_i) begin
+    //   if (stall_o)
+    //     assume(~data_ready_i);
+    // end
+
+    // Data will always travel through on a single clock, and will never be ready
+    // if nothing was input
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(data_ready_i) & ~$past(clear_i))
+        assert(data_ready_o);
+      if (timeValid_f & ~$past(data_ready_i) & ~$past(clear_i))
+        assert(~data_ready_o);
+    end
+
+    // // Responses should happen one clock after data is accepted, no stalling
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f & ~$past(stall_o))
+    //     assert(~stall_o);
+    // end
+
+    // This isn't quite right, and I don't get why
+
+    // // Following a stall, the data should become valid
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f & $past(stall_o) & ~stall_o)
+    //     assert($past(clear_i) | data_ready_o);
+    // end
+
+  `endif
 
 endmodule
 
