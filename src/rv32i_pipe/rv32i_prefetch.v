@@ -26,11 +26,11 @@ module rv32i_prefetch
       if (pc_write_i) begin
         instruction_o <= memory[pc_i[6:2]];
         pc_o <= pc_i;
-        program_counter <= pc_i + 3'b100;
+        program_counter <= pc_i + 32'b100;
       end else begin
         instruction_o <= memory[program_counter[6:2]];
         pc_o <= program_counter;
-        program_counter <= program_counter + 3'b100;
+        program_counter <= program_counter + 32'b100;
       end
     end
   end

@@ -1,7 +1,10 @@
 `ifndef RV32I_PIPE_GUARD
 `define RV32I_PIPE_GUARD
 
-`include "rv32_alu_pipe.v"
+`include "rv32i_alu_pipe.v"
+`include "rv32i_decode.v"
+`include "rv32i_prefetch.v"
+`include "rv32i_registers_pipe.v"
 
 module rv32i_pipe
   #(
@@ -14,7 +17,9 @@ module rv32i_pipe
     input wire reset_i
   );
 
-  wire clear_pipeline;
+  // TODO -- this will need to change later, and also we'll need per-stage clearing
+  // capabilities for jumps and such
+  wire clear_pipeline = reset_i;
 
   // TODO -- For now, the program memory could be self-contained, making the
   // instruction caching unnecessary for the moment.
@@ -62,7 +67,6 @@ module rv32i_pipe
       prefetch_data_ready_o <= 1'b1;
     else if (decode_ce)
       prefetch_data_ready_o <= 1'b0;
-    end
   end
 
   //////////////////////////////////////////////////////////////
@@ -71,13 +75,17 @@ module rv32i_pipe
 
   reg decode_data_ready_o;
 
+  wire decode_stall;
+  wire decode_ce;
+
   // Outputs
   wire [3:0] alu_operation_decode;
   wire [2:0] decode_word_size;
   wire [REG_BITS-1:0] decode_rd_addr;
   wire [REG_BITS-1:0] decode_rs1_addr;
   wire [REG_BITS-1:0] decode_rs2_addr;
-  wire decode_immediate;
+  // TODO -- fill this in
+  wire decode_immediate = 0;
   wire [XLEN-1:0] decode_immediate_data;
   wire [XLEN-1:0] decode_pc;
   wire pop_ras;
@@ -118,7 +126,6 @@ module rv32i_pipe
       decode_data_ready_o <= prefetch_data_ready_o;
     else if (opfetch_ce)
       decode_data_ready_o <= 1'b0;
-    end
   end
 
   //////////////////////////////////////////////////////////////
@@ -126,8 +133,8 @@ module rv32i_pipe
   //////////////////////////////////////////////////////////////
 
   wire registers_write;
-  wire [REG_BITS-1:0] rs1_addr;
-  wire [REG_BITS-1:0] rs2_addr;
+  wire [REG_BITS-1:0] rs1_addr = decode_rs1_addr;
+  wire [REG_BITS-1:0] rs2_addr = decode_rs2_addr;
   wire [REG_BITS-1:0] rd_addr;
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
@@ -206,7 +213,8 @@ module rv32i_pipe
   wire alu_equal;
   wire alu_less;
   wire alu_less_signed;
-  wire alu_clear;
+  // TODO -- this will need to be filled in:
+  wire alu_clear = 0;
 
   // Pipeline
   wire alu_ce;
@@ -259,6 +267,8 @@ module rv32i_pipe
   wire writeback_stalled;
 
   assign rd_addr = alu_rd_addr;
+  // TODO -- this will need to change obviously
+  assign registers_in = alu_result;
   assign registers_write = writeback_registers_write;
 
   assign writeback_stalled = 0;
