@@ -43,9 +43,12 @@ module rv32i_pipe
   rv32i_prefetch #(
     .XLEN(XLEN),
     .ILEN(ILEN),
+    .VTABLE_ADDR(32'h00000000),
     .PROGRAM_PATH("rv32i_pipe.hex")
   ) RV32I_PREFETCH (
     .clk_i(clk_i),
+    .clear_i(1'b0), // TODO -- fill this in
+    .reset_i(reset_i),
     .advance_i(prefetch_ce),
     .pc_i(32'b0),
     .pc_write_i(1'b0),
@@ -63,7 +66,7 @@ module rv32i_pipe
   always @(posedge clk_i) begin
     if (reset_i | clear_pipeline)
       prefetch_data_ready_o <= 1'b0;
-    else if (decode_ce)
+    else if (prefetch_ce)
       prefetch_data_ready_o <= 1'b1;
     else if (decode_ce)
       prefetch_data_ready_o <= 1'b0;

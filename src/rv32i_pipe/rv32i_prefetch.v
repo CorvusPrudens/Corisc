@@ -3,12 +3,15 @@
 
 module rv32i_prefetch
   #(
-    XLEN = 32,
-    ILEN = 32,
-    PROGRAM_PATH = "program.hex"
+    parameter XLEN = 32,
+    parameter ILEN = 32,
+    parameter VTABLE_ADDR = 32'h00000000,
+    parameter PROGRAM_PATH = "program.hex"
   )
   (
     input wire clk_i,
+    input wire clear_i,
+    input wire reset_i,
     input wire advance_i,
     input wire [XLEN-1:0] pc_i,
     input wire pc_write_i,
@@ -22,7 +25,9 @@ module rv32i_prefetch
   reg [XLEN-1:0] program_counter = 0;
 
   always @(posedge clk_i) begin
-    if (advance_i) begin
+    if (reset_i) begin
+      program_counter <= VTABLE_ADDR;
+    end else if (advance_i) begin
       if (pc_write_i) begin
         instruction_o <= memory[pc_i[6:2]];
         pc_o <= pc_i;

@@ -57,7 +57,9 @@ int main(int argc, char** argv)
   tb->trace(tfp, 99);
   tfp->open(TRACE_FILE);
 
+  tb->reset_i = 1;
   tick(tb, tfp, ++logicStep);
+  tb->reset_i = 0;
 
   for (int i = 0; i < CLOCK_COUNT; i++)
     tick(tb, tfp, ++logicStep);
