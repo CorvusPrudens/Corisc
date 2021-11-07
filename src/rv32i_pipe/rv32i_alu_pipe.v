@@ -28,8 +28,6 @@ module rv32i_alu_pipe
   // Pipeline logic
   /////////////////////////////////////////
 
-  wire [XLEN-1:0] result;
-
   always @(posedge clk_i) begin
     if (clear_i)
       data_ready_o <= 1'b0;

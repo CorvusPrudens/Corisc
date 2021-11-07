@@ -13,6 +13,11 @@ formal
 *.out
 settings.json
 tasks.json
+src/rv32i_pipe/lattice/pipe/pipe_Implmnt
+src/rv32i_pipe/lattice/pipe/*.v
+src/rv32i_pipe/lattice/pipe/*.hex
+*.bak
+synlog*
 
 # User-specific files
 *.rsuser

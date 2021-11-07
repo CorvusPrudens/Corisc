@@ -14,8 +14,12 @@ module rv32i_pipe
   )
   (
     input wire clk_i,
-    input wire reset_i
+    input wire reset_i,
+    output wire [XLEN-1:0] out
   );
+
+  // Just for testing
+  assign out = alu_result;
 
   // TODO -- this will need to change later, and also we'll need per-stage clearing
   // capabilities for jumps and such
@@ -150,7 +154,7 @@ module rv32i_pipe
   assign decode_ce = prefetch_data_ready_o & ~opfetch_stall;
 
   always @(posedge clk_i) begin
-    if (reset_i | clear_pipeline)
+    if (decode_clear)
       decode_data_ready_o <= 1'b0;
     else if (decode_ce)
       decode_data_ready_o <= prefetch_data_ready_o;
@@ -207,14 +211,16 @@ module rv32i_pipe
   reg opfetch_data_ready_o;
   wire opfetch_ce;
   wire opfetch_stall;
-  wire opfetch_clear = reset_i | jalr_jump | branch_jump;
+  wire opfetch_clear = clear_pipeline | jalr_jump | branch_jump;
 
   reg opfetch_jalr = 0;
   assign jalr_jump = opfetch_jalr;
   reg [XLEN-1:0] opfetch_jalr_target = 0;
+  reg opfetch_pop_ras = 0;
+  reg [XLEN-1:0] opfetch_ras = 0;
 
 
-  wire [XLEN-1:0] jalr_base = pop_ras ? ras : latest_rs1_in_writeback ? alu_result : rs1;
+  wire [XLEN-1:0] jalr_base = opfetch_pop_ras ? opfetch_ras : latest_rs1_in_writeback ? alu_result : rs1;
   assign prefetch_pc_in_jalr = opfetch_jalr_target + jalr_base;
   reg opfetch_branch = 0;
   reg [2:0] opfetch_branch_conditions = 0;
@@ -238,6 +244,8 @@ module rv32i_pipe
       opfetch_jalr <= 1'b0;
       opfetch_branch <= 1'b0;
       opfetch_branch_conditions <= 3'b0;
+      opfetch_pop_ras <= 1'b0;
+      opfetch_ras <= 0;
     end else if (opfetch_ce) begin
       opfetch_data_ready_o <= decode_data_ready_o;
       alu_operation_opfetch <= alu_operation_decode; 
@@ -255,6 +263,8 @@ module rv32i_pipe
         opfetch_jalr_target <= decode_immediate_data;
         opfetch_immediate_data <= decode_pc;
         opfetch_jalr <= 1'b1;
+        opfetch_pop_ras <= pop_ras;
+        opfetch_ras <= ras;
       end else
         opfetch_immediate_data <= decode_immediate_data;
         
@@ -279,8 +289,6 @@ module rv32i_pipe
   wire alu_equal;
   wire alu_less;
   wire alu_less_signed;
-  // TODO -- this will need to be filled in:
-  wire alu_clear = 0;
 
   // Pipeline
   wire alu_ce;
@@ -320,7 +328,7 @@ module rv32i_pipe
 
   assign alu_stalled = 0;
   assign alu_ce = opfetch_data_ready_o & ~alu_stalled;
-  assign alu_clear = branch_jump;
+  assign alu_clear = clear_pipeline | branch_jump;
 
   always @(posedge clk_i) begin
     if (alu_clear) begin
@@ -344,6 +352,7 @@ module rv32i_pipe
   reg writeback_registers_write;
   wire writeback_ce;
   wire writeback_stalled;
+  wire writeback_clear = clear_pipeline;
   reg writeback_branch;
   assign branch_jump = writeback_branch;
   reg [XLEN-1:0] writeback_branch_data;
@@ -358,7 +367,7 @@ module rv32i_pipe
   assign writeback_ce = alu_data_ready_o & ~writeback_stalled; // TODO -- again, this will significantly change with the addition of memory and mul/div
 
   always @(posedge clk_i) begin
-    if (reset_i | clear_pipeline) begin
+    if (writeback_clear) begin
       writeback_registers_write <= 1'b0;
     end else if (writeback_ce) begin
       writeback_registers_write <= (alu_rd_addr > 0);

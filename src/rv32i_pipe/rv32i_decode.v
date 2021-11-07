@@ -77,9 +77,9 @@ module rv32i_decode
   localparam LINK_REGISTER = 5'h01;
   localparam LINK_REGISTER_ALT = 5'h05;
 
-  wire rd_link = (rd_addr_o == LINK_REGISTER) | (rd_addr_o == LINK_REGISTER_ALT);
-  wire rs1_link = (rs1_addr_o == LINK_REGISTER) | (rs1_addr_o == LINK_REGISTER_ALT);
-  wire rd_rs1_eq = rd_addr_o == rs1_addr_o;
+  wire rd_link = (rd_addr == LINK_REGISTER) | (rd_addr == LINK_REGISTER_ALT);
+  wire rs1_link = (rs1_addr == LINK_REGISTER) | (rs1_addr == LINK_REGISTER_ALT);
+  wire rd_rs1_eq = rd_addr == rs1_addr;
 
   reg push_ras;
   reg pop_ras;
@@ -234,7 +234,7 @@ module rv32i_decode
             rd_addr_o <= rd_addr;
             alu_operation_o <= 4'b0000;
             // Difference between AUIPC and LUI is bit 5
-            immediate_o <= upper_immediate;
+            immediate_o <= opcode[5] ? upper_immediate : upper_immediate + pc_data_in;
           end
         J_TYPE:
           begin
