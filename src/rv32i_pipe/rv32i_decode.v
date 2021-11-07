@@ -23,7 +23,10 @@ module rv32i_decode
     output reg [XLEN-1:0] immediate_o,
 
     input wire [XLEN-1:0] pc_data_in,
-    output reg [XLEN-1:0] pc_data_o
+    output reg [XLEN-1:0] pc_data_o,
+
+    output reg pop_ras_o,
+    output reg push_ras_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -49,19 +52,19 @@ module rv32i_decode
   wire [XLEN-1:0] b_immediate = {{XLEN-13{b_immediate_u[12]}}, b_immediate_u[12:0]};
 
   wire [6:0] opcode = instruction_i[6:0];
-  assign funct3 = instruction_i[14:12];
-  assign funct7 = instruction_i[31:25];
+  wire [2:0] funct3 = instruction_i[14:12];
+  wire [6:0] funct7 = instruction_i[31:25];
 
-  assign rd_addr = instruction_i[11:7];
-  assign rs1_addr = instruction_i[19:15];
-  assign rs2_addr = instruction_i[24:20];
+  wire [REG_BITS-1:0] rd_addr = instruction_i[11:7];
+  wire [REG_BITS-1:0] rs1_addr = instruction_i[19:15];
+  wire [REG_BITS-1:0] rs2_addr = instruction_i[24:20];
 
   wire [XLEN-1:0] load_offset = {{XLEN-12{i_immediate[11]}}, i_immediate[11:0]};
-  wire [XLEN-1:0] load_offset_add = load_offset + rs1_i;
+  // wire [XLEN-1:0] load_offset_add = load_offset + rs1_i;
   wire [XLEN-1:0] store_offset = {{XLEN-12{s_immediate[11]}}, s_immediate[11:0]};
-  wire [XLEN-1:0] store_offset_add = store_offset + rs1_i;
+  // wire [XLEN-1:0] store_offset_add = store_offset + rs1_i;
 
-  wire [XLEN-1:0] op2_immediate = funct3_o == 3'b011 ? {20'b0, i_immediate} : load_offset;
+  wire [XLEN-1:0] op2_immediate = funct3 == 3'b011 ? {20'b0, i_immediate} : load_offset;
 
   localparam LINK_REGISTER = 5'h01;
   localparam LINK_REGISTER_ALT = 5'h05;
@@ -101,20 +104,28 @@ module rv32i_decode
     endcase
   end
 
+  wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} + pc_data_in - 32'd4 : {u_immediate, 12'b0};
+
+  // TODO -- we'll need to figure this out
+  wire pc_save_uepc = 0;
+
+  reg [XLEN-1:0] uepc = 0;
+  always @(posedge clk_i)
+    if (pc_save_uepc)
+      uepc <= pc_data_in;
+
+  reg [XLEN-1:0] pc_o;
+
   always @(*) begin
     case (opcode[6:2])
-      default: pc_o = pc_i + (INST_BITS / 8);
-      OP_JAL:  pc_o = j_immediate + instruction_addr;
-      OP_JALR: pc_o = pop_ras ? ras : {j_reg[XLEN-1:1], 1'b0}; // naturally, jalr and b values / writes will be determined later
-      OP_B:    pc_o = b_immediate + instruction_addr;
-      6'b010000: pc_o = pc_save_uepc ? {pc_i[31:16], memory_i} : {memory_i, pc_i[15:0]};
+      default: pc_o = pc_data_in;
+      OP_JAL:  pc_o = j_immediate + pc_data_in;
+      // OP_JALR: pc_o = pop_ras ? ras : {j_reg[XLEN-1:1], 1'b0}; // naturally, jalr and b values / writes will be determined later
+      OP_B:    pc_o = b_immediate + pc_data_in;
+      // 6'b010000: pc_o = pc_save_uepc ? {pc_data_in[31:16], memory_i} : {memory_i, pc_data_in[15:0]};
       OP_SYS: pc_o = uepc;
     endcase
   end
-
-  reg assert_rs1;
-  reg assert_rs2;
-  reg assert_rd;
 
   reg [5:0] instruction_encoding;
   localparam R_TYPE = 6'b000001; // Register-register operations
@@ -144,12 +155,12 @@ module rv32i_decode
   always @(posedge clk_i) begin
     if (data_ready_i) begin
 
-      alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3}
+      alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3};
 
       pop_ras_o <= pop_ras;
       push_ras_o <= push_ras;
 
-      pc_data_o <= pc_data_in;
+      pc_data_o <= pc_o;
 
       // determining whether the register addresses should be asserted
       case (instruction_encoding) 
@@ -170,14 +181,17 @@ module rv32i_decode
             rs1_addr_o <= rs1_addr;
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
-            immediate_o <= i_immediate;
+            // Unsigned stuff only happens with the last bit of funct3 (unsigned immediate arith)
+            immediate_o <= funct3[2] ? {20'b0, i_immediate} : load_offset;
+            word_size_o <= funct3;
           end
         S_TYPE:
           begin
             rs1_addr_o <= rs1_addr;
             rs2_addr_o <= rs2_addr;
             rd_addr_o <= 0;
-            immediate_o <= s_immediate;
+            immediate_o <= store_offset;
+            word_size_o <= funct3;
           end
         U_TYPE:
           begin
@@ -185,7 +199,7 @@ module rv32i_decode
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
             // Difference between AUIPC and LUI is bit 5
-            immediate_o <= opcode[5] ? u_immediate : pc_data_in + u_immediate;
+            immediate_o <= upper_immediate;
           end
         J_TYPE:
           begin

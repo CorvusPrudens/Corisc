@@ -10,23 +10,22 @@
 #define CLOCK_COUNT 32
 #endif
 
-#define STR(str) #str
-#define STRING(str) STR(str)
-
 #ifndef TARGET
-#define TARGET decode_tb
+#define TARGET Vdecode_tb
+#endif
+
+#ifndef TARGET_HEADER
+#define TARGET_HEADER "Vdecode_tb.h"
 #endif
 
 #define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
 #define CLOCK_PS CLOCK_NS * 100.0 // Apparently 1ps is gtkwave's thing
 
-#define INCLUDE_STR STRING(TARGET) ## ".h"
-
-#include INCLUDE_STR
+#include TARGET_HEADER
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
-void tick(TARGET* tb, VerilatedVcdC* tfp)
+void tick(TARGET* tb, VerilatedVcdC* tfp, size_t logicStep)
 {
   tb->eval();
 
@@ -50,6 +49,7 @@ int main(int argc, char** argv)
 {
   Verilated::commandArgs(argc, argv);
   Verilated::traceEverOn(true);
+  size_t logicStep = 0;
 
   TARGET *tb = new TARGET;
   VerilatedVcdC* tfp = new VerilatedVcdC;
@@ -57,8 +57,10 @@ int main(int argc, char** argv)
   tb->trace(tfp, 99);
   tfp->open(TRACE_FILE);
 
+  tick(tb, tfp, ++logicStep);
+
   for (int i = 0; i < CLOCK_COUNT; i++)
-    tick(tb, tfp);
+    tick(tb, tfp, ++logicStep);
   
   delete tb;
   delete tfp;

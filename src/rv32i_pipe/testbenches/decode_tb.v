@@ -9,7 +9,7 @@ module decode_tb(
 
   localparam MEM_BITS = 5;
   reg [ILEN-1:0] memory [31:0];
-  initial memory = $readmemh("decode_tb.hex");
+  initial $readmemh("decode_tb.hex", memory);
 
   // Inputs
   reg clear_pipeline = 0;
@@ -25,6 +25,8 @@ module decode_tb(
   wire [REG_BITS-1:0] rd_addr;
   wire [XLEN-1:0] immediate;
   wire [XLEN-1:0] decode_pc;
+  wire pop_ras;
+  wire push_ras;
 
   rv32i_decode #(
     .XLEN(32),
@@ -42,7 +44,9 @@ module decode_tb(
     .rd_addr_o(rd_addr),
     .immediate_o(immediate),
     .pc_data_in(pc),
-    .pc_data_o(decode_pc)
+    .pc_data_o(decode_pc),
+    .pop_ras_o(pop_ras),
+    .push_ras_o(push_ras)
   );
 
   always @(posedge clk_i) begin
