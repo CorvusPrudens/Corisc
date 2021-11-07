@@ -6,9 +6,11 @@
 module rv32i_pipe
   #(
     parameter XLEN = 32,
+    parameter ILEN = 32,
     parameter REG_BITS = 5
   )
   (
+    input wire clk_i,
     input wire reset_i
   );
 
@@ -19,19 +21,108 @@ module rv32i_pipe
   // Obviously we'll need to figure that out later
 
   //////////////////////////////////////////////////////////////
+  // Prefetch signals
+  //////////////////////////////////////////////////////////////
+
+  // I/O
+  wire [ILEN-1:0] prefetch_instruction;
+  wire [XLEN-1:0] prefetch_pc_in;
+  wire prefetch_pc_write;
+  wire [XLEN-1:0] prefetch_pc;
+
+  // pipeline
+  wire prefetch_ce;
+  wire prefetch_stall;
+  reg prefetch_data_ready_o;
+
+  rv32i_prefetch #(
+    .XLEN(XLEN),
+    .ILEN(ILEN),
+    .PROGRAM_PATH("rv32i_pipe.hex")
+  ) RV32I_PREFETCH (
+    .clk_i(clk_i),
+    .advance_i(prefetch_ce),
+    .pc_i(32'b0),
+    .pc_write_i(1'b0),
+    .pc_o(prefetch_pc),
+    .instruction_o(prefetch_instruction)
+  );
+
+  //////////////////////////////////////////////////////////////
+  // Prefetch pipeline logic
+  //////////////////////////////////////////////////////////////
+
+  assign prefetch_stall = prefetch_data_ready_o & decode_stall;
+  assign prefetch_ce = ~prefetch_stall;
+
+  always @(posedge clk_i) begin
+    if (reset_i | clear_pipeline)
+      prefetch_data_ready_o <= 1'b0;
+    else if (decode_ce)
+      prefetch_data_ready_o <= 1'b1;
+    else if (decode_ce)
+      prefetch_data_ready_o <= 1'b0;
+    end
+  end
+
+  //////////////////////////////////////////////////////////////
   // Instruction decode signals
   //////////////////////////////////////////////////////////////
 
-  wire [XLEN-1:0] decode_immediate_data;
-  wire decode_immediate;
-  wire decode_data_ready_o;
+  reg decode_data_ready_o;
+
+  // Outputs
   wire [3:0] alu_operation_decode;
+  wire [2:0] decode_word_size;
   wire [REG_BITS-1:0] decode_rd_addr;
   wire [REG_BITS-1:0] decode_rs1_addr;
   wire [REG_BITS-1:0] decode_rs2_addr;
+  wire decode_immediate;
+  wire [XLEN-1:0] decode_immediate_data;
+  wire [XLEN-1:0] decode_pc;
+  wire pop_ras;
+  wire push_ras;
+
+  rv32i_decode #(
+    .XLEN(32),
+    .ILEN(32),
+    .REG_BITS(5)
+  ) RV32I_DECODE (
+    .clk_i(clk_i),
+    .clear_i(clear_pipeline),
+    .instruction_i(prefetch_instruction),
+    .data_ready_i(decode_ce),
+    .alu_operation_o(alu_operation_decode),
+    .word_size_o(decode_word_size),
+    .rs1_addr_o(decode_rs1_addr),
+    .rs2_addr_o(decode_rs2_addr),
+    .rd_addr_o(decode_rd_addr),
+    .immediate_o(decode_immediate_data),
+    .pc_data_in(prefetch_pc),
+    .pc_data_o(decode_pc),
+    .pop_ras_o(pop_ras),
+    .push_ras_o(push_ras)
+  );
 
   //////////////////////////////////////////////////////////////
-  // register signals
+  // Instruction decode pipeline logic
+  //////////////////////////////////////////////////////////////
+
+  assign decode_stall = decode_data_ready_o & opfetch_stall;
+  assign decode_ce = prefetch_data_ready_o & ~opfetch_stall;
+
+  always @(posedge clk_i) begin
+    if (reset_i | clear_pipeline)
+      decode_data_ready_o <= 1'b0;
+    else if (decode_ce)
+      decode_data_ready_o <= prefetch_data_ready_o;
+    else if (opfetch_ce)
+      decode_data_ready_o <= 1'b0;
+    end
+  end
+
+  //////////////////////////////////////////////////////////////
+  // Opfetch signals
   //////////////////////////////////////////////////////////////
 
   wire registers_write;
@@ -41,8 +132,6 @@ module rv32i_pipe
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
   wire [XLEN-1:0] registers_in;
-  wire push_ras;
-  wire pop_ras;
 
   rv32i_registers_pipe #(
     .XLEN          (XLEN),
@@ -56,12 +145,12 @@ module rv32i_pipe
     .rd_addr_i     (rd_addr),
     .rs1_o         (rs1),
     .rs2_o         (rs2),
-    .push_ras_i    (push_ras_i),
-    .pop_ras_i     (pop_ras_i)
+    .push_ras_i    (push_ras),
+    .pop_ras_i     (pop_ras)
   );
 
   //////////////////////////////////////////////////////////////
-  // register pipeline logic
+  // Opfetch pipeline logic
   //////////////////////////////////////////////////////////////
 
   // Whether the next instruction is allowed to read rs1 and rs2 depends on if the 
@@ -70,6 +159,8 @@ module rv32i_pipe
   wire opfetch_wait_on_alu = (alu_rd_addr > 0) && ((decode_rs1_addr == alu_rd_addr) || (decode_rs2_addr == alu_rd_addr));
   // TODO -- how many stages do we need to wait for?
   // wire opfetch_wait_on_writeback = alu_rd_addr > 0 && ((decode_rs1_addr == alu_rd_addr) || (decode_rs2_addr == alu_rd_addr));
+  // TODO -- actually, this stall could be avoided for any situation where we don't jump by
+  // simply passing the final result back to this stage (instead of reading from the register file)!!
   wire opfetch_busy = opfetch_wait_on_alu;
 
   reg opfetch_data_ready_o;
