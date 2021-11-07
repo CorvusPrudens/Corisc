@@ -63,6 +63,13 @@ int main(int argc, char** argv)
 
   for (int i = 0; i < CLOCK_COUNT; i++)
     tick(tb, tfp, ++logicStep);
+
+  // tb->reset_i = 1;
+  // tick(tb, tfp, ++logicStep);
+  // tb->reset_i = 0;
+
+  // for (int i = 0; i < 10; i++)
+  //   tick(tb, tfp, ++logicStep);
   
   delete tb;
   delete tfp;

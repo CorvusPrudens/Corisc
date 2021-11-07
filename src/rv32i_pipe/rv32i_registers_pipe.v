@@ -21,6 +21,9 @@ module rv32i_registers_pipe
 
     output wire [XLEN-1:0] rs1_o,
     output wire [XLEN-1:0] rs2_o,
+    output wire [XLEN-1:0] ras_o,
+
+    input wire [XLEN-1:0] pc_i,
 
     input wire push_ras_i,
     input wire pop_ras_i
@@ -28,9 +31,6 @@ module rv32i_registers_pipe
 
   // Register 0 can't be written to
   wire reg_write = rd_addr_i == 0 ? 1'b0 : write_i;
-  
-  wire [XLEN-1:0] rs1_raw;
-  assign rs1_o = pop_ras_i ? stack_out : rs1_raw;
 
   bram_dual #(
     .memSize_p(REG_BITS),
@@ -43,7 +43,7 @@ module rv32i_registers_pipe
     .waddr_i(rd_addr_i),
     .raddr_i(rs1_addr_i),
 
-    .data_o(rs1_raw)
+    .data_o(rs1_o)
   );
 
   bram_dual #(
@@ -61,7 +61,6 @@ module rv32i_registers_pipe
   );
 
   wire stack_overflow;
-  wire [XLEN-1:0] stack_out;
 
   stack #(
     .XLEN(XLEN),
@@ -70,8 +69,8 @@ module rv32i_registers_pipe
     .clk_i(clk_i),
     .push_i(push_ras_i),
     .pop_i(pop_ras_i),
-    .data_i(data_i),
-    .data_o(stack_out),
+    .data_i(pc_i),
+    .data_o(ras_o),
     .overflow_o(stack_overflow)
   );
 

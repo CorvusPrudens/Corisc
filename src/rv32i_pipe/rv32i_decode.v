@@ -21,9 +21,17 @@ module rv32i_decode
     output reg [REG_BITS-1:0] rd_addr_o,
 
     output reg [XLEN-1:0] immediate_o,
+    output reg immediate_valid_o,
 
     input wire [XLEN-1:0] pc_data_in,
     output reg [XLEN-1:0] pc_data_o,
+
+    output reg jal_jump_o,
+    output reg [XLEN-1:0] pc_jal_data_o,
+
+    output reg jalr_o,
+    output reg branch_o,
+    output reg [2:0] branch_condition_o,
 
     output reg pop_ras_o,
     output reg push_ras_o
@@ -153,14 +161,30 @@ module rv32i_decode
   end
 
   always @(posedge clk_i) begin
-    if (data_ready_i) begin
 
-      alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3};
+    if (clear_i) begin
+      immediate_valid_o <= 1'b0;
+      jal_jump_o <= 1'b0;
+      jalr_o <= 1'b0;
+      branch_o <= 1'b0;
+      branch_condition_o <= 3'b0;
+    end else if (data_ready_i) begin
 
       pop_ras_o <= pop_ras;
       push_ras_o <= push_ras;
 
       pc_data_o <= pc_o;
+
+      if (instruction_encoding == R_TYPE)
+        immediate_valid_o <= 1'b0;
+      else
+        immediate_valid_o <= 1'b1;
+
+      // This one we do have to be careful about resetting, since the branch is conditional
+      if (instruction_encoding == B_TYPE)
+        branch_o <= 1'b1;
+      else
+        branch_o <= 1'b0;
 
       // determining whether the register addresses should be asserted
       case (instruction_encoding) 
@@ -175,6 +199,7 @@ module rv32i_decode
             rs1_addr_o <= rs1_addr;
             rs2_addr_o <= rs2_addr;
             rd_addr_o <= rd_addr;
+            alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3};
           end
         I_TYPE:
           begin
@@ -184,6 +209,15 @@ module rv32i_decode
             // Unsigned stuff only happens with the last bit of funct3 (unsigned immediate arith)
             immediate_o <= funct3[2] ? {20'b0, i_immediate} : load_offset;
             word_size_o <= funct3;
+
+            // I believe this is sufficient to determine a JALR
+            if (~opcode[4]) begin
+              jalr_o <= 1'b1; // no need to reset because this will be cleared
+              alu_operation_o <= 4'b0000;
+            end else begin
+              alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3};
+            end
+            
           end
         S_TYPE:
           begin
@@ -198,6 +232,7 @@ module rv32i_decode
             rs1_addr_o <= 0;
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
+            alu_operation_o <= 4'b0000;
             // Difference between AUIPC and LUI is bit 5
             immediate_o <= upper_immediate;
           end
@@ -206,9 +241,10 @@ module rv32i_decode
             rs1_addr_o <= 0;
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
-            // j immediate is just added to PC, and we'll jump immediately from here, 
-            // so this doesn't need to be set
-            // immediate_o <= j_immediate; 
+            jal_jump_o <= 1'b1;
+            pc_jal_data_o <= j_immediate + pc_data_in;
+            immediate_o <= pc_data_in;
+            alu_operation_o <= 4'b0000;
           end
         B_TYPE:
           begin
@@ -216,6 +252,8 @@ module rv32i_decode
             rs2_addr_o <= rs2_addr;
             rd_addr_o <= 0;
             immediate_o <= b_immediate; 
+            alu_operation_o <= 4'b0000;
+            branch_condition_o <= funct3;
           end
       endcase
 

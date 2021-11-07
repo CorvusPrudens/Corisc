@@ -45,7 +45,7 @@ verilate:
 
 compile: 
 	$(CC) $(CPP_FLAGS) $(TARGET).cpp $(CPP_SOURCES) \
-		$(VERILATION)/V$(TARGET)__all.a $(CPP_INCLUDES) \
+		$(VERILATION)/V$(TARGET)__ALL.a $(CPP_INCLUDES) \
 		-DTARGET=V$(TARGET) -DTARGET_HEADER=\"V$(TARGET).h\" \
 		-DTRACE_FILE=\"$(BUILD)/$(TARGET)_trace.vcd\" \
 		-o $(BUILD)/$(TARGET)
