@@ -127,6 +127,7 @@ module rv32i_pipe
   wire push_ras;
   wire [2:0] decode_branch_condition;
   wire [1:0] decode_stage4_path;
+  wire decode_write;
 
   wire decode_jalr;
   wire decode_branch;
@@ -156,7 +157,8 @@ module rv32i_pipe
     .pc_jal_data_o(prefetch_pc_in_jal),
     .pop_ras_o(pop_ras),
     .push_ras_o(push_ras),
-    .stage4_path_o(decode_stage4_path)
+    .stage4_path_o(decode_stage4_path),
+    .memory_write_o(decode_write)
   );
 
   //////////////////////////////////////////////////////////////
@@ -236,6 +238,7 @@ module rv32i_pipe
   reg [REG_BITS-1:0] opfetch_rs2_addr;
   reg [1:0] opfetch_stage4_path;
   reg [2:0] opfetch_word_size;
+  reg opfetch_write;
 
   assign opfetch_stall = (opfetch_data_ready_o & alu_stalled) | opfetch_busy;
   assign opfetch_ce = decode_data_ready_o & ~opfetch_stall;
@@ -251,6 +254,7 @@ module rv32i_pipe
       opfetch_branch_conditions <= 3'b0;
       opfetch_pop_ras <= 1'b0;
       opfetch_ras <= 0;
+      opfetch_write <= 1'b0;
     end else if (opfetch_ce) begin
       opfetch_data_ready_o <= decode_data_ready_o;
       alu_operation_opfetch <= alu_operation_decode; 
@@ -266,6 +270,8 @@ module rv32i_pipe
 
       opfetch_stage4_path <= decode_stage4_path;
       opfetch_word_size <= decode_word_size;
+
+      opfetch_write <= decode_write;
 
       if (decode_jalr) begin
         opfetch_jalr_target <= decode_immediate_data;
@@ -284,7 +290,7 @@ module rv32i_pipe
   // ~~STAGE 4~~ ~~ALL BRANCHes~~ Stage 4 I/O
   //////////////////////////////////////////////////////////////
 
-  wire stage4_stalled = alu_stalled | mem_stalled;
+  wire stage4_stalled = alu_stalled | memory_stalled;
   wire stage4_ce = opfetch_data_ready_o & ~stage4_stalled;
   wire stage4_clear = clear_pipeline | branch_jump;
   wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o;
@@ -412,7 +418,7 @@ module rv32i_pipe
     .data_i(memory_data_in),
     .data_o(mem_data_out_raw),
     .addr_i(memory_addr_in),
-    .word_size_i(opfetch_word),
+    .word_size_i(opfetch_word_size[1:0]),
     .write_i(opfetch_write),
     .busy_o(mem_busy),
     .err_o(mem_err),
@@ -470,7 +476,7 @@ module rv32i_pipe
     if (writeback_clear) begin
       writeback_registers_write <= 1'b0;
     end else if (writeback_ce) begin
-      writeback_registers_write <= (alu_rd_addr > 0);
+      writeback_registers_write <= (stage4_rd_addr > 0);
       writeback_branch_data <= alu_immediate_data + alu_pc;
       if (alu_branch) begin
         case (alu_branch_conditions)

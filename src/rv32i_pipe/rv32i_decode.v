@@ -36,7 +36,8 @@ module rv32i_decode
     output reg pop_ras_o,
     output reg push_ras_o,
 
-    output reg [1:0] stage4_path_o
+    output reg [1:0] stage4_path_o,
+    output reg memory_write_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -145,6 +146,9 @@ module rv32i_decode
   localparam B_TYPE = 6'b010000; // Branches
   localparam J_TYPE = 6'b100000; // Jumps
 
+  localparam STAGE4_ALU = 2'b01;
+  localparam STAGE4_MEM = 2'b10;
+
   always @(*) begin
     case (opcode[6:2])
       default:  instruction_encoding = 0;
@@ -170,6 +174,7 @@ module rv32i_decode
       jalr_o <= 1'b0;
       branch_o <= 1'b0;
       branch_condition_o <= 3'b0;
+      memory_write_o <= 1'b0;
     end else if (data_ready_i) begin
 
       pop_ras_o <= pop_ras;
@@ -188,8 +193,10 @@ module rv32i_decode
       else
         branch_o <= 1'b0;
 
-      localparam STAGE4_ALU = 2'b01;
-      localparam STAGE4_MEM = 2'b10;
+      if (opcode[6:2] == OP_S)
+        memory_write_o <= 1'b1;
+      else
+        memory_write_o <= 1'b0;
 
       if (opcode[6:2] == OP_S | opcode[6:2] == OP_L)
         stage4_path_o <= STAGE4_MEM;

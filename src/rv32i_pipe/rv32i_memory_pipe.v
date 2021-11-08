@@ -54,7 +54,7 @@ module rv32i_memory_pipe
   always @(posedge clk_i) begin
     if (rst_i | clear_i) begin
       stb_o <= 1'b0;
-      sel_o <= 1'b0;
+      sel_o <= 0;
       we_o <= 1'b0;
       busy_o <= 1'b0;
       err_o <= 1'b0;
