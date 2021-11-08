@@ -34,7 +34,9 @@ module rv32i_decode
     output reg [2:0] branch_condition_o,
 
     output reg pop_ras_o,
-    output reg push_ras_o
+    output reg push_ras_o,
+
+    output reg [1:0] stage4_path_o
   );
 
   localparam OP_L     = 5'b00000;
@@ -185,6 +187,14 @@ module rv32i_decode
         branch_o <= 1'b1;
       else
         branch_o <= 1'b0;
+
+      localparam STAGE4_ALU = 2'b01;
+      localparam STAGE4_MEM = 2'b10;
+
+      if (opcode[6:2] == OP_S | opcode[6:2] == OP_L)
+        stage4_path_o <= STAGE4_MEM;
+      else
+        stage4_path_o <= STAGE4_ALU;
 
       // determining whether the register addresses should be asserted
       case (instruction_encoding) 
