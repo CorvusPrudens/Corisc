@@ -7,7 +7,7 @@
 #endif
 
 #ifndef CLOCK_COUNT
-#define CLOCK_COUNT 32
+#define CLOCK_COUNT 64
 #endif
 
 #ifndef TARGET

@@ -8,7 +8,6 @@ module rv32i_alu_pipe
   (
     input wire clk_i,
     input wire data_ready_i,
-    output reg data_ready_o,
 
     // For now, we'll just do all the decoding in the decode stage...
     // If it turns out that's inefficient, we'll do some decoding here
@@ -23,21 +22,6 @@ module rv32i_alu_pipe
 
     input wire clear_i
   );
-
-  /////////////////////////////////////////
-  // Pipeline logic
-  /////////////////////////////////////////
-
-  always @(posedge clk_i) begin
-    if (clear_i)
-      data_ready_o <= 1'b0;
-    else
-      data_ready_o <= data_ready_i; // this assumes one clock cycle per operation (?)
-  end 
-
-  /////////////////////////////////////////
-  // ALU logic
-  /////////////////////////////////////////
 
   localparam OP_ADD  = 4'b0000;
   localparam OP_SUB  = 4'b1000;

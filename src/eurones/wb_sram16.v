@@ -54,16 +54,16 @@ module wb_sram16
   end
 
   wire half_offset = ~req_type[2] & (sel_i[3] | sel_i[2]);
-  reg word_offset;
+  reg [1:0] word_offset;
   reg sram_write;
   reg [15:0] output_data;
   wire [15:0] input_data;
 
-  assign SRAM_ADDR = {adr_i, word_offset | half_offset};
+  assign SRAM_ADDR = {adr_i, word_offset[1] | half_offset};
   assign SRAM_LB = ~(sel_i[0] | sel_i[2]);
   assign SRAM_UB = ~(sel_i[1] | sel_i[3]);
   assign SRAM_CE = 1'b0;
-  assign SRAM_WE = ~(sram_write & clk_i);
+  assign SRAM_WE = ~(sram_write & ~clk_i);
   assign SRAM_OE = ~SRAM_WE;
 
 
@@ -82,20 +82,22 @@ module wb_sram16
     if (rst_i) begin
       ack_o <= 1'b0;
       err_o <= 1'b0;
-      word_offset <= 1'b0;
+      word_offset <= 0;
       sram_write <= 1'b0;
       // stall_o <= 1'b0; // to be added with pipelining
     end else if (execute & ~ack_o) begin
       if (req_type[2]) begin
-        word_offset <= 1'b1;
-        if (word_offset)
+        word_offset <= word_offset + 1'b1;
+        if (word_offset[0]) begin
+          word_offset <= word_offset + 1'b1;
           ack_o <= 1'b1;
+        end
       end else
         ack_o <= 1'b1;
       sram_write <= we_i;
     end else begin
       ack_o <= 1'b0;
-      word_offset <= 1'b0;
+      word_offset <= 0;
       sram_write <= 1'b0;
     end
   end
@@ -111,7 +113,7 @@ module wb_sram16
           REQ_HALF: SRAM_O <= slave_dat_i[15:0];
           REQ_WORD: 
             begin
-              if (word_offset)
+              if (word_offset[0])
                 SRAM_O <= slave_dat_i[31:16];
               else
                 SRAM_O <= slave_dat_i[15:0];
@@ -124,7 +126,7 @@ module wb_sram16
           REQ_HALF: output_data <= slave_dat_i[15:0];
           REQ_WORD: 
             begin
-              if (word_offset)
+              if (word_offset[0])
                 output_data <= slave_dat_i[31:16];
               else
                 output_data <= slave_dat_i[15:0];
@@ -138,7 +140,7 @@ module wb_sram16
           REQ_HALF: slave_dat_o <= {16'b0, half};
           REQ_WORD: 
             begin
-              if (word_offset)
+              if (word_offset[0])
                 slave_dat_o[31:16] <= half;
               else
                 slave_dat_o[15:0] <= half;

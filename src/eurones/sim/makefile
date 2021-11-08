@@ -27,12 +27,22 @@ CPP_INCLUDES = \
 CPP_FLAGS += \
 -std=c++17 
 
+RCC = riscv32-unknown-elf-gcc
+ROBJ = riscv32-unknown-elf-objdump
+
 .PHONY: pipe verilate compile run
 
 eurones: $(VERILATION)
+	$(MAKE) asm
 	$(MAKE) verilate TARGET=eurones
 	$(MAKE) compile TARGET=eurones
 	$(MAKE) run TARGET=eurones
+
+asm: 
+	$(RCC) -c eurones.s -o eurones.o
+	$(ROBJ) -w -d eurones.o > $(BUILD)/eurones.txt
+	rm eurones.o
+	python3 quickndirty.py
 
 $(BUILD):
 	mkdir -p $@

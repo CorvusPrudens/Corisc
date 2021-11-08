@@ -23,7 +23,7 @@ module rv32i_decode
     output reg [XLEN-1:0] immediate_o,
     output reg immediate_valid_o,
 
-    input wire [XLEN-1:0] pc_data_in,
+    input wire [XLEN-1:0] pc_data_i,
     output reg [XLEN-1:0] pc_data_o,
 
     output reg jal_jump_o,
@@ -115,7 +115,7 @@ module rv32i_decode
     endcase
   end
 
-  wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} + pc_data_in - 32'd4 : {u_immediate, 12'b0};
+  wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} + pc_data_i - 32'd4 : {u_immediate, 12'b0};
 
   // TODO -- we'll need to figure this out
   wire pc_save_uepc = 0;
@@ -123,20 +123,7 @@ module rv32i_decode
   reg [XLEN-1:0] uepc = 0;
   always @(posedge clk_i)
     if (pc_save_uepc)
-      uepc <= pc_data_in;
-
-  reg [XLEN-1:0] pc_o;
-
-  always @(*) begin
-    case (opcode[6:2])
-      default: pc_o = pc_data_in;
-      OP_JAL:  pc_o = j_immediate + pc_data_in;
-      // OP_JALR: pc_o = pop_ras ? ras : {j_reg[XLEN-1:1], 1'b0}; // naturally, jalr and b values / writes will be determined later
-      OP_B:    pc_o = b_immediate + pc_data_in;
-      // 6'b010000: pc_o = pc_save_uepc ? {pc_data_in[31:16], memory_i} : {memory_i, pc_data_in[15:0]};
-      OP_SYS: pc_o = uepc;
-    endcase
-  end
+      uepc <= pc_data_i;
 
   reg [5:0] instruction_encoding;
   localparam R_TYPE = 6'b000001; // Register-register operations
@@ -180,9 +167,9 @@ module rv32i_decode
       pop_ras_o <= pop_ras;
       push_ras_o <= push_ras;
 
-      pc_data_o <= pc_o;
+      pc_data_o <= pc_data_i;
 
-      if (instruction_encoding == R_TYPE)
+      if (instruction_encoding == R_TYPE | instruction_encoding == B_TYPE | instruction_encoding == J_TYPE)
         immediate_valid_o <= 1'b0;
       else
         immediate_valid_o <= 1'b1;
@@ -251,7 +238,7 @@ module rv32i_decode
             rd_addr_o <= rd_addr;
             alu_operation_o <= 4'b0000;
             // Difference between AUIPC and LUI is bit 5
-            immediate_o <= opcode[5] ? upper_immediate : upper_immediate + pc_data_in;
+            immediate_o <= opcode[5] ? upper_immediate : upper_immediate + pc_data_i;
           end
         J_TYPE:
           begin
@@ -259,8 +246,8 @@ module rv32i_decode
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
             jal_jump_o <= 1'b1;
-            pc_jal_data_o <= j_immediate + pc_data_in;
-            immediate_o <= pc_data_in;
+            pc_jal_data_o <= j_immediate + pc_data_i;
+            immediate_o <= pc_data_i;
             alu_operation_o <= 4'b0000;
           end
         B_TYPE:

@@ -1,22 +1,22 @@
 [*]
 [*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
-[*] Mon Nov  8 06:37:07 2021
+[*] Mon Nov  8 09:06:30 2021
 [*]
 [dumpfile] "/home/corvus/Documents/github/pers/corisc_pipe/src/eurones/sim/build/eurones_trace.vcd"
-[dumpfile_mtime] "Mon Nov  8 06:28:17 2021"
-[dumpfile_size] 49284
+[dumpfile_mtime] "Mon Nov  8 09:06:22 2021"
+[dumpfile_size] 94262
 [savefile] "/home/corvus/Documents/github/pers/corisc_pipe/src/eurones/sim/pipeview.gtkw"
 [timestart] 55873
 [size] 1848 1043
 [pos] -1 -1
-*-17.000000 87900 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+*-18.000000 488888 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.eurones.
 [treeopen] TOP.eurones.RV32I_PIPE.
 [sst_width] 311
-[signals_width] 245
+[signals_width] 254
 [sst_expanded] 1
-[sst_vpaned_height] 190
+[sst_vpaned_height] 183
 @28
 TOP.eurones.clk_i
 TOP.eurones.reset_i
@@ -44,14 +44,19 @@ TOP.eurones.RV32I_PIPE.opfetch_ce
 TOP.eurones.RV32I_PIPE.opfetch_clear
 TOP.eurones.RV32I_PIPE.opfetch_stall
 TOP.eurones.RV32I_PIPE.opfetch_data_ready_o
+TOP.eurones.RV32I_PIPE.opfetch_immediate
+@22
+TOP.eurones.RV32I_PIPE.opfetch_immediate_data[31:0]
 @200
 -
 @28
 TOP.eurones.RV32I_PIPE.stage4_ce
 TOP.eurones.RV32I_PIPE.stage4_clear
+@29
 TOP.eurones.RV32I_PIPE.stage4_stalled
+@28
 TOP.eurones.RV32I_PIPE.stage4_data_ready_o
-@23
+@22
 TOP.eurones.RV32I_PIPE.stage4_result[31:0]
 @200
 -
@@ -60,6 +65,20 @@ TOP.eurones.RV32I_PIPE.alu_ce
 TOP.eurones.RV32I_PIPE.alu_clear
 TOP.eurones.RV32I_PIPE.alu_stalled
 TOP.eurones.RV32I_PIPE.alu_data_ready_o
+@22
+TOP.eurones.RV32I_PIPE.stage4_rs1_addr[4:0]
+TOP.eurones.RV32I_PIPE.stage4_rs2_addr[4:0]
+TOP.eurones.RV32I_PIPE.stage4_rd_addr[4:0]
+@200
+-
+@22
+TOP.eurones.RV32I_PIPE.alu_operand1[31:0]
+TOP.eurones.RV32I_PIPE.alu_operand2[31:0]
+@28
+TOP.eurones.RV32I_PIPE.latest_rs1_in_writeback
+TOP.eurones.RV32I_PIPE.latest_rs2_in_writeback
+@22
+TOP.eurones.RV32I_PIPE.alu_result[31:0]
 @200
 -
 @28
@@ -74,5 +93,7 @@ TOP.eurones.RV32I_PIPE.writeback_ce
 TOP.eurones.RV32I_PIPE.writeback_clear
 TOP.eurones.RV32I_PIPE.writeback_stalled
 TOP.eurones.RV32I_PIPE.writeback_registers_write
+@22
+TOP.eurones.RV32I_PIPE.writeback_data[31:0]
 [pattern_trace] 1
 [pattern_trace] 0
