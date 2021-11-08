@@ -1,0 +1,120 @@
+[*]
+[*] GTKWave Analyzer v3.3.103 (w)1999-2019 BSI
+[*] Tue Nov  2 08:27:34 2021
+[*]
+[dumpfile] "/home/corvus/Documents/github/pers/corisc/src/sim/build/trace.vcd"
+[dumpfile_mtime] "Tue Nov  2 08:23:20 2021"
+[dumpfile_size] 980840181
+[savefile] "/home/corvus/Documents/github/pers/corisc/src/sim/wave_conf/apu.gtkw"
+[timestart] 11866000000
+[size] 1000 600
+[pos] 576 63
+*-28.000000 12201620597 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.rv32i.
+[treeopen] TOP.rv32i.APU.
+[treeopen] TOP.rv32i.RV32I_CONTROL.
+[treeopen] TOP.rv32i.RV32I_REGISTERS.
+[sst_width] 275
+[signals_width] 230
+[sst_expanded] 1
+[sst_vpaned_height] 202
+@28
+TOP.rv32i.RV32I_CONTROL.clk_i
+@22
+TOP.rv32i.RV32I_CONTROL.program_counter_i[31:0]
+@28
+TOP.rv32i.RV32I_CONTROL.pc_write_o
+@200
+-
+@22
+TOP.rv32i.RV32I_CONTROL.control_vector[31:0]
+TOP.rv32i.RV32I_CONTROL.microcode_addr[4:0]
+@28
+TOP.rv32i.RV32I_CONTROL.microcode_reset
+@200
+-
+@22
+TOP.rv32i.RV32I_CONTROL.instruction[31:0]
+@28
+TOP.rv32i.RV32I_CONTROL.opcode[6:0]
+@200
+-
+@28
+TOP.rv32i.UARTWRAPPER.RX
+TOP.rv32i.UARTWRAPPER.TX
+@22
+TOP.rv32i.UARTWRAPPER.data_i[7:0]
+@28
+TOP.rv32i.UARTWRAPPER.write_i
+TOP.rv32i.UARTWRAPPER.read_i
+@200
+-
+@28
+TOP.rv32i.TIMER.intVec_o
+@23
+TOP.rv32i.RV32I_CONTROL.RV32I_INTERRUPTS.interrupt_vector[4:0]
+@28
+TOP.rv32i.APU.write_i
+@22
+TOP.rv32i.APU.addr_i[4:0]
+TOP.rv32i.APU.data_i[7:0]
+TOP.rv32i.APU.data_o[7:0]
+@28
+TOP.rv32i.APU.select_2a03_i
+TOP.rv32i.APU.select_vrc6_1_i
+TOP.rv32i.APU.select_vrc6_2_i
+TOP.rv32i.APU.select_vrc6_3_i
+@200
+-
+@22
+TOP.rv32i.APU.regs_2a03[21][7:0]
+@28
+TOP.rv32i.APU.pulse1_duty_step[2:0]
+@22
+TOP.rv32i.APU.pulse1_level[3:0]
+@200
+-
+@28
+TOP.rv32i.RV32I_CONTROL.registers_write
+@22
+TOP.rv32i.RV32I_CONTROL.rs1_addr_o[4:0]
+TOP.rv32i.RV32I_CONTROL.rs2_addr_o[4:0]
+TOP.rv32i.RV32I_CONTROL.rd_addr_o[4:0]
+TOP.rv32i.RV32I_CONTROL.registers_in_o[31:0]
+@28
+TOP.rv32i.RV32I_CONTROL.registers_input_imm
+@22
+TOP.rv32i.RV32I_CONTROL.upper_immediate[31:0]
+@200
+-
+@22
+TOP.rv32i.RV32I_CONTROL.rs1_i[31:0]
+TOP.rv32i.RV32I_CONTROL.rs2_i[31:0]
+TOP.rv32i.RV32I_REGISTERS.RS1.memory[2][31:0]
+@200
+-
+@22
+TOP.rv32i.RV32I_REGISTERS.RS1.memory[14][31:0]
+TOP.rv32i.RV32I_REGISTERS.RS1.memory[15][31:0]
+@200
+-
+@22
+TOP.rv32i.RV32I_ALU.operand1_i[31:0]
+TOP.rv32i.RV32I_ALU.operand2_i[31:0]
+@200
+-
+@22
+TOP.rv32i.RV32I_REGISTERS.RS1.memory[15][31:0]
+TOP.rv32i.RV32I_REGISTERS.RS1.memory[10][31:0]
+@200
+-
+@28
+TOP.rv32i.RV32I_CONTROL.memory_read_o
+TOP.rv32i.RV32I_CONTROL.memory_write_o
+@22
+TOP.rv32i.RV32I_CONTROL.memory_addr_o[31:0]
+TOP.rv32i.RV32I_CONTROL.memory_i[15:0]
+TOP.rv32i.RV32I_CONTROL.memory_o[15:0]
+[pattern_trace] 1
+[pattern_trace] 0
