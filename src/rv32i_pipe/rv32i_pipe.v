@@ -5,6 +5,11 @@
 `include "rv32i_decode.v"
 `include "rv32i_prefetch.v"
 `include "rv32i_registers_pipe.v"
+`include "rv32i_memory_pipe.v"
+
+`ifndef PROGRAM_PATH
+`define PROGRAM_PATH "eurones.hex"
+`endif
 
 module rv32i_pipe
   #(
@@ -27,9 +32,9 @@ module rv32i_pipe
     output wire cyc_o,
     // input wire stall_i,
     input wire err_i,
-    output reg [3:0] sel_o,
-    output reg stb_o,
-    output reg we_o
+    output wire [3:0] sel_o,
+    output wire stb_o,
+    output wire we_o
   );
 
   // TODO -- this will need to change later, and also we'll need per-stage clearing
@@ -76,7 +81,7 @@ module rv32i_pipe
     .XLEN(XLEN),
     .ILEN(ILEN),
     .VTABLE_ADDR(32'h00000000),
-    .PROGRAM_PATH("build/rv32i_pipe.hex")
+    .PROGRAM_PATH(`PROGRAM_PATH)
   ) RV32I_PREFETCH (
     .clk_i(clk_i),
     .clear_i(1'b0), // TODO -- fill this in

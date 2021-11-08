@@ -51,7 +51,7 @@ $(VERILATION): $(BUILD)
 	mkdir -p $@
 
 verilate:
-	$(VERILATOR) $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../$(TARGET).v
+	$(VERILATOR) -DPROGRAM_PATH=\"build/eurones.hex\" $(VERILATOR_FLAGS) $(VERILOG_INCLUDES) ../$(TARGET).v
 	$(MAKE) -j$(NPROC) -f V$(TARGET).mk -C $(VERILATION)
 
 compile: 

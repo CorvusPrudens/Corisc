@@ -16,6 +16,6 @@ while len(instructions) < 32:
   instructions.append('00000000')
   illust.append('^.^')
 
-with open('build/rv32i_pipe.hex', 'w') as file:
+with open('build/eurones.hex', 'w') as file:
   for inst, ill in zip(instructions, illust):
     file.write(f'{inst} // {ill}\n')

@@ -13,7 +13,7 @@ module wb_sram16
     output reg [XLEN-1:0] slave_dat_o,
     input wire rst_i,
 
-    output wire ack_o,
+    output reg ack_o,
     input wire [ADDR_BITS-1:2] adr_i, // NOTE -- the slave will only have a port as large as its address space,
                                  // so none will actually be XLEN-1
     input wire cyc_i,

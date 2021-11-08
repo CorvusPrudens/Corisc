@@ -23,9 +23,9 @@ module rv32i_memory_pipe
 
     // Wishbone Master signals
     input wire [XLEN-1:0] master_dat_i,
-    output wire [XLEN-1:0] master_dat_o,
+    output reg [XLEN-1:0] master_dat_o,
     input wire ack_i,
-    output wire [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
+    output reg [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
     output wire cyc_o,
     // input wire stall_i,

@@ -2,6 +2,7 @@
 `default_nettype none
 
 `include "rv32i_pipe.v"
+`include "wb_sram16.v"
 
 module eurones(
     input wire clk_i,
