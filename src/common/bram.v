@@ -21,11 +21,11 @@ module bram
   reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
 
   always @(posedge clk_i) begin
-    if (write_i) memory[addr_i] <= data_i;
-  end
-
-  always @(negedge clk_i) begin
-    data_o <= memory[addr_i];
+    if (write_i) begin
+      memory[addr_i] <= data_i;
+      data_o <= data_i;
+    end else
+      data_o <= memory[addr_i];
   end
 
   `ifdef FORMAL
