@@ -74,7 +74,7 @@ module rv32i_instruction_cache
     matching_tag = {1'b1, {LINE_COUNT{1'b0}}};
     for (i = 0; i < 2**LINE_COUNT; i = i + 1)
       if ((tag_i == tags[i][TAG_WIDTH-2:0]) & tags[i][TAG_WIDTH-1])
-        matching_tag = {1'b0, i[2:0]};
+        matching_tag = {1'b0, i[LINE_COUNT-1:0]};
   end
 
   assign cache_raddr = {matching_tag[LINE_COUNT-1:0], addr_i[LINE_LEN+1:2]};
@@ -155,6 +155,7 @@ module rv32i_instruction_cache
             fetch_sm <= FETCH_IDLE;
             fetch_done <= 1'b0;
             ctrl_req_o <= 1'b0;
+            cache_write_idx <= 0;
             tags[current_line][TAG_WIDTH-1] <= 1'b1;
             tags[current_line][TAG_WIDTH-2:0] <= working_tag_i;
             current_line <= current_line + 1'b1;

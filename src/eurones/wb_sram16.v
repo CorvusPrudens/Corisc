@@ -10,7 +10,7 @@ module wb_sram16
     input wire clk_i,
     // Wishbone slave signals
     input wire [XLEN-1:0] slave_dat_i,
-    output reg [XLEN-1:0] slave_dat_o,
+    output wire [XLEN-1:0] slave_dat_o,
     input wire rst_i,
 
     output reg ack_o,
@@ -43,6 +43,14 @@ module wb_sram16
   localparam REQ_WORD = 3'b100;
 
   reg [2:0] req_type;
+
+  reg [15:0] slave_dat;
+  assign slave_dat_o[15:0] = slave_dat[15:0];
+  `ifdef SIM
+  assign slave_dat_o[31:16] = req_type[2] ? SRAM_I : 16'b0;
+  `else
+  assign slave_dat_o[31:16] = req_type[2] ? SRAM_DATA : 16'b0;
+  `endif
 
   always @(*) begin
     case (sel_i)
@@ -136,15 +144,9 @@ module wb_sram16
       end else begin
         case (req_type)
           default: ;
-          REQ_BYTE: slave_dat_o <= {24'b0, byte_mux};
-          REQ_HALF: slave_dat_o <= {16'b0, half};
-          REQ_WORD: 
-            begin
-              if (word_offset[0])
-                slave_dat_o[31:16] <= half;
-              else
-                slave_dat_o[15:0] <= half;
-            end
+          REQ_BYTE: slave_dat <= {8'b0, byte_mux};
+          REQ_HALF: slave_dat <= half;
+          REQ_WORD: if (~word_offset[0]) slave_dat <= half;
         endcase
       end
     end

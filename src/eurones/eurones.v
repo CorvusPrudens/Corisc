@@ -1,4 +1,9 @@
+// TODO -- we'll want an uncached section of memory directly in the cache
+// module so interrupts can be handled without incurring a cache miss...
+// We could have it be an init_bram and run the bootloader without needing
+// to reconfigure the FGPA (program code could be written there after the bootload process)
 
+// TODO -- need  to figure out VTABLE lookup!
 `default_nettype none
 
 `include "rv32i_pipe.v"
@@ -19,7 +24,38 @@ module eurones(
     output wire SRAM_CE,
     output wire SRAM_OE,
     output wire SRAM_LB,
-    output wire SRAM_UB
+    output wire SRAM_UB,
+
+    // verilator lint_off UNDRIVEN
+    input RX,
+    output TX,
+
+    `ifdef SIM
+    output wire [15:0] DAC_INTERFACE,
+    output wire FRAME_SYNC,
+    `endif
+    output wire FLASH_CS,
+    output wire FLASH_SCK,
+    output wire FLASH_SDI,
+    input wire  FLASH_SDO,
+
+    output wire DIS_CS,
+    output wire DIS_RES,
+    output wire DIS_SDI,
+    output wire DIS_SCK,
+    output wire DIS_DC,
+
+    output wire D_EMP,
+    output wire D_DATA,
+    output wire D_LRCLK,
+    output wire D_FMT,
+    output wire D_BCK,
+    output wire D_SYSCK,
+    output wire D_MUTE,
+
+    output wire HB_O
+
+    // verilator lint_on UNDRIVEN
   );
 
   localparam XLEN = 32;

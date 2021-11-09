@@ -72,8 +72,8 @@ module rv32i_pipe
   end
 
   rv32i_instruction_cache #(
-    .CACHE_LEN(9),
-    .LINE_LEN(6),
+    .CACHE_LEN(7),
+    .LINE_LEN(4), // NOTE -- this is word size, not number of bytes
     .ILEN(ILEN),
     .XLEN(XLEN)
   ) RV32I_INSTRUCTION_CACHE (

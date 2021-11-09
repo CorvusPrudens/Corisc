@@ -18,6 +18,7 @@ src/rv32i_pipe/lattice/pipe/*.v
 src/rv32i_pipe/lattice/pipe/*.hex
 *.bak
 synlog*
+trace.vcd
 
 # User-specific files
 *.rsuser
