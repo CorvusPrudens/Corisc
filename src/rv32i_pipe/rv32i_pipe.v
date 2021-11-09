@@ -3,9 +3,10 @@
 
 `include "rv32i_alu_pipe.v"
 `include "rv32i_decode.v"
-`include "rv32i_prefetch.v"
+// `include "rv32i_prefetch.v"
 `include "rv32i_registers_pipe.v"
 `include "rv32i_memory_pipe.v"
+`include "rv32i_instruction_cache.v"
 
 `ifndef PROGRAM_PATH
 `define PROGRAM_PATH "eurones.hex"
@@ -49,6 +50,50 @@ module rv32i_pipe
   // ~~STAGE 1~~ Prefetch signals 
   //////////////////////////////////////////////////////////////
 
+  reg instruction_cache_arbitor;
+  wire icache_cyc_o;
+  wire [XLEN-3:0] icache_adr_o;
+  wire [3:0] icache_sel_o;
+  wire icache_stb_o;
+  wire icache_arb_req;
+  wire icache_busy;
+
+  assign cyc_o = instruction_cache_arbitor ? icache_cyc_o : mem_cyc_o;
+  assign adr_o = instruction_cache_arbitor ? icache_adr_o : mem_adr_o;
+  assign sel_o = instruction_cache_arbitor ? icache_sel_o : mem_sel_o;
+  assign stb_o = instruction_cache_arbitor ? icache_stb_o : mem_stb_o;
+
+  // Extremely simple bus arbitor
+  always @(posedge clk_i) begin
+    if (icache_arb_req & ~mem_stb_o)
+      instruction_cache_arbitor <= 1'b1;
+    else if (instruction_cache_arbitor & ~icache_arb_req)
+      instruction_cache_arbitor <= 1'b0;
+  end
+
+  rv32i_instruction_cache #(
+    .CACHE_LEN(9),
+    .LINE_LEN(6),
+    .ILEN(ILEN),
+    .XLEN(XLEN)
+  ) RV32I_INSTRUCTION_CACHE (
+    .clk_i(clk_i),
+    .reset_i(reset_i),
+    .advance_i(prefetch_ce),
+    .busy_o(icache_busy),
+    .addr_i(prefetch_pc_write ? prefetch_pc_in : program_counter),
+    .instruction_o(prefetch_instruction),
+    .ctrl_req_o(icache_arb_req),
+    .ctrl_grant_i(instruction_cache_arbitor),
+    .master_dat_i(master_dat_i),
+    .ack_i(ack_i),
+    .adr_o(icache_adr_o),
+    .cyc_o(icache_cyc_o),
+    .err_i(err_i),
+    .sel_o(icache_sel_o),
+    .stb_o(icache_stb_o)
+  );
+
   // I/O
   wire [ILEN-1:0] prefetch_instruction;
   reg [XLEN-1:0] prefetch_pc_in;
@@ -56,7 +101,7 @@ module rv32i_pipe
   wire [XLEN-1:0] prefetch_pc_in_jalr;
   wire [XLEN-1:0] prefetch_pc_in_branch;
   wire prefetch_pc_write;
-  wire [XLEN-1:0] prefetch_pc;
+  reg [XLEN-1:0] prefetch_pc;
 
   // pipeline
   wire prefetch_ce;
@@ -77,27 +122,44 @@ module rv32i_pipe
     endcase
   end
 
-  rv32i_prefetch #(
-    .XLEN(XLEN),
-    .ILEN(ILEN),
-    .VTABLE_ADDR(32'h00000000),
-    .PROGRAM_PATH(`PROGRAM_PATH)
-  ) RV32I_PREFETCH (
-    .clk_i(clk_i),
-    .clear_i(1'b0), // TODO -- fill this in
-    .reset_i(reset_i),
-    .advance_i(prefetch_ce),
-    .pc_i(prefetch_pc_in),
-    .pc_write_i(prefetch_pc_write),
-    .pc_o(prefetch_pc),
-    .instruction_o(prefetch_instruction)
-  );
+  reg [XLEN-1:0] program_counter = 0;
+  localparam VTABLE_ADDR = 32'h00100000;
+
+  always @(posedge clk_i) begin
+    if (reset_i) begin
+      program_counter <= VTABLE_ADDR;
+    end else if (prefetch_ce) begin
+      if (prefetch_pc_write) begin
+        prefetch_pc <= prefetch_pc_in;
+        program_counter <= prefetch_pc_in + 32'b100;
+      end else begin
+        prefetch_pc <= program_counter;
+        program_counter <= program_counter + 32'b100;
+      end
+    end
+  end
+
+  // rv32i_prefetch #(
+  //   .XLEN(XLEN),
+  //   .ILEN(ILEN),
+  //   .VTABLE_ADDR(32'h00000000),
+  //   .PROGRAM_PATH(`PROGRAM_PATH)
+  // ) RV32I_PREFETCH (
+  //   .clk_i(clk_i),
+  //   .clear_i(1'b0), // TODO -- fill this in
+  //   .reset_i(reset_i),
+  //   .advance_i(prefetch_ce),
+  //   .pc_i(prefetch_pc_in),
+  //   .pc_write_i(prefetch_pc_write),
+  //   .pc_o(prefetch_pc),
+  //   .instruction_o(prefetch_instruction)
+  // );
 
   //////////////////////////////////////////////////////////////
   // ~~STAGE 1~~ Prefetch pipeline logic 
   //////////////////////////////////////////////////////////////
 
-  assign prefetch_stall = prefetch_data_ready_o & decode_stall;
+  assign prefetch_stall = (prefetch_data_ready_o & decode_stall) | icache_busy;
   assign prefetch_ce = ~prefetch_stall;
 
   always @(posedge clk_i) begin
@@ -415,12 +477,18 @@ module rv32i_pipe
   reg mem_data_ready_o;
   wire memory_clear = stage4_clear;
   wire memory_ce = stage4_ce & opfetch_stage4_path[1];
-  wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy;
+  wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy | (opfetch_data_ready_o & instruction_cache_arbitor & opfetch_stage4_path[1]);
 
   wire [XLEN-1:0] memory_data_in = stage4_latest_rs2;
   wire [XLEN-1:0] memory_addr_in = stage4_latest_rs1 + opfetch_immediate_data;
 
   reg [2:0] mem_word_size;
+
+  // Wishbone muxed signals
+  wire [XLEN-3:0] mem_adr_o;
+  wire mem_cyc_o;
+  wire [3:0] mem_sel_o;
+  wire mem_stb_o;
 
   rv32i_memory_pipe #(
     .XLEN(XLEN)
@@ -439,11 +507,11 @@ module rv32i_pipe
     .master_dat_i(master_dat_i),
     .master_dat_o(master_dat_o),
     .ack_i(ack_i),
-    .adr_o(adr_o),
-    .cyc_o(cyc_o),
+    .adr_o(mem_adr_o),
+    .cyc_o(mem_cyc_o),
     .err_i(err_i),
-    .sel_o(sel_o),
-    .stb_o(stb_o),
+    .sel_o(mem_sel_o),
+    .stb_o(mem_stb_o),
     .we_o(we_o)
   );
 
