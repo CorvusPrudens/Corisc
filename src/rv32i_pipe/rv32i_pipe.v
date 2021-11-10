@@ -16,13 +16,14 @@ module rv32i_pipe
   #(
     parameter XLEN = 32,
     parameter ILEN = 32,
+    parameter INT_VECT_LEN = 8,
     parameter REG_BITS = 5
   )
   (
     input wire clk_i,
     input wire reset_i,
 
-    input wire [7:0] interrupt_vector,
+    input wire [INT_VECT_LEN-1:0] interrupt_vector,
 
     // Wishbone Master signals
     input wire [XLEN-1:0] master_dat_i,
@@ -50,6 +51,34 @@ module rv32i_pipe
   // ~~STAGE 1~~ Prefetch signals 
   //////////////////////////////////////////////////////////////
 
+  // Trap controller
+  wire interrupt_routine_complete;
+  wire [INT_VECT_LEN-1:0] interrupt_vector_read;
+  wire [INT_VECT_LEN-1:0] interrupt_mask = 0;
+  wire [INT_VECT_LEN-1:0] interrupt_mask_read;
+  wire interrupt_mask_write = 0;
+  wire [XLEN-1:0] interrupt_vector_offset;
+  wire [1:0] interrupt_state;
+  wire interrupt_advance;
+  
+  rv32i_interrupts_pipe #(
+    .XLEN(XLEN),
+    .ILEN(ILEN),
+    .INT_VECT_LEN(INT_VECT_LEN)
+  ) RV32I_INTERRUPTS_PIPE (
+    .clk_i(clk_i),
+    .clear_interrupt_i(interrupt_routine_complete),
+    .interrupt_vector_i(interrupt_vector),
+    .interrupt_vector_o(interrupt_vector_read),
+    .interrupt_mask_i(interrupt_mask),
+    .interrupt_mask_o(interrupt_mask_read),
+    .interrupt_mask_write_i(interrupt_mask_write),
+    .interrupt_vector_offset_o(interrupt_vector_offset),
+    .interrupt_state_o(interrupt_state),
+    .interrupt_advance_i(interrupt_advance)
+  );
+
+  // Instruction cache
   reg instruction_cache_arbitor;
   wire icache_cyc_o;
   wire [XLEN-3:0] icache_adr_o;
@@ -73,7 +102,7 @@ module rv32i_pipe
 
   rv32i_instruction_cache #(
     .CACHE_LEN(7),
-    .LINE_LEN(4), // NOTE -- this is word size, not number of bytes
+    .LINE_LEN(4), // NOTE -- this is the bits for the word count, not byte count
     .ILEN(ILEN),
     .XLEN(XLEN)
   ) RV32I_INSTRUCTION_CACHE (
@@ -94,6 +123,7 @@ module rv32i_pipe
     .stb_o(icache_stb_o)
   );
 
+  // Prefetch
   // I/O
   wire [ILEN-1:0] prefetch_instruction;
   reg [XLEN-1:0] prefetch_pc_in;

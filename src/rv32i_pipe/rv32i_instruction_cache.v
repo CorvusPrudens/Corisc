@@ -5,27 +5,32 @@
 
 module rv32i_instruction_cache 
   #(
-    parameter CACHE_LEN = 9,
-    parameter LINE_LEN = 6,
+    parameter CACHE_LEN = 7, // 128 instructions in cache (512 bytes)
+    parameter LINE_LEN = 4, // 16 instructions per line (64 bytes) therefore 8 lines
     parameter ILEN = 32,
-    parameter XLEN = 32
+    parameter XLEN = 32,
+    parameter VTABLE_ADDRESS = 32'h00000000
   )
   (
     input wire clk_i,
     input wire reset_i,
     input wire advance_i,
-    output reg busy_o,
+    output wire busy_o,
     input wire [XLEN-1:0] addr_i,
     output reg [ILEN-1:0] instruction_o,
 
+    input wire interrupt_trigger_i,
+    output wire interrupt_grant_o,
+    input wire [XLEN-1:0] vtable_offset_i,
+
     // Arbitration signals
-    output reg ctrl_req_o,
+    output wire ctrl_req_o,
     input wire ctrl_grant_i,
 
     // Wishbone Master signals
     input wire [XLEN-1:0] master_dat_i,
     input wire ack_i,
-    output reg [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
+    output wire [XLEN-3:0] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
     output wire cyc_o,
     // input wire stall_i,
@@ -34,6 +39,17 @@ module rv32i_instruction_cache
     output reg stb_o
 
   );
+
+  reg cache_busy;
+  reg vtable_busy;
+  reg cache_req;
+  reg vtable_req;
+  reg [XLEN-3:0] cache_adr;
+  reg [XLEN-3:0] vtable_adr;
+  
+  assign busy_o = cache_busy | vtable_busy;
+  assign ctrl_req_o = cache_req | vtable_req;
+  assign adr_o = cache_req ? cache_adr : vtable_adr;
 
   assign sel_o = 4'b1111;
   assign cyc_o = stb_o;
@@ -82,17 +98,16 @@ module rv32i_instruction_cache
   
   always @(posedge clk_i) begin
     if (reset_i) begin
-      // should probably reset all cache valids here
       integer i;
       for (i = 0; i < 2**LINE_COUNT; i = i + 1)
         tags[i][TAG_WIDTH-1] <= 1'b0;
       current_line <= 0;
-      busy_o <= 1'b0;
+      cache_busy <= 1'b0;
       instruction_o <= 0;
       working_addr <= 0;
     end else if (advance_i) begin
       if (matching_tag[LINE_COUNT]) begin // cache miss
-        busy_o <= 1'b1;
+        cache_busy <= 1'b1;
         working_addr <= addr_i;
         // initiate the data grab here
       end else begin // cache hit
@@ -100,7 +115,7 @@ module rv32i_instruction_cache
       end
     end else
       if (fetch_done)
-        busy_o <= 1'b0;
+        cache_busy <= 1'b0;
   end
 
   reg [LINE_LEN:0] cache_write_idx;
@@ -120,19 +135,20 @@ module rv32i_instruction_cache
       fetch_sm <= FETCH_IDLE;
       cache_write_idx <= 0;
       fetch_done <= 1'b0;
-    end else if (busy_o) begin
+      cache_req <= 1'b0;
+    end else if (cache_busy) begin
       case (fetch_sm)
         default: 
           begin
             fetch_sm <= FETCH_ARB;
-            ctrl_req_o <= 1'b1;
+            cache_req <= 1'b1;
           end
         FETCH_ARB: 
           begin
             if (ctrl_grant_i) begin
               fetch_sm <= FETCH_READ;
               stb_o <= 1'b1;
-              adr_o <= cache_write_src_addr;
+              cache_adr <= cache_write_src_addr;
               cache_write_idx <= cache_write_idx + 1'b1;
               cache_waddr <= cache_waddr_wire;
             end
@@ -140,7 +156,7 @@ module rv32i_instruction_cache
         FETCH_READ:
           begin
             if (ack_i) begin
-              adr_o <= cache_write_src_addr;
+              cache_adr <= cache_write_src_addr;
               cache_waddr <= cache_waddr_wire;
               cache_write_idx <= cache_write_idx + 1'b1;
               if (cache_write_done) begin
@@ -154,11 +170,50 @@ module rv32i_instruction_cache
           begin
             fetch_sm <= FETCH_IDLE;
             fetch_done <= 1'b0;
-            ctrl_req_o <= 1'b0;
+            cache_req <= 1'b0;
             cache_write_idx <= 0;
             tags[current_line][TAG_WIDTH-1] <= 1'b1;
             tags[current_line][TAG_WIDTH-2:0] <= working_tag_i;
             current_line <= current_line + 1'b1;
+          end
+      endcase
+    end
+  end
+
+  // TODO -- if the critical path lies along the memory, then consider
+  // combining the always blocks of these two state machines so the
+  // output address doesn't have to be muxed
+  reg [1:0] vtable_sm;
+  localparam VTABLE_IDLE = 2'b00;
+  localparam VTABLE_ARB =  2'b01;
+  localparam VTABLE_DONE = 2'b10;
+  reg vtable_done;
+
+  always @(posedge clk_i) begin
+    if (reset_i) begin
+      vtable_sm <= VTABLE_IDLE;
+      vtable_done <= 1'b0;
+      vtable_req <= 1'b0;
+    end else if (vtable_busy) begin
+      case (vtable_sm)
+        default:
+          begin
+            vtable_sm <= VTABLE_ARB;
+            vtable_req <= 1'b1; // TODO -- this will need to be ORed
+          end
+        VTABLE_ARB:
+          begin
+            if (ctrl_grant_i) begin
+              vtable_sm <= VTABLE_DONE;
+              stb_o <= 1'b1;
+              vtable_adr <= VTABLE_ADDRESS[XLEN-1:2] + vtable_offset_i[XLEN-1:2];
+            end
+          end
+        VTABLE_DONE:
+          begin
+            vtable_sm <= VTABLE_IDLE;
+            vtable_done <= 1'b0;
+            vtable_req <= 1'b0;
           end
       endcase
     end
