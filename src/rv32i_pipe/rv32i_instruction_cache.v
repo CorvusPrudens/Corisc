@@ -20,7 +20,7 @@ module rv32i_instruction_cache
     output reg [ILEN-1:0] instruction_o,
 
     input wire interrupt_trigger_i,
-    output wire interrupt_grant_o,
+    output reg interrupt_grant_o,
     input wire [XLEN-1:0] vtable_offset_i,
 
     // Arbitration signals
@@ -95,6 +95,7 @@ module rv32i_instruction_cache
 
   assign cache_raddr = {matching_tag[LINE_COUNT-1:0], addr_i[LINE_LEN+1:2]};
   reg fetch_done;
+  reg vtable_lookup_init;
   
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -105,17 +106,24 @@ module rv32i_instruction_cache
       cache_busy <= 1'b0;
       instruction_o <= 0;
       working_addr <= 0;
+      vtable_lookup_init <= 1'b0;
     end else if (advance_i) begin
-      if (matching_tag[LINE_COUNT]) begin // cache miss
-        cache_busy <= 1'b1;
-        working_addr <= addr_i;
-        // initiate the data grab here
-      end else begin // cache hit
-        // nothing -- the output will be the valid cached instruction
+      if (~vtable_lookup_init) begin
+        vtable_busy <= 1'b1;
+        vtable_lookup_init <= 1'b1;
+      end else begin
+        if (matching_tag[LINE_COUNT]) begin // cache miss
+          cache_busy <= 1'b1;
+          working_addr <= addr_i;
+          // initiate the data grab here
+        end else begin // cache hit
+          // nothing -- the output will be the valid cached instruction
+        end
       end
-    end else
-      if (fetch_done)
-        cache_busy <= 1'b0;
+    end else if (fetch_done)
+      cache_busy <= 1'b0;
+    else if (vtable_done)
+      vtable_busy <= 1'b0;
   end
 
   reg [LINE_LEN:0] cache_write_idx;
@@ -199,10 +207,12 @@ module rv32i_instruction_cache
         default:
           begin
             vtable_sm <= VTABLE_ARB;
-            vtable_req <= 1'b1; // TODO -- this will need to be ORed
+            vtable_req <= 1'b1;
+            interrupt_grant_o <= 1'b1;
           end
         VTABLE_ARB:
           begin
+            interrupt_grant_o <= 1'b0;
             if (ctrl_grant_i) begin
               vtable_sm <= VTABLE_DONE;
               stb_o <= 1'b1;
