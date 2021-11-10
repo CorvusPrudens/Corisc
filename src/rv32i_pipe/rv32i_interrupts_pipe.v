@@ -93,14 +93,15 @@ module rv32i_interrupts_pipe
 
   // may or may not be synthesizeable this way
   reg [OFFSET_LEN-1:0] interrupt_vector_offset;
+  
   always @(*) begin
+    integer j;
     interrupt_vector_offset = 0;
-    integer i;
-    for (i = INT_VECT_LEN - 1; i > -1; i = i - 1)
-      if (interrupt_handling == (1 << i))
-        interrupt_vector_offset = i[OFFSET_LEN-1:0];
+    for (j = INT_VECT_LEN - 1; j > -1; j = j - 1)
+      if (interrupt_handling == (1 << j))
+        interrupt_vector_offset = j[OFFSET_LEN-1:0];
   end
 
-  assign interrupt_vector_offset_full = {{XLEN-OFFSET_LEN{1'b0}}, interrupt_vector_offset, 2'b0};
+  assign interrupt_vector_offset_full = {{(XLEN-OFFSET_LEN)-2{1'b0}}, interrupt_vector_offset, 2'b0};
 
 endmodule

@@ -52,7 +52,7 @@ module rv32i_pipe
   //////////////////////////////////////////////////////////////
 
   // Trap controller
-  wire interrupt_routine_complete;
+  wire interrupt_routine_complete = 0;
   wire [INT_VECT_LEN-1:0] interrupt_vector_read;
   wire [INT_VECT_LEN-1:0] interrupt_mask = 0;
   wire [INT_VECT_LEN-1:0] interrupt_mask_read;
@@ -86,6 +86,8 @@ module rv32i_pipe
   wire icache_stb_o;
   wire icache_arb_req;
   wire icache_busy;
+  wire [XLEN-1:0] vtable_pc;
+  wire vtable_pc_write;
 
   assign cyc_o = instruction_cache_arbitor ? icache_cyc_o : mem_cyc_o;
   assign adr_o = instruction_cache_arbitor ? icache_adr_o : mem_adr_o;
@@ -114,6 +116,11 @@ module rv32i_pipe
     .instruction_o(prefetch_instruction),
     .ctrl_req_o(icache_arb_req),
     .ctrl_grant_i(instruction_cache_arbitor),
+    .interrupt_trigger_i(interrupt_state[0]),
+    .interrupt_grant_o(interrupt_advance),
+    .vtable_offset_i(interrupt_vector_offset),
+    .vtable_pc_o(vtable_pc),
+    .vtable_pc_write(vtable_pc_write),
     .master_dat_i(master_dat_i),
     .ack_i(ack_i),
     .adr_o(icache_adr_o),
@@ -142,13 +149,14 @@ module rv32i_pipe
   wire jalr_jump;
   wire branch_jump;
 
-  assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump;
+  assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump | vtable_pc_write;
 
   always @(*) begin
-    case ({branch_jump, jalr_jump})
+    case ({vtable_pc_write, branch_jump, jalr_jump})
       default: prefetch_pc_in = prefetch_pc_in_jal;
-      2'b01: prefetch_pc_in = prefetch_pc_in_jalr;
-      2'b10: prefetch_pc_in = prefetch_pc_in_branch;
+      3'b001: prefetch_pc_in = prefetch_pc_in_jalr;
+      3'b010: prefetch_pc_in = prefetch_pc_in_branch;
+      3'b100: prefetch_pc_in = vtable_pc;
     endcase
   end
 
