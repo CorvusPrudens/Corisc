@@ -10,7 +10,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#define CLOCK_NS (1000.0/14.31818)*10.0 // 14.31818 MHz to period w/ 100ps precision
+#define CLOCK_NS (1000.0/50)*10.0 // 50 MHz to period w/ 100ps precision
 #define CLOCK_PS CLOCK_NS * 100.0 // Apparently 1ps is gtkwave's thing
 
 void LoadProgram(const char* filename, uint8_t* rambuff);

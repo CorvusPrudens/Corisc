@@ -109,7 +109,7 @@ int OPT_Os SimpleCalc(int a, int b)
   return b;
 }
 
-void OPT_Os main()
+void main()
 {
   // VoiceInit();
   // GpuInit(&FrameCallback);

@@ -166,9 +166,16 @@ module rv32i_pipe
     endcase
   end
 
+  // // For rolling back after a cache miss
+  // reg [XLEN-1:0] prev_program_counter;
+  // always @(posedge clk_i) begin
+  //   prev_program_counter <= prefetch_pc;
+  // end
+
   always @(posedge clk_i) begin
     if (reset_i) begin
       program_counter <= 0;
+      prefetch_pc <= 0;
     end else if (prefetch_ce & ~cache_invalid) begin
       if (prefetch_pc_write) begin
         prefetch_pc <= prefetch_pc_in;
@@ -177,11 +184,18 @@ module rv32i_pipe
         prefetch_pc <= program_counter;
         program_counter <= program_counter + 32'b100;
       end
+    end else if (prefetch_pc_write & ~cache_invalid) begin
+      prefetch_pc <= prefetch_pc_in;
+      program_counter <= prefetch_pc_in;
     end else if (vtable_pc_write) begin
       prefetch_pc <= prefetch_pc_in;
       program_counter <= prefetch_pc_in;
-    end else if (cache_invalid & decode_ce)
-      program_counter <= program_counter - 32'b100; // major hack?
+    end else if (cache_invalid & decode_ce) begin
+      program_counter <= program_counter - 4;
+      // program_counter <= prev_program_counter;
+      // prefetch_pc <= prev_program_counter;
+    end else
+      prefetch_pc <= program_counter; // another major hack? I swear this is just going to add bugs
   end
 
   // rv32i_prefetch #(
@@ -539,6 +553,8 @@ module rv32i_pipe
   // ~~STAGE 4~~ ~~BRANCH 2~~ Memory signals
   //////////////////////////////////////////////////////////////
 
+  // TODO -- store operations could be made to be non-blocking (no need to stall the ALU if we're doing a single store)
+
   wire mem_busy;
   wire [XLEN-1:0] mem_data_out_raw;
   reg [XLEN-1:0] mem_data_out;
@@ -588,7 +604,7 @@ module rv32i_pipe
   always @(posedge clk_i) begin
     if (memory_clear)
        mem_data_ready_o <= 1'b0;
-    else if (ack_i & stage4_ce) begin
+    else if (ack_i & ~instruction_cache_arbitor) begin
       mem_data_ready_o <= 1'b1;
       mem_word_size <= opfetch_word_size;
     end else if (writeback_ce)

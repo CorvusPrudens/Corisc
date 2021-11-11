@@ -76,7 +76,7 @@ module rv32i_instruction_cache
     .dataWidth_p(ILEN)
   ) BRAM_DUAL (
     .clk_i(clk_i),
-    .write_i(ack_i),
+    .write_i(ack_i & cache_req),
     .data_i(master_dat_i),
     .waddr_i(cache_waddr),
     .raddr_i(cache_raddr),
@@ -183,6 +183,7 @@ module rv32i_instruction_cache
                 cache_stb <= 1'b0;
                 fetch_sm <= FETCH_DONE;
                 fetch_done <= 1'b1;
+                cache_req <= 1'b0;
               end
             end
           end
@@ -190,7 +191,6 @@ module rv32i_instruction_cache
           begin
             fetch_sm <= FETCH_IDLE;
             fetch_done <= 1'b0;
-            cache_req <= 1'b0;
             cache_write_idx <= 0;
             tags[current_line][TAG_WIDTH-1] <= 1'b1;
             tags[current_line][TAG_WIDTH-2:0] <= working_tag_i;
@@ -240,12 +240,13 @@ module rv32i_instruction_cache
               vtable_req <= 1'b0;
               vtable_stb <= 1'b0;
               vtable_pc_write <= 1'b1;
+              vtable_done <= 1'b1;
             end
           end
         VTABLE_DONE:
           begin
             vtable_sm <= VTABLE_IDLE;
-            vtable_done <= 1'b1;
+            vtable_done <= 1'b0;
             vtable_pc_write <= 1'b0;
           end
       endcase
