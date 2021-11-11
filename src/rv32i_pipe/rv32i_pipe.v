@@ -29,7 +29,7 @@ module rv32i_pipe
     input wire [XLEN-1:0] master_dat_i,
     output wire [XLEN-1:0] master_dat_o,
     input wire ack_i,
-    output wire [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
+    output wire [XLEN-3:0] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
     output wire cyc_o,
     // input wire stall_i,
@@ -71,7 +71,7 @@ module rv32i_pipe
   reg [XLEN-1:0] prefetch_pc;
 
   reg [XLEN-1:0] program_counter = 0;
-  localparam VTABLE_ADDR = 32'h00100000;
+  localparam VTABLE_ADDR = 32'h00300000;
 
   // Trap controller
   wire interrupt_routine_complete = 0;
@@ -110,6 +110,7 @@ module rv32i_pipe
   wire icache_busy;
   wire [XLEN-1:0] vtable_pc;
   wire vtable_pc_write;
+  wire cache_invalid;
 
   assign cyc_o = instruction_cache_arbitor ? icache_cyc_o : mem_cyc_o;
   assign adr_o = instruction_cache_arbitor ? icache_adr_o : mem_adr_o;
@@ -128,7 +129,8 @@ module rv32i_pipe
     .CACHE_LEN(7),
     .LINE_LEN(4), // NOTE -- this is the bits for the word count, not byte count
     .ILEN(ILEN),
-    .XLEN(XLEN)
+    .XLEN(XLEN),
+    .VTABLE_ADDRESS(VTABLE_ADDR)
   ) RV32I_INSTRUCTION_CACHE (
     .clk_i(clk_i),
     .reset_i(reset_i),
@@ -136,6 +138,7 @@ module rv32i_pipe
     .busy_o(icache_busy),
     .addr_i(prefetch_pc_write ? prefetch_pc_in : program_counter),
     .instruction_o(prefetch_instruction),
+    .cache_invalid_o(cache_invalid),
     .ctrl_req_o(icache_arb_req),
     .ctrl_grant_i(instruction_cache_arbitor),
     .interrupt_trigger_i(interrupt_state[0]),
@@ -165,8 +168,8 @@ module rv32i_pipe
 
   always @(posedge clk_i) begin
     if (reset_i) begin
-      program_counter <= VTABLE_ADDR;
-    end else if (prefetch_ce) begin
+      program_counter <= 0;
+    end else if (prefetch_ce & ~cache_invalid) begin
       if (prefetch_pc_write) begin
         prefetch_pc <= prefetch_pc_in;
         program_counter <= prefetch_pc_in + 32'b100;
@@ -174,7 +177,11 @@ module rv32i_pipe
         prefetch_pc <= program_counter;
         program_counter <= program_counter + 32'b100;
       end
-    end
+    end else if (vtable_pc_write) begin
+      prefetch_pc <= prefetch_pc_in;
+      program_counter <= prefetch_pc_in;
+    end else if (cache_invalid & decode_ce)
+      program_counter <= program_counter - 32'b100; // major hack?
   end
 
   // rv32i_prefetch #(
@@ -203,7 +210,7 @@ module rv32i_pipe
   always @(posedge clk_i) begin
     if (reset_i | clear_pipeline)
       prefetch_data_ready_o <= 1'b0;
-    else if (prefetch_ce)
+    else if (prefetch_ce & ~cache_invalid)
       prefetch_data_ready_o <= 1'b1;
     else if (decode_ce)
       prefetch_data_ready_o <= 1'b0;
@@ -217,7 +224,7 @@ module rv32i_pipe
 
   wire decode_stall;
   wire decode_ce;
-  wire decode_clear = clear_pipeline | jal_jump | jalr_jump | branch_jump;
+  wire decode_clear = clear_pipeline | jal_jump | jalr_jump | branch_jump | cache_invalid;
 
   // Outputs
   wire [3:0] alu_operation_decode;
@@ -237,6 +244,9 @@ module rv32i_pipe
   wire decode_jalr;
   wire decode_branch;
 
+  wire decode_link;
+  wire [XLEN-1:0] decode_link_data;
+
   rv32i_decode #(
     .XLEN(32),
     .ILEN(32),
@@ -253,6 +263,8 @@ module rv32i_pipe
     .rd_addr_o(decode_rd_addr),
     .immediate_o(decode_immediate_data),
     .immediate_valid_o(decode_immediate),
+    .link_o(decode_link),
+    .link_data_o(decode_link_data),
     .pc_data_i(prefetch_pc),
     .pc_data_o(decode_pc),
     .jal_jump_o(jal_jump),
@@ -345,6 +357,8 @@ module rv32i_pipe
   reg [2:0] opfetch_word_size;
   reg opfetch_write;
   reg [XLEN-1:0] opfetch_pc;
+  reg opfetch_link;
+  reg [XLEN-1:0] opfetch_link_data;
 
   assign opfetch_stall = opfetch_data_ready_o & (stage4_stalled | opfetch_busy);
   assign opfetch_ce = decode_data_ready_o & ~opfetch_stall;
@@ -362,6 +376,7 @@ module rv32i_pipe
       opfetch_ras <= 0;
       opfetch_write <= 1'b0;
       opfetch_pc <= 0;
+      opfetch_link <= 1'b0;
     end else if (opfetch_ce) begin
       opfetch_data_ready_o <= decode_data_ready_o;
       alu_operation_opfetch <= alu_operation_decode; 
@@ -381,6 +396,9 @@ module rv32i_pipe
       opfetch_write <= decode_write;
       opfetch_pc <= decode_pc;
 
+      opfetch_link <= decode_link;
+      opfetch_link_data <= decode_link_data;
+
       if (decode_jalr) begin
         opfetch_jalr_target <= decode_immediate_data;
         opfetch_immediate_data <= decode_pc;
@@ -399,7 +417,15 @@ module rv32i_pipe
   //////////////////////////////////////////////////////////////
 
   wire stage4_stalled = alu_stalled | memory_stalled;
-  wire stage4_ce = opfetch_data_ready_o & ~stage4_stalled;
+
+  reg stage4_ce;
+  always @(*) begin
+    case (opfetch_stage4_path)
+      default: stage4_ce = opfetch_data_ready_o & ~alu_stalled;
+      2'b10: stage4_ce = opfetch_data_ready_o & ~memory_stalled;
+    endcase
+  end
+
   wire stage4_clear = clear_pipeline | branch_jump;
   wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o;
 
@@ -429,7 +455,7 @@ module rv32i_pipe
   
   always @(*) begin
     case (stage4_stage4_path)
-      default: stage4_result = alu_result;
+      default: stage4_result = alu_link ? alu_link_data : alu_result;
       2'b10: stage4_result = mem_data_out;
     endcase
   end
@@ -457,6 +483,9 @@ module rv32i_pipe
   reg [XLEN-1:0] alu_pc = 0;
   reg alu_branch = 0;
   reg [2:0] alu_branch_conditions;
+
+  reg alu_link;
+  reg [XLEN-1:0] alu_link_data;
 
   rv32i_alu_pipe #(
     .XLEN                    (XLEN)
@@ -492,12 +521,15 @@ module rv32i_pipe
       alu_immediate_data <= 0;
       alu_pc <= 0;
       alu_data_ready_o <= 1'b0;
+      alu_link <= 1'b0;
     end else if (alu_ce) begin
       alu_immediate_data <= opfetch_immediate_data;
       alu_branch <= opfetch_branch;
       alu_branch_conditions <= opfetch_branch_conditions;
       alu_pc <= opfetch_pc;
-      alu_data_ready_o <= decode_data_ready_o;
+      alu_data_ready_o <= opfetch_data_ready_o;
+      alu_link <= opfetch_link;
+      alu_link_data <= opfetch_link_data;
     end else if (writeback_ce)
       alu_data_ready_o <= 1'b0;
   end
@@ -556,7 +588,7 @@ module rv32i_pipe
   always @(posedge clk_i) begin
     if (memory_clear)
        mem_data_ready_o <= 1'b0;
-    else if (ack_i) begin
+    else if (ack_i & stage4_ce) begin
       mem_data_ready_o <= 1'b1;
       mem_word_size <= opfetch_word_size;
     end else if (writeback_ce)

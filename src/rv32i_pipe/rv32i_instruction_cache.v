@@ -21,6 +21,7 @@ module rv32i_instruction_cache
     output wire [ILEN-1:0] instruction_o,
     output reg [XLEN-1:0] vtable_pc_o,
     output reg vtable_pc_write,
+    output wire cache_invalid_o,
 
     input wire interrupt_trigger_i,
     output reg interrupt_grant_o,
@@ -42,6 +43,9 @@ module rv32i_instruction_cache
     output wire stb_o
 
   );
+
+  reg cache_valid;
+  assign cache_invalid_o = ~cache_valid;
 
   reg cache_busy;
   reg vtable_busy;
@@ -107,6 +111,7 @@ module rv32i_instruction_cache
     if (reset_i) begin
       cache_busy <= 1'b0;
       working_addr <= 0;
+      cache_valid <= 1'b0;
       vtable_lookup_init <= 1'b0;
     end else if (advance_i) begin
       if (~vtable_lookup_init) begin
@@ -116,8 +121,10 @@ module rv32i_instruction_cache
         if (matching_tag[LINE_COUNT]) begin // cache miss
           cache_busy <= 1'b1;
           working_addr <= addr_i;
+          cache_valid <= 1'b0;
           // initiate the data grab here
         end else begin // cache hit
+          cache_valid <= 1'b1;
           // nothing -- the output will be the valid cached instruction
         end
       end
@@ -136,7 +143,7 @@ module rv32i_instruction_cache
   localparam FETCH_READ = 3'b010;
   localparam FETCH_DONE = 3'b100;
   
-  wire [XLEN-3:0] cache_write_src_addr = {working_tag_i[TAG_WIDTH-2:LINE_COUNT], current_line, cache_write_idx[LINE_LEN-1:0]};
+  wire [XLEN-3:0] cache_write_src_addr = {working_addr[XLEN-1:LINE_LEN+2], cache_write_idx[LINE_LEN-1:0]};
   wire [CACHE_LEN-1:0] cache_waddr_wire = {current_line, cache_write_idx[LINE_LEN-1:0]};
 
   integer j;

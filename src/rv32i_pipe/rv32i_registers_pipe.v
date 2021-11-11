@@ -69,7 +69,7 @@ module rv32i_registers_pipe
     .clk_i(clk_i),
     .push_i(push_ras_i),
     .pop_i(pop_ras_i),
-    .data_i(pc_i),
+    .data_i(pc_i + 32'h04),
     .data_o(ras_o),
     .overflow_o(stack_overflow)
   );

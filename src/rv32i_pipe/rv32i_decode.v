@@ -33,6 +33,9 @@ module rv32i_decode
     output reg branch_o,
     output reg [2:0] branch_condition_o,
 
+    output reg link_o,
+    output reg [XLEN-1:0] link_data_o,
+
     output reg pop_ras_o,
     output reg push_ras_o,
 
@@ -162,6 +165,7 @@ module rv32i_decode
       branch_o <= 1'b0;
       branch_condition_o <= 3'b0;
       memory_write_o <= 1'b0;
+      link_o <= 1'b0;
     end else if (data_ready_i) begin
 
       pop_ras_o <= pop_ras;
@@ -169,7 +173,7 @@ module rv32i_decode
 
       pc_data_o <= pc_data_i;
 
-      if (instruction_encoding == R_TYPE | instruction_encoding == B_TYPE | instruction_encoding == J_TYPE)
+      if (instruction_encoding == R_TYPE | instruction_encoding == B_TYPE)
         immediate_valid_o <= 1'b0;
       else
         immediate_valid_o <= 1'b1;
@@ -189,6 +193,11 @@ module rv32i_decode
         stage4_path_o <= STAGE4_MEM;
       else
         stage4_path_o <= STAGE4_ALU;
+
+      if (opcode[6:2] == OP_JAL | opcode[6:2] == OP_JALR)
+        link_o <= 1'b1;
+      else
+        link_o <= 1'b0;
 
       // determining whether the register addresses should be asserted
       case (instruction_encoding) 
@@ -218,6 +227,7 @@ module rv32i_decode
             if (~opcode[4]) begin
               jalr_o <= 1'b1; // no need to reset because this will be cleared
               alu_operation_o <= 4'b0000;
+              link_data_o <= pc_data_i + 32'h04;
             end else begin
               alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3};
             end
@@ -247,8 +257,7 @@ module rv32i_decode
             rd_addr_o <= rd_addr;
             jal_jump_o <= 1'b1;
             pc_jal_data_o <= j_immediate + pc_data_i;
-            immediate_o <= pc_data_i;
-            alu_operation_o <= 4'b0000;
+            link_data_o <= pc_data_i + 32'h04;
           end
         B_TYPE:
           begin
