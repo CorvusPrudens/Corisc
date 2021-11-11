@@ -94,8 +94,8 @@ module rv32i_interrupts_pipe
   // may or may not be synthesizeable this way
   reg [OFFSET_LEN-1:0] interrupt_vector_offset;
   
+  integer j;
   always @(*) begin
-    integer j;
     interrupt_vector_offset = 0;
     for (j = INT_VECT_LEN - 1; j > -1; j = j - 1)
       if (interrupt_handling == (1 << j))

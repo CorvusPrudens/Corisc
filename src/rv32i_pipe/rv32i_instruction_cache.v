@@ -2,6 +2,7 @@
 `define RV32I_INSTRUCTION_CACHE
 
 `include "bram_dual.v"
+`include "rv32i_interrupts_pipe.v"
 
 module rv32i_instruction_cache 
   #(
@@ -17,7 +18,7 @@ module rv32i_instruction_cache
     input wire advance_i,
     output wire busy_o,
     input wire [XLEN-1:0] addr_i,
-    output reg [ILEN-1:0] instruction_o,
+    output wire [ILEN-1:0] instruction_o,
     output reg [XLEN-1:0] vtable_pc_o,
     output reg vtable_pc_write,
 
@@ -90,8 +91,8 @@ module rv32i_instruction_cache
   reg [TAG_WIDTH-1:0] tags [(2**LINE_COUNT)-1:0]; 
 
   reg [LINE_COUNT:0] matching_tag;
+  integer i;
   always @(*) begin
-    integer i;
     matching_tag = {1'b1, {LINE_COUNT{1'b0}}};
     for (i = 0; i < 2**LINE_COUNT; i = i + 1)
       if ((tag_i == tags[i][TAG_WIDTH-2:0]) & tags[i][TAG_WIDTH-1])
@@ -104,12 +105,7 @@ module rv32i_instruction_cache
   
   always @(posedge clk_i) begin
     if (reset_i) begin
-      integer i;
-      for (i = 0; i < 2**LINE_COUNT; i = i + 1)
-        tags[i][TAG_WIDTH-1] <= 1'b0;
-      current_line <= 0;
       cache_busy <= 1'b0;
-      instruction_o <= 0;
       working_addr <= 0;
       vtable_lookup_init <= 1'b0;
     end else if (advance_i) begin
@@ -143,12 +139,16 @@ module rv32i_instruction_cache
   wire [XLEN-3:0] cache_write_src_addr = {working_tag_i[TAG_WIDTH-2:LINE_COUNT], current_line, cache_write_idx[LINE_LEN-1:0]};
   wire [CACHE_LEN-1:0] cache_waddr_wire = {current_line, cache_write_idx[LINE_LEN-1:0]};
 
+  integer j;
   always @(posedge clk_i) begin
     if (reset_i) begin
+      for (j = 0; j < 2**LINE_COUNT; j = j + 1)
+        tags[j][TAG_WIDTH-1] <= 1'b0;
       fetch_sm <= FETCH_IDLE;
       cache_write_idx <= 0;
       fetch_done <= 1'b0;
       cache_req <= 1'b0;
+      current_line <= 0;
     end else if (cache_busy) begin
       case (fetch_sm)
         default: 

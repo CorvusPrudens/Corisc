@@ -51,6 +51,28 @@ module rv32i_pipe
   // ~~STAGE 1~~ Prefetch signals 
   //////////////////////////////////////////////////////////////
 
+  // pipeline
+  wire prefetch_ce;
+  wire prefetch_stall;
+  reg prefetch_data_ready_o;
+
+  wire jal_jump;
+  wire jalr_jump;
+  wire branch_jump;
+
+  // Prefetch
+  // I/O
+  wire [ILEN-1:0] prefetch_instruction;
+  reg [XLEN-1:0] prefetch_pc_in;
+  wire [XLEN-1:0] prefetch_pc_in_jal;
+  wire [XLEN-1:0] prefetch_pc_in_jalr;
+  wire [XLEN-1:0] prefetch_pc_in_branch;
+  wire prefetch_pc_write;
+  reg [XLEN-1:0] prefetch_pc;
+
+  reg [XLEN-1:0] program_counter = 0;
+  localparam VTABLE_ADDR = 32'h00100000;
+
   // Trap controller
   wire interrupt_routine_complete = 0;
   wire [INT_VECT_LEN-1:0] interrupt_vector_read;
@@ -130,25 +152,6 @@ module rv32i_pipe
     .stb_o(icache_stb_o)
   );
 
-  // Prefetch
-  // I/O
-  wire [ILEN-1:0] prefetch_instruction;
-  reg [XLEN-1:0] prefetch_pc_in;
-  wire [XLEN-1:0] prefetch_pc_in_jal;
-  wire [XLEN-1:0] prefetch_pc_in_jalr;
-  wire [XLEN-1:0] prefetch_pc_in_branch;
-  wire prefetch_pc_write;
-  reg [XLEN-1:0] prefetch_pc;
-
-  // pipeline
-  wire prefetch_ce;
-  wire prefetch_stall;
-  reg prefetch_data_ready_o;
-
-  wire jal_jump;
-  wire jalr_jump;
-  wire branch_jump;
-
   assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump | vtable_pc_write;
 
   always @(*) begin
@@ -159,9 +162,6 @@ module rv32i_pipe
       3'b100: prefetch_pc_in = vtable_pc;
     endcase
   end
-
-  reg [XLEN-1:0] program_counter = 0;
-  localparam VTABLE_ADDR = 32'h00100000;
 
   always @(posedge clk_i) begin
     if (reset_i) begin
