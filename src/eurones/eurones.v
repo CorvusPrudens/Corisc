@@ -62,15 +62,60 @@ module eurones(
   localparam ILEN = 32;
   localparam REG_BITS = 5;
 
-  wire [XLEN-1:0] master_dat_i;
+  reg  [XLEN-1:0] master_dat_i;
   wire [XLEN-1:0] master_dat_o;
-  wire master_ack;
+  reg  master_ack;
   wire [XLEN-3:0] master_adr;
   wire master_cyc;
   wire master_err;
   wire [3:0] master_sel;
   wire master_stb;
   wire master_we;
+
+  wire [1:0] address_select = {master_adr[21:20]};
+
+  wire [XLEN-1:0] apu_data;
+  wire [XLEN-1:0] gen_data;
+  wire [XLEN-1:0] gpu_data;
+  wire [XLEN-1:0] ram_data;
+
+  wire apu_ack;
+  wire gen_ack;
+  wire gpu_ack;
+  wire ram_ack;
+
+  reg apu_sel;
+  reg gen_sel;
+  reg gpu_sel;
+  reg ram_sel;
+
+  // Address decode scheme
+  always @(posedge clk_i) begin
+    case (address_select)
+      2'b00: master_dat_i = apu_data;
+      2'b01: master_dat_i = gen_data;
+      2'b10: master_dat_i = gpu_data;
+      2'b11: master_dat_i = ram_data;
+    endcase
+  end
+
+  always @(posedge clk_i) begin
+    case (address_select)
+      2'b00: master_ack = apu_ack;
+      2'b01: master_ack = gen_ack;
+      2'b10: master_ack = gpu_ack;
+      2'b11: master_ack = ram_ack;
+    endcase
+  end
+
+  always @(posedge clk_i) begin
+    case (address_select)
+      2'b00: {ram_sel, gpu_sel, gen_sel, apu_sel} = 4'b0001;
+      2'b01: {ram_sel, gpu_sel, gen_sel, apu_sel} = 4'b0010;
+      2'b10: {ram_sel, gpu_sel, gen_sel, apu_sel} = 4'b0100;
+      2'b11: {ram_sel, gpu_sel, gen_sel, apu_sel} = 4'b1000;
+    endcase
+  end
 
   rv32i_pipe #(
     .XLEN(XLEN),
@@ -97,14 +142,14 @@ module eurones(
   ) WB_SRAM16 (
     .clk_i(clk_i),
     .slave_dat_i(master_dat_o),
-    .slave_dat_o(master_dat_i),
+    .slave_dat_o(ram_data),
     .rst_i(reset_i),
-    .ack_o(master_ack),
+    .ack_o(ram_ack),
     .adr_i(master_adr[14:0]),
     .cyc_i(master_cyc),
     .err_o(master_err),
     .sel_i(master_sel),
-    .stb_i(master_stb),
+    .stb_i(master_stb & ram_sel),
     .we_i(master_we),
     .SRAM_ADDR(SRAM_ADDR),
     `ifdef SIM
