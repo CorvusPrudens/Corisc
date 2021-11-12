@@ -8,6 +8,7 @@
 
 `include "rv32i_pipe.v"
 `include "wb_sram16.v"
+`include "wb_apu.v"
 
 module eurones(
     input wire clk_i,
@@ -75,22 +76,29 @@ module eurones(
   wire [1:0] address_select = {master_adr[21:20]};
 
   wire [XLEN-1:0] apu_data;
-  wire [XLEN-1:0] gen_data;
-  wire [XLEN-1:0] gpu_data;
+  wire [XLEN-1:0] gen_data = 0;
+  wire [XLEN-1:0] gpu_data = 0;
   wire [XLEN-1:0] ram_data;
 
   wire apu_ack;
-  wire gen_ack;
-  wire gpu_ack;
+  wire gen_ack = 0;
+  wire gpu_ack = 0;
   wire ram_ack;
 
+  wire apu_err;
+  wire gen_err = 0;
+  wire gpu_err = 0;
+  wire ram_err;
+
+  assign master_err = apu_err | gen_err | gpu_err | ram_err;
+
   reg apu_sel;
-  reg gen_sel;
-  reg gpu_sel;
+  reg gen_sel = 0;
+  reg gpu_sel = 0;
   reg ram_sel;
 
   // Address decode scheme
-  always @(posedge clk_i) begin
+  always @(*) begin
     case (address_select)
       2'b00: master_dat_i = apu_data;
       2'b01: master_dat_i = gen_data;
@@ -99,7 +107,7 @@ module eurones(
     endcase
   end
 
-  always @(posedge clk_i) begin
+  always @(*) begin
     case (address_select)
       2'b00: master_ack = apu_ack;
       2'b01: master_ack = gen_ack;
@@ -108,7 +116,7 @@ module eurones(
     endcase
   end
 
-  always @(posedge clk_i) begin
+  always @(*) begin
     case (address_select)
       2'b00: {ram_sel, gpu_sel, gen_sel, apu_sel} = 4'b0001;
       2'b01: {ram_sel, gpu_sel, gen_sel, apu_sel} = 4'b0010;
@@ -147,7 +155,7 @@ module eurones(
     .ack_o(ram_ack),
     .adr_i(master_adr[14:0]),
     .cyc_i(master_cyc),
-    .err_o(master_err),
+    .err_o(ram_err),
     .sel_i(master_sel),
     .stb_i(master_stb & ram_sel),
     .we_i(master_we),
@@ -164,6 +172,68 @@ module eurones(
     .SRAM_LB(SRAM_LB),
     .SRAM_UB(SRAM_UB)
   );
+
+  wire [15:0] apuMaster;
+
+  wb_apu WB_APU (
+    .clk_i(clk_i),
+    .audio_o(apuMaster),
+    .slave_dat_i(master_dat_o),
+    .slave_dat_o(apu_data),
+    .rst_i(reset_i),
+    .ack_o(apu_ack),
+    .adr_i(master_adr[13:0]),
+    .cyc_i(master_cyc),
+    .err_o(apu_err),
+    .sel_i(master_sel),
+    .stb_i(master_stb & apu_sel),
+    .we_i(master_we)
+  );
+
+  ///////////////////////////////////////////////////////////////
+  // Audio Section 
+  ///////////////////////////////////////////////////////////////
+
+  reg [24:0] clkdiv = 0;
+
+  always @(posedge clk_i) begin
+    clkdiv <= clkdiv + 1'b1;
+  end
+
+  assign HB_O = clkdiv[22];
+
+  assign D_SYSCK = clkdiv[0];
+  assign D_LRCLK = clkdiv[7];
+  assign D_BCK = clkdiv[1];
+  assign D_FMT = 1'b1;
+  assign D_EMP = 1'b1;
+  assign D_MUTE = 1'b0;
+  assign D_DATA = osc;
+
+  wire [3:0] oscpos = 4'hF - clkdiv[5:2];
+  reg [15:0] audiobuff;
+  reg [22:0] audioAcc = 0;
+  reg osc;
+
+  always @(posedge clk_i) begin
+      if (clkdiv[6:0] == 7'b0) begin
+        audiobuff <= audioAcc[22:7] + {7'b0, apuMaster[15:7]};
+        audioAcc <= 0;
+      end else begin
+        audioAcc <= audioAcc + {7'b0, apuMaster};
+      end
+  end
+
+  always @(negedge clk_i) begin
+    osc <= audiobuff[oscpos];
+  end
+
+  wire [15:0] apuMaster;
+
+  `ifdef SIM
+  assign DAC_INTERFACE = apuMaster;
+  `endif
+  
   
 
 endmodule

@@ -32,6 +32,7 @@
 
 module wb_apu 
   #(
+    parameter XLEN = 32,
     parameter ADDR_BITS = 16
   )  
   (
@@ -41,7 +42,7 @@ module wb_apu
 
     // Wishbone slave signals
     input wire [XLEN-1:0] slave_dat_i,
-    output wire [XLEN-1:0] slave_dat_o,
+    output reg [XLEN-1:0] slave_dat_o,
     input wire rst_i,
 
     output reg ack_o,
@@ -85,12 +86,12 @@ module wb_apu
 
   reg [1:0] apu_sm;
   always @(posedge clk_i) begin
-    if (rst_i)
-      apu_sm <= 1'b0;
+    if (rst_i) begin
+      apu_sm <= APU_IDLE;
       ack_o <= 1'b0;
-    else if (stb_i & cyc_i) begin
+    end else if (stb_i & cyc_i) begin
       case (apu_sm)
-        APU_IDLE:
+        default:
           begin
             section_sel <= section_sel_w;
             decoded_addr <= decoded_addr_w;
@@ -99,10 +100,10 @@ module wb_apu
         APU_DECODE:
           begin
             case (section_sel)
-              2'b00: if (we_i) regs_2a03[decoded_addr] <= slave_dat_i[7:0] else slave_dat_o <= {24'b0, regs_2a03[decoded_addr]};
-              2'b01: if (we_i) regs_vrc6_1[decoded_addr[1:0]] <= slave_dat_i[7:0] else slave_dat_o <= {24'b0, regs_vrc6_1[decoded_addr[1:0]]};
-              2'b10: if (we_i) regs_vrc6_2[decoded_addr[1:0]] <= slave_dat_i[7:0] else slave_dat_o <= {24'b0, regs_vrc6_2[decoded_addr[1:0]]};
-              2'b11: if (we_i) regs_vrc6_3[decoded_addr[1:0]] <= slave_dat_i[7:0] else slave_dat_o <= {24'b0, regs_vrc6_3[decoded_addr[1:0]]};
+              2'b00: if (we_i) regs_2a03[decoded_addr] <= slave_dat_i[7:0]; else slave_dat_o <= {24'b0, regs_2a03[decoded_addr]};
+              2'b01: if (we_i) regs_vrc6_1[decoded_addr[1:0]] <= slave_dat_i[7:0]; else slave_dat_o <= {24'b0, regs_vrc6_1[decoded_addr[1:0]]};
+              2'b10: if (we_i) regs_vrc6_2[decoded_addr[1:0]] <= slave_dat_i[7:0]; else slave_dat_o <= {24'b0, regs_vrc6_2[decoded_addr[1:0]]};
+              2'b11: if (we_i) regs_vrc6_3[decoded_addr[1:0]] <= slave_dat_i[7:0]; else slave_dat_o <= {24'b0, regs_vrc6_3[decoded_addr[1:0]]};
             endcase
             ack_o <= 1'b1;
             apu_sm <= apu_sm + 1'b1;
@@ -363,7 +364,7 @@ module wb_apu
       .data_o(mixed_vrc6)
     );
 
-  assign master_o = mixed_pulses + mixed_tnd + mixed_vrc6;
+  assign audio_o = mixed_pulses + mixed_tnd + mixed_vrc6;
   // assign master = mixed_tnd;
   // assign master = mixed_pulses;
 

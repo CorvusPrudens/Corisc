@@ -20,6 +20,8 @@ VERILOG_INCLUDES = \
 -I../../lattice \
 -I../../common \
 -I../../common/apu \
+-I../apu \
+-I../gpu \
 -I../
 
 MICROCODE = ../../rv32i/include/microcode.hex

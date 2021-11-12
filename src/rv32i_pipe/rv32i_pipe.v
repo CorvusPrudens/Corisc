@@ -39,13 +39,7 @@ module rv32i_pipe
     output wire we_o
   );
 
-  // TODO -- this will need to change later, and also we'll need per-stage clearing
-  // capabilities for jumps and such
   wire clear_pipeline = reset_i;
-
-  // TODO -- For now, the program memory could be self-contained, making the
-  // instruction caching unnecessary for the moment.
-  // Obviously we'll need to figure that out later
 
   //////////////////////////////////////////////////////////////
   // ~~STAGE 1~~ Prefetch signals 
@@ -197,22 +191,6 @@ module rv32i_pipe
     end else
       prefetch_pc <= program_counter; // another major hack? I swear this is just going to add bugs
   end
-
-  // rv32i_prefetch #(
-  //   .XLEN(XLEN),
-  //   .ILEN(ILEN),
-  //   .VTABLE_ADDR(32'h00000000),
-  //   .PROGRAM_PATH(`PROGRAM_PATH)
-  // ) RV32I_PREFETCH (
-  //   .clk_i(clk_i),
-  //   .clear_i(1'b0), // TODO -- fill this in
-  //   .reset_i(reset_i),
-  //   .advance_i(prefetch_ce),
-  //   .pc_i(prefetch_pc_in),
-  //   .pc_write_i(prefetch_pc_write),
-  //   .pc_o(prefetch_pc),
-  //   .instruction_o(prefetch_instruction)
-  // );
 
   //////////////////////////////////////////////////////////////
   // ~~STAGE 1~~ Prefetch pipeline logic 
@@ -482,7 +460,6 @@ module rv32i_pipe
   reg alu_data_ready_o;
   wire [3:0] alu_operation = alu_operation_opfetch;
   wire [XLEN-1:0] alu_result;
-  // TODO -- this logic will have to be duplicated across the three substages here
   wire [XLEN-1:0] alu_operand1 = stage4_latest_rs1;
   wire [XLEN-1:0] alu_operand2 = opfetch_immediate ? opfetch_immediate_data : stage4_latest_rs2;
   wire alu_equal;
@@ -635,7 +612,6 @@ module rv32i_pipe
   assign prefetch_pc_in_branch = writeback_branch_data;
 
   assign rd_addr = writeback_rd_addr;
-  // TODO -- this will need to change obviously
   assign registers_in = writeback_data;
   assign registers_write = writeback_registers_write;
 

@@ -10,7 +10,8 @@ module rv32i_instruction_cache
     parameter LINE_LEN = 4, // 16 instructions per line (64 bytes) therefore 8 lines
     parameter ILEN = 32,
     parameter XLEN = 32,
-    parameter VTABLE_ADDRESS = 32'h00000000
+    parameter VTABLE_ADDRESS = 32'h00000000,
+    parameter UNUSED_ADDR_BITS = 8
   )
   (
     input wire clk_i,
@@ -41,7 +42,6 @@ module rv32i_instruction_cache
     input wire err_i,
     output wire [3:0] sel_o,
     output wire stb_o
-
   );
 
   reg cache_valid;
@@ -83,11 +83,11 @@ module rv32i_instruction_cache
     .data_o(instruction_o)
   );
 
-  localparam TAG_WIDTH = (XLEN-2-LINE_LEN)+1; // we store the valid bit at MSB
+  localparam TAG_WIDTH = (XLEN-2-LINE_LEN-UNUSED_ADDR_BITS)+1; // we store the valid bit at MSB
   localparam LINE_COUNT = (CACHE_LEN-LINE_LEN);
   
-  wire [TAG_WIDTH-2:0] tag_i = addr_i[XLEN-1:LINE_LEN+2];
-  wire [TAG_WIDTH-2:0] working_tag_i = working_addr[XLEN-1:LINE_LEN+2];
+  wire [TAG_WIDTH-2:0] tag_i = addr_i[XLEN-1-UNUSED_ADDR_BITS:LINE_LEN+2];
+  wire [TAG_WIDTH-2:0] working_tag_i = working_addr[XLEN-1-UNUSED_ADDR_BITS:LINE_LEN+2];
   // wire [CACHE_LEN-1:0] index = addr_i[LINE_LEN+1:2];
   wire misaligned_exception = addr_i[0] | addr_i[1];
 
@@ -143,7 +143,7 @@ module rv32i_instruction_cache
   localparam FETCH_READ = 3'b010;
   localparam FETCH_DONE = 3'b100;
   
-  wire [XLEN-3:0] cache_write_src_addr = {working_addr[XLEN-1:LINE_LEN+2], cache_write_idx[LINE_LEN-1:0]};
+  wire [XLEN-3:0] cache_write_src_addr = {{UNUSED_ADDR_BITS{1'b0}}, working_addr[XLEN-1-UNUSED_ADDR_BITS:LINE_LEN+2], cache_write_idx[LINE_LEN-1:0]};
   wire [CACHE_LEN-1:0] cache_waddr_wire = {current_line, cache_write_idx[LINE_LEN-1:0]};
 
   integer j;
