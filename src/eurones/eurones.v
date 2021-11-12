@@ -9,6 +9,8 @@
 `include "rv32i_pipe.v"
 `include "wb_sram16.v"
 `include "wb_apu.v"
+`include "wb_gpu.v"
+`include "wb_flash.v"
 
 module eurones(
     input wire clk_i,
@@ -171,6 +173,46 @@ module eurones(
     .SRAM_OE(SRAM_OE),
     .SRAM_LB(SRAM_LB),
     .SRAM_UB(SRAM_UB)
+  );
+
+  wire gpu_int;
+
+  wb_gpu WB_GPU (
+    .clk_i(clk_i),
+    .slave_dat_i(master_dat_o),
+    .slave_dat_o(gpu_data),
+    .rst_i(reset_i),
+    .ack_o(gpu_ack),
+    .adr_i(master_adr[12:0]),
+    .cyc_i(master_cyc),
+    .err_o(gpu_err),
+    .sel_i(master_sel),
+    .stb_i(master_stb & gpu_sel),
+    .we_i(master_we),
+    .SDO(DIS_SDI),
+    .SCK(DIS_SCK),
+    .DC(DIS_DC),
+    .CS(DIS_CS),
+    .RES(DIS_RES),
+    .intVec_o(gpu_int)
+  );
+
+  wb_flash WB_FLASH (
+    .clk_i(clk_i),
+    .slave_dat_i(master_dat_o),
+    .slave_dat_o(gen_data),
+    .rst_i(reset_i),
+    .ack_o(gen_ack),
+    .adr_i(master_adr[0]),
+    .cyc_i(master_cyc),
+    .err_o(gen_err),
+    .sel_i(master_sel),
+    .stb_i(master_stb & gen_sel),
+    .we_i(master_we),
+    .CS(FLASH_CS),
+    .SDO(FLASH_SDI),
+    .SCK(FLASH_SCK),
+    .SDI(FLASH_SDO)
   );
 
   wire [15:0] apuMaster;
