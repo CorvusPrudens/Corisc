@@ -253,6 +253,34 @@ module rv32im_instruction_cache
     end
   end
 
+  `ifdef FORMAL
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    initial assume(reset_i);
+
+    // Ensuring everything is reset properly
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(reset_i)) begin
+        assert(cache_busy == 1'b0);
+        assert(working_addr == 0);
+        assert(cache_valid == 1'b0);
+        assert(vtable_lookup_init == 1'b0);
+        assert(vtable_sm == VTABLE_IDLE);
+        assert(vtable_done == 1'b0);
+        assert(vtable_req == 1'b0);
+        assert(fetch_sm == FETCH_IDLE);
+        assert(cache_write_idx == 0);
+        assert(fetch_done == 1'b0);
+        assert(cache_req == 1'b0);
+        assert(current_line == 0);
+      end
+    end
+
+
+
+  `endif
+
 endmodule
 
 `endif

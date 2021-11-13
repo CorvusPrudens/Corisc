@@ -52,5 +52,8 @@ compile:
 run:
 	./$(BUILD)/$(TARGET)
 
+formal:
+	sby -f -d $(BUILD) decode.sby
+
 clean:
 	rm -rf $(BUILD)

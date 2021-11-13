@@ -65,26 +65,38 @@ module rv32im_memory
       stb_o <= 1'b1;
       master_dat_o <= data_i;
       we_o <= write_i;
-    end else if (ack_i) begin
+    end else if (stb_o & ack_i) begin
       // transaction complete
       stb_o <= 1'b0;
       busy_o <= 1'b0;
       we_o <= 1'b0;
       data_o <= master_dat_i;
-    end else if (err_i) begin
+    end else if (stb_o & err_i) begin
       stb_o <= 1'b0;
-      busy_o <= 1'b0;
+      sel_o <= 0;
       we_o <= 1'b0;
+      busy_o <= 1'b0;
       err_o <= 1'b1;
     end
   end
 
-  // TODO -- need to get a wishbone bus going here...
-  // It will have two masters (arbitrated between instruction cache and the regular processor) and as many slaves as
-  // the user wants
-  // The memory map would be configured similar to before, where start and end addresses are indicated
+  `ifdef FORMAL
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(rst_i | clear_i)) begin
+        assert(stb_o == 1'b0);
+        assert(sel_o == 0);
+        assert(we_o == 1'b0);
+        assert(busy_o == 1'b0);
+        assert(err_o == 1'b0);
+      end
+    end
+
+  `endif
 
 
 endmodule
 
-`endif // RV32I_MEMORY_PIPE_GUARD
+`endif // RV32IM_MEMORY_GUARD

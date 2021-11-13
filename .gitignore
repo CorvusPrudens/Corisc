@@ -7,7 +7,6 @@
 build
 read_elf
 .DS_Store
-*.sby
 formal
 *.bin
 *.out

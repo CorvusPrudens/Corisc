@@ -572,7 +572,7 @@ module rv32im
     .err_o(mem_err),
     .master_dat_i(master_dat_i),
     .master_dat_o(master_dat_o),
-    .ack_i(ack_i),
+    .ack_i(ack_i & ~instruction_cache_arbitor),
     .adr_o(mem_adr_o),
     .cyc_o(mem_cyc_o),
     .err_i(err_i),

@@ -13,7 +13,7 @@ module rv32im_muldiv #(
     input wire [XLEN-1:0] operand1_i,
     input wire [XLEN-1:0] operand2_i,
     output reg [XLEN-1:0] result_o,
-    output wire data_ready_o,
+    output reg data_ready_o,
     output reg busy_o
   );
 
@@ -23,7 +23,7 @@ module rv32im_muldiv #(
   reg [1:0] op_steps;
   reg output_ready;
 
-  assign data_ready_o = output_ready;
+  // assign data_ready_o = output_ready;
 
   reg [XLEN-1:0] divop1;
   reg [XLEN-1:0] divop2;
@@ -33,8 +33,8 @@ module rv32im_muldiv #(
 
   wire [XLEN-1:0] designed_op1 = operand1[XLEN-1] ? ~operand1 + 32'b1 : operand1;
   wire [XLEN-1:0] designed_op2 = operand2[XLEN-1] ? ~operand2 + 32'b1 : operand2;
-  wire [XLEN-1:0] signed_quotient = quotient[XLEN-1] ? ~quotient + 32'b1 : quotient;
-  wire [XLEN-1:0] signed_remainder = remainder[XLEN-1] ? ~remainder + 32'b1 : remainder;
+  wire [XLEN-1:0] signed_quotient = div_outsign ? ~quotient + 32'b1 : quotient;
+  wire [XLEN-1:0] signed_remainder = div_outsign ? ~remainder + 32'b1 : remainder;
 
   reg div_start;
   wire div_busy;
@@ -56,13 +56,19 @@ module rv32im_muldiv #(
   always @(posedge clk_i) begin
     if (clear_i) begin
       busy_o <= 1'b0;
+      data_ready_o <= 1'b0;
     end else if (data_ready_i & ~busy_o) begin
+      data_ready_o <= 1'b0;
       busy_o <= 1'b1;
       operand1 <= operand1_i;
       operand2 <= operand2_i;
       operation <= operation_i;
-    end else if (output_ready)
+    end else if (output_ready) begin
+      data_ready_o <= 1'b1;
       busy_o <= 1'b0;
+    end else begin
+      data_ready_o <= 1'b0;
+    end
   end
 
   always @(posedge clk_i) begin
@@ -86,6 +92,7 @@ module rv32im_muldiv #(
           end
         {2'b01, DIV}:
           begin
+            div_start <= 1'b0;
             if (div_valid) begin
               result_o <= signed_quotient;
               output_ready <= 1'b1;
@@ -100,8 +107,11 @@ module rv32im_muldiv #(
           end
         {2'b01, DIVU}:
           begin
-            result_o <= quotient;
-            output_ready <= 1'b1;
+            div_start <= 1'b0;
+            if (div_valid) begin
+              result_o <= quotient;
+              output_ready <= 1'b1;
+            end
           end
         {2'b00, REM}:
           begin
@@ -113,6 +123,7 @@ module rv32im_muldiv #(
           end
         {2'b01, REM}:
           begin
+            div_start <= 1'b0;
             if (div_valid) begin
               result_o <= signed_remainder;
               output_ready <= 1'b1;
@@ -127,8 +138,11 @@ module rv32im_muldiv #(
           end
         {2'b01, REMU}:
           begin
-            result_o <= remainder;
-            output_ready <= 1'b1;
+            div_start <= 1'b0;
+            if (div_valid) begin
+              result_o <= remainder;
+              output_ready <= 1'b1;
+            end
           end
       endcase
     end else begin
@@ -141,6 +155,7 @@ module rv32im_muldiv #(
     .WIDTH(XLEN)
   ) RV32IM_DIV (
     .clk_i(clk_i),
+    .clear_i(clear_i),
     .start(div_start),
     .busy(div_busy),
     .valid(div_valid),
@@ -150,6 +165,39 @@ module rv32im_muldiv #(
     .q(quotient),
     .r(remainder)
   );
+
+  `ifdef FORMAL
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    initial assume(clear_i);
+
+    always @(*)
+      if (~timeValid_f)
+        assume(clear_i);
+
+    // Ensuring clear will always perform its job
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(clear_i)) begin
+        assert(busy_o == 0);
+        assert(output_ready == 0);
+        assert(op_steps == 0);
+        assert(div_busy == 0);
+        assert(div_valid == 0);
+      end
+    end
+
+    // always @(*)
+    //   if (busy_o) 
+    //     assume(~data_ready_i);
+
+    always @(posedge clk_i) begin
+      if (timeValid_f & data_ready_o)
+        assert(busy_o == 0);
+    end
+
+
+  `endif
   
 endmodule
 

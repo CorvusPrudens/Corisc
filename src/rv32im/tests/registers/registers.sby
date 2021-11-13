@@ -1,0 +1,19 @@
+[options]
+# mode bmc
+# depth 10
+mode prove
+
+[engines]
+# smtbmc yices
+# smtbmc boolector
+smtbmc z3
+
+[script]
+read -formal rv32im_registers.v
+prep -top rv32im_registers
+# opt_merge -share_all
+
+[files]
+../../rv32im_registers.v
+../../../blocks/bram_dual.v
+../../../blocks/stack.v

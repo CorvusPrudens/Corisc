@@ -3,6 +3,7 @@
 
 module rv32im_div #(parameter WIDTH=4) (
     input wire clk_i,
+    input wire clear_i,
     input wire start,          // start signal
     output reg busy,           // calculation in progress
     output reg valid,          // quotient and remainder are valid
@@ -30,7 +31,10 @@ module rv32im_div #(parameter WIDTH=4) (
     end
 
     always @(posedge clk_i) begin
-        if (start) begin
+        if (clear_i) begin
+            valid <= 0;
+            busy <= 0;
+        end else if (start) begin
             valid <= 0;
             i <= 0;
             if (y == 0) begin  // catch divide by zero

@@ -62,6 +62,7 @@ module rv32im_registers
 
   wire stack_overflow;
 
+  // TODO -- might want a reset here?
   stack #(
     .XLEN(XLEN),
     .SIZE(7) // 128 address ought to be way more than sufficient
@@ -75,19 +76,23 @@ module rv32im_registers
   );
 
   `ifdef FORMAL
-    // TODO -- find way to set initial BRAM values to zero
-    // FORMAL prove
     reg timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
 
-    always @(*)
-        assume(rs1_addr_i == rs2_addr_i);
+    // always @(*)
+    //     assume(rs1_addr_i == rs2_addr_i);
     
-    // TODO -- how to detect two-clock delayed events?
+    // // TODO -- how to detect two-clock delayed events?
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f && $past(write_i))
+    //     assert(rs1_o == rs2_o);
+    // end
+
     always @(posedge clk_i) begin
-      if (timeValid_f && $past(write_i))
-        assert(rs1_o == rs2_o);
+      if (timeValid_f & rd_addr_i == 0 & write_i)
+        assert(reg_write == 0);
     end
+
   `endif
 
 endmodule`endif // RV32I_REGISTERS_GUARD
