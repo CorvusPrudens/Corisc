@@ -17,26 +17,26 @@ module rv32im_muldiv #(
     output reg busy_o
   );
 
-  reg [XLEN-1:0] operand1;
-  reg [XLEN-1:0] operand2;
-  reg [2:0] operation;
-  reg [1:0] op_steps;
-  reg output_ready;
+  reg [XLEN-1:0] operand1 = 0;
+  reg [XLEN-1:0] operand2 = 0;
+  reg [2:0] operation = 0;
+  reg [1:0] op_steps = 0;
+  reg output_ready = 0;
 
   // assign data_ready_o = output_ready;
 
-  reg [XLEN-1:0] divop1;
-  reg [XLEN-1:0] divop2;
+  reg [XLEN-1:0] divop1 = 0;
+  reg [XLEN-1:0] divop2 = 0;
   wire [XLEN-1:0] quotient;
   wire [XLEN-1:0] remainder;
-  reg div_outsign;
+  reg div_outsign = 0;
 
   wire [XLEN-1:0] designed_op1 = operand1[XLEN-1] ? ~operand1 + 32'b1 : operand1;
   wire [XLEN-1:0] designed_op2 = operand2[XLEN-1] ? ~operand2 + 32'b1 : operand2;
   wire [XLEN-1:0] signed_quotient = div_outsign ? ~quotient + 32'b1 : quotient;
   wire [XLEN-1:0] signed_remainder = div_outsign ? ~remainder + 32'b1 : remainder;
 
-  reg div_start;
+  reg div_start = 0;
   wire div_busy;
   wire div_zero;
   wire div_valid;

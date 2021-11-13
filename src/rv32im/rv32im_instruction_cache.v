@@ -44,17 +44,17 @@ module rv32im_instruction_cache
     output wire stb_o
   );
 
-  reg cache_valid;
+  reg cache_valid = 0;
   assign cache_invalid_o = ~cache_valid;
 
-  reg cache_busy;
-  reg vtable_busy;
-  reg cache_req;
-  reg vtable_req;
-  reg cache_stb;
-  reg vtable_stb;
-  reg [XLEN-3:0] cache_adr;
-  reg [XLEN-3:0] vtable_adr;
+  reg cache_busy = 0;
+  reg vtable_busy = 0;
+  reg cache_req = 0;
+  reg vtable_req = 0;
+  reg cache_stb = 0;
+  reg vtable_stb = 0;
+  reg [XLEN-3:0] cache_adr = 0;
+  reg [XLEN-3:0] vtable_adr = 0;
   
   assign busy_o = cache_busy | vtable_busy;
   assign ctrl_req_o = cache_req | vtable_req;
@@ -64,12 +64,12 @@ module rv32im_instruction_cache
   assign sel_o = 4'b1111;
   assign cyc_o = stb_o;
 
-  // reg cache_write;
+  // reg cache_write = 0;
   // wire [ILEN-1:0] instruction_i;
-  reg [CACHE_LEN-1:0] cache_waddr;
+  reg [CACHE_LEN-1:0] cache_waddr = 0;
   wire [CACHE_LEN-1:0] cache_raddr;
 
-  reg [XLEN-1:0] working_addr;
+  reg [XLEN-1:0] working_addr = 0;
 
   bram_dual #(
     .memSize_p(CACHE_LEN),
@@ -91,10 +91,10 @@ module rv32im_instruction_cache
   // wire [CACHE_LEN-1:0] index = addr_i[LINE_LEN+1:2];
   wire misaligned_exception = addr_i[0] | addr_i[1];
 
-  reg [LINE_COUNT-1:0] current_line;
+  reg [LINE_COUNT-1:0] current_line = 0;
   reg [TAG_WIDTH-1:0] tags [(2**LINE_COUNT)-1:0]; 
 
-  reg [LINE_COUNT:0] matching_tag;
+  reg [LINE_COUNT:0] matching_tag = 0;
   integer i;
   always @(*) begin
     matching_tag = {1'b1, {LINE_COUNT{1'b0}}};
@@ -104,8 +104,8 @@ module rv32im_instruction_cache
   end
 
   assign cache_raddr = {matching_tag[LINE_COUNT-1:0], addr_i[LINE_LEN+1:2]};
-  reg fetch_done;
-  reg vtable_lookup_init;
+  reg fetch_done = 0;
+  reg vtable_lookup_init = 0;
   
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -134,10 +134,10 @@ module rv32im_instruction_cache
       vtable_busy <= 1'b0;
   end
 
-  reg [LINE_LEN:0] cache_write_idx;
+  reg [LINE_LEN:0] cache_write_idx = 0;
   // wire [LINE_LEN:0] cache_write_idx_p1 = cache_write_idx + 1'b1;
   wire cache_write_done = cache_write_idx[LINE_LEN];
-  reg [2:0] fetch_sm;
+  reg [2:0] fetch_sm = 0;
   localparam FETCH_IDLE = 3'b000;
   localparam FETCH_ARB =  3'b001;
   localparam FETCH_READ = 3'b010;
@@ -203,12 +203,12 @@ module rv32im_instruction_cache
   // TODO -- if the critical path lies along the memory, then consider
   // combining the always blocks of these two state machines so the
   // output address doesn't have to be muxed
-  reg [2:0] vtable_sm;
+  reg [2:0] vtable_sm = 0;
   localparam VTABLE_IDLE = 3'b000;
   localparam VTABLE_ARB  = 3'b001;
   localparam VTABLE_WRITE = 3'b010;
   localparam VTABLE_DONE = 3'b100;
-  reg vtable_done;
+  reg vtable_done = 0;
 
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -259,25 +259,29 @@ module rv32im_instruction_cache
 
     initial assume(reset_i);
 
-    // Ensuring everything is reset properly
-    always @(posedge clk_i) begin
-      if (timeValid_f & $past(reset_i)) begin
-        assert(cache_busy == 1'b0);
-        assert(working_addr == 0);
-        assert(cache_valid == 1'b0);
-        assert(vtable_lookup_init == 1'b0);
-        assert(vtable_sm == VTABLE_IDLE);
-        assert(vtable_done == 1'b0);
-        assert(vtable_req == 1'b0);
-        assert(fetch_sm == FETCH_IDLE);
-        assert(cache_write_idx == 0);
-        assert(fetch_done == 1'b0);
-        assert(cache_req == 1'b0);
-        assert(current_line == 0);
-      end
-    end
+    // These cause huge slowdowns
+    // // Ensuring everything is reset properly
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f & $past(reset_i)) begin
+    //     assert(cache_busy == 1'b0);
+    //     assert(working_addr == 0);
+    //     assert(cache_valid == 1'b0);
+    //     assert(vtable_lookup_init == 1'b0);
+    //     assert(vtable_sm == VTABLE_IDLE);
+    //     assert(vtable_done == 1'b0);
+    //     assert(vtable_req == 1'b0);
+    //     assert(fetch_sm == FETCH_IDLE);
+    //     assert(cache_write_idx == 0);
+    //     assert(fetch_done == 1'b0);
+    //     assert(cache_req == 1'b0);
+    //     assert(current_line == 0);
+    //   end
+    // end
 
-
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f & $past(fetch_done))
+    //     assert(cache_busy == 0);
+    // end
 
   `endif
 

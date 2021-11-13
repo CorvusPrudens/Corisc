@@ -96,12 +96,12 @@ module rv32im_alu
 
     // Data will always travel through on a single clock, and will never be ready
     // if nothing was input
-    always @(posedge clk_i) begin
-      if (timeValid_f & $past(data_ready_i) & ~$past(clear_i))
-        assert(data_ready_o);
-      if (timeValid_f & ~$past(data_ready_i) & ~$past(clear_i))
-        assert(~data_ready_o);
-    end
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f & $past(data_ready_i) & ~$past(clear_i))
+    //     assert(data_ready_o);
+    //   if (timeValid_f & ~$past(data_ready_i) & ~$past(clear_i))
+    //     assert(~data_ready_o);
+    // end
 
     // // Responses should happen one clock after data is accepted, no stalling
     // always @(posedge clk_i) begin

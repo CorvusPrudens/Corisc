@@ -88,10 +88,11 @@ module rv32im_registers
     //     assert(rs1_o == rs2_o);
     // end
 
-    always @(posedge clk_i) begin
-      if (timeValid_f & rd_addr_i == 0 & write_i)
-        assert(reg_write == 0);
-    end
+    // This causes huge slowdowns
+    // always @(posedge clk_i) begin
+    //   if (timeValid_f & rd_addr_i == 0 & write_i)
+    //     assert(reg_write == 0);
+    // end
 
   `endif
 

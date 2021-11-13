@@ -48,7 +48,7 @@ module rv32im
   // pipeline
   wire prefetch_ce;
   wire prefetch_stall;
-  reg prefetch_data_ready_o;
+  reg prefetch_data_ready_o = 0;
 
   wire jal_jump;
   wire jalr_jump;
@@ -57,12 +57,12 @@ module rv32im
   // Prefetch
   // I/O
   wire [ILEN-1:0] prefetch_instruction;
-  reg [XLEN-1:0] prefetch_pc_in;
+  reg [XLEN-1:0] prefetch_pc_in = 0;
   wire [XLEN-1:0] prefetch_pc_in_jal;
   wire [XLEN-1:0] prefetch_pc_in_jalr;
   wire [XLEN-1:0] prefetch_pc_in_branch;
   wire prefetch_pc_write;
-  reg [XLEN-1:0] prefetch_pc;
+  reg [XLEN-1:0] prefetch_pc = 0;
 
   reg [XLEN-1:0] program_counter = 0;
   localparam VTABLE_ADDR = 32'h00300000;
@@ -95,7 +95,7 @@ module rv32im
   );
 
   // Instruction cache
-  reg instruction_cache_arbitor;
+  reg instruction_cache_arbitor = 0;
   wire icache_cyc_o;
   wire [XLEN-3:0] icache_adr_o;
   wire [3:0] icache_sel_o;
@@ -161,7 +161,7 @@ module rv32im
   end
 
   // // For rolling back after a cache miss
-  // reg [XLEN-1:0] prev_program_counter;
+  // reg [XLEN-1:0] prev_program_counter = 0;
   // always @(posedge clk_i) begin
   //   prev_program_counter <= prefetch_pc;
   // end
@@ -212,7 +212,7 @@ module rv32im
   // ~~STAGE 2~~ Instruction decode signals 
   //////////////////////////////////////////////////////////////
 
-  reg decode_data_ready_o;
+  reg decode_data_ready_o = 0;
 
   wire decode_stall;
   wire decode_ce;
@@ -290,14 +290,14 @@ module rv32im
   // ~~STAGE 3~~ Opfetch signals
   //////////////////////////////////////////////////////////////
 
-  wire registers_write;
+  wire registers_write = 0;
   wire [REG_BITS-1:0] rs1_addr = decode_rs1_addr;
   wire [REG_BITS-1:0] rs2_addr = decode_rs2_addr;
   wire [REG_BITS-1:0] rd_addr;
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
   wire [XLEN-1:0] ras;
-  wire [XLEN-1:0] registers_in;
+  wire [XLEN-1:0] registers_in = 0;
 
   rv32im_registers #(
     .XLEN          (XLEN),
@@ -323,7 +323,7 @@ module rv32im
 
   wire opfetch_busy = 1'b0;
 
-  reg opfetch_data_ready_o;
+  reg opfetch_data_ready_o = 0;
   wire opfetch_ce;
   wire opfetch_stall;
   wire opfetch_clear = clear_pipeline | jalr_jump | branch_jump;
@@ -340,17 +340,17 @@ module rv32im
   reg [2:0] opfetch_branch_conditions = 0;
 
   reg opfetch_immediate = 0;
-  reg [XLEN-1:0] opfetch_immediate_data;
+  reg [XLEN-1:0] opfetch_immediate_data = 0;
   reg [3:0] alu_operation_opfetch = 0;
-  reg [REG_BITS-1:0] opfetch_rd_addr;
-  reg [REG_BITS-1:0] opfetch_rs1_addr;
-  reg [REG_BITS-1:0] opfetch_rs2_addr;
-  reg [2:0] opfetch_stage4_path;
-  reg [2:0] opfetch_word_size;
-  reg opfetch_write;
-  reg [XLEN-1:0] opfetch_pc;
-  reg opfetch_link;
-  reg [XLEN-1:0] opfetch_link_data;
+  reg [REG_BITS-1:0] opfetch_rd_addr = 0;
+  reg [REG_BITS-1:0] opfetch_rs1_addr = 0;
+  reg [REG_BITS-1:0] opfetch_rs2_addr = 0;
+  reg [2:0] opfetch_stage4_path = 0;
+  reg [2:0] opfetch_word_size = 0;
+  reg opfetch_write = 0;
+  reg [XLEN-1:0] opfetch_pc = 0;
+  reg opfetch_link = 0;
+  reg [XLEN-1:0] opfetch_link_data = 0;
 
   assign opfetch_stall = opfetch_data_ready_o & (stage4_stalled | opfetch_busy);
   assign opfetch_ce = decode_data_ready_o & ~opfetch_stall;
@@ -422,12 +422,12 @@ module rv32im
   wire stage4_clear = clear_pipeline | branch_jump;
   wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o | muldiv_data_ready_o;
 
-  reg [REG_BITS-1:0] stage4_rs1_addr;
-  reg [REG_BITS-1:0] stage4_rs2_addr;
-  reg [REG_BITS-1:0] stage4_rd_addr;
+  reg [REG_BITS-1:0] stage4_rs1_addr = 0;
+  reg [REG_BITS-1:0] stage4_rs2_addr = 0;
+  reg [REG_BITS-1:0] stage4_rd_addr = 0;
 
-  reg [XLEN-1:0] stage4_result;
-  reg [2:0] stage4_stage4_path;
+  reg [XLEN-1:0] stage4_result = 0;
+  reg [2:0] stage4_stage4_path = 0;
 
   wire latest_rs1_in_writeback = (opfetch_rs1_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
   wire latest_rs2_in_writeback = (opfetch_rs2_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
@@ -459,7 +459,7 @@ module rv32im
   //////////////////////////////////////////////////////////////
 
   // I/O
-  reg alu_data_ready_o;
+  reg alu_data_ready_o = 0;
   wire [3:0] alu_operation = alu_operation_opfetch;
   wire [XLEN-1:0] alu_result;
   wire [XLEN-1:0] alu_operand1 = stage4_latest_rs1;
@@ -475,10 +475,10 @@ module rv32im
   reg [XLEN-1:0] alu_immediate_data = 0;
   reg [XLEN-1:0] alu_pc = 0;
   reg alu_branch = 0;
-  reg [2:0] alu_branch_conditions;
+  reg [2:0] alu_branch_conditions = 0;
 
-  reg alu_link;
-  reg [XLEN-1:0] alu_link_data;
+  reg alu_link = 0;
+  reg [XLEN-1:0] alu_link_data = 0;
 
   rv32im_alu #(
     .XLEN                    (XLEN)
@@ -536,10 +536,10 @@ module rv32im
 
   wire mem_busy;
   wire [XLEN-1:0] mem_data_out_raw;
-  reg [XLEN-1:0] mem_data_out;
+  reg [XLEN-1:0] mem_data_out = 0;
   wire mem_err;
 
-  reg mem_data_ready_o;
+  reg mem_data_ready_o = 0;
   wire mem_transaction_done = ack_i & ~instruction_cache_arbitor;
   wire memory_clear = stage4_clear;
   wire memory_ce = stage4_ce & opfetch_stage4_path[1];
@@ -548,7 +548,7 @@ module rv32im
   wire [XLEN-1:0] memory_data_in = stage4_latest_rs2;
   wire [XLEN-1:0] memory_addr_in = stage4_latest_rs1 + opfetch_immediate_data;
 
-  reg [2:0] mem_word_size;
+  reg [2:0] mem_word_size = 0;
 
   // Wishbone muxed signals
   wire [XLEN-3:0] mem_adr_o;
@@ -611,7 +611,7 @@ module rv32im
 
   wire [XLEN-1:0] muldiv_result;
 
-  reg muldiv_data_ready_o;
+  reg muldiv_data_ready_o = 0;
 
   assign muldiv_ce = stage4_ce & opfetch_stage4_path[2];
   assign muldiv_stall = (muldiv_data_ready_o & writeback_stalled) | muldiv_busy;
@@ -643,15 +643,15 @@ module rv32im
   // ~~STAGE 5~~ Writeback signals
   //////////////////////////////////////////////////////////////
 
-  reg [XLEN-1:0] writeback_data;
-  reg [REG_BITS-1:0] writeback_rd_addr;
-  reg writeback_registers_write;
+  reg [XLEN-1:0] writeback_data = 0;
+  reg [REG_BITS-1:0] writeback_rd_addr = 0;
+  reg writeback_registers_write = 0;
   wire writeback_ce;
   wire writeback_stalled;
   wire writeback_clear = clear_pipeline;
-  reg writeback_branch;
+  reg writeback_branch = 0;
   assign branch_jump = writeback_branch;
-  reg [XLEN-1:0] writeback_branch_data;
+  reg [XLEN-1:0] writeback_branch_data = 0;
   assign prefetch_pc_in_branch = writeback_branch_data;
 
   assign rd_addr = writeback_rd_addr;
@@ -695,6 +695,54 @@ module rv32im
   //   else
   //     writeback_registers_write <= 1'b0;
   // end
+
+  `ifdef FORMAL
+    reg timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    initial assume(reset_i);
+
+    always @(*)
+      assume(master_dat_i == 0); // no need for other kinds of testing I think
+    
+    // for now we're ignoring interrupt testing
+    always @(*)
+      assume(interrupt_vector == 0);
+
+    // We'll also assume a global reset isn't issues after startup (which probably won't ever happen XD)
+    always @(*)
+      if (timeValid_f)
+        assume(reset_i == 0);
+      else
+        assume(reset_i == 1);
+
+    // Valid assuming reset_i is asserted at startup
+    always @(*) begin
+      if (~timeValid_f) begin
+        assume(vtable_pc_write == 0);
+        assume(jal_jump == 0);
+        assume(jalr_jump == 0);
+      end
+    end
+    
+    //////////////////////////////////////////////////////////////
+    // ~~STAGE 1~~ Prefetch section
+    //////////////////////////////////////////////////////////////
+
+    // Checking program counter writes
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(vtable_pc_write)) begin
+        assert(program_counter == $past(prefetch_pc_in));
+      end
+
+      if (timeValid_f & $past(prefetch_pc_write) & ~cache_invalid)
+        assert(program_counter == $past(prefetch_pc_in + (prefetch_ce ? 4 : 0)));
+    end
+    
+
+    
+
+  `endif
 
 endmodule
 
