@@ -15,10 +15,10 @@ module rv32im_div #(parameter WIDTH=4) (
 
     localparam WIDTH_M1 = WIDTH-1;
 
-    logic [WIDTH-1:0] y1;            // copy of divisor
-    logic [WIDTH-1:0] q1, q1_next;   // intermediate quotient
-    logic [WIDTH:0] ac, ac_next;     // accumulator (1 bit wider)
-    logic [$clog2(WIDTH)-1:0] i;     // iteration counter
+    reg [WIDTH-1:0] y1;            // copy of divisor
+    reg [WIDTH-1:0] q1, q1_next;   // intermediate quotient
+    reg [WIDTH:0] ac, ac_next;     // accumulator (1 bit wider)
+    reg [$clog2(WIDTH)-1:0] i;     // iteration counter
 
     always @(*) begin
         if (ac >= {1'b0,y1}) begin

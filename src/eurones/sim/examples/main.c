@@ -119,5 +119,7 @@ void main()
   // {
   //   GpuProcess();
   // }
-  int temp = SimpleCalc(10, 20);
+  // int temp = SimpleCalc(10, 20);
+  volatile int value = 100;
+  volatile int val2 = value * 5;
 }

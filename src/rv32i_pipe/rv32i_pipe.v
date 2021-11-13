@@ -7,6 +7,7 @@
 `include "rv32i_registers_pipe.v"
 `include "rv32i_memory_pipe.v"
 `include "rv32i_instruction_cache.v"
+`include "rv32im_muldiv.v"
 
 `ifndef PROGRAM_PATH
 `define PROGRAM_PATH "eurones.hex"

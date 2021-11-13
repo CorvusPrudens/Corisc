@@ -8,7 +8,7 @@ module wb_gpu
   #(
     parameter gpuSize_p = 9,
     parameter gpuInputWidth_p = 12,
-    parameter initData_p = "../units/include/initdata.hex",
+    parameter initData_p = "../gpu/initdata.hex",
     parameter ADDR_BITS = 14,
     parameter XLEN = 32
   )

@@ -73,7 +73,7 @@ module rv32im_muldiv #(
       case ({op_steps, operation})
         default: // MUL
           begin
-            result_o <= operand1 * operand2;
+            result_o <= operand1 * operand2; // TODO -- probably better to add a synchronous multiply
             output_ready <= 1'b1;
           end
         {2'b00, DIV}:
