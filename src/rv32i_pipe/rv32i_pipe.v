@@ -230,7 +230,7 @@ module rv32i_pipe
   wire pop_ras;
   wire push_ras;
   wire [2:0] decode_branch_condition;
-  wire [1:0] decode_stage4_path;
+  wire [2:0] decode_stage4_path;
   wire decode_write;
 
   wire decode_jalr;
@@ -345,7 +345,7 @@ module rv32i_pipe
   reg [REG_BITS-1:0] opfetch_rd_addr;
   reg [REG_BITS-1:0] opfetch_rs1_addr;
   reg [REG_BITS-1:0] opfetch_rs2_addr;
-  reg [1:0] opfetch_stage4_path;
+  reg [2:0] opfetch_stage4_path;
   reg [2:0] opfetch_word_size;
   reg opfetch_write;
   reg [XLEN-1:0] opfetch_pc;
@@ -408,25 +408,26 @@ module rv32i_pipe
   // ~~STAGE 4~~ ~~ALL BRANCHes~~ Stage 4 I/O
   //////////////////////////////////////////////////////////////
 
-  wire stage4_stalled = alu_stalled | memory_stalled;
+  wire stage4_stalled = alu_stalled | memory_stalled | muldiv_stall;
 
   reg stage4_ce;
   always @(*) begin
     case (opfetch_stage4_path)
       default: stage4_ce = opfetch_data_ready_o & ~alu_stalled;
-      2'b10: stage4_ce = opfetch_data_ready_o & ~memory_stalled;
+      3'b010: stage4_ce = opfetch_data_ready_o & ~memory_stalled;
+      3'b100: stage4_ce = opfetch_data_ready_o & ~muldiv_stall;
     endcase
   end
 
   wire stage4_clear = clear_pipeline | branch_jump;
-  wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o;
+  wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o | muldiv_data_ready_o;
 
   reg [REG_BITS-1:0] stage4_rs1_addr;
   reg [REG_BITS-1:0] stage4_rs2_addr;
   reg [REG_BITS-1:0] stage4_rd_addr;
 
   reg [XLEN-1:0] stage4_result;
-  reg [1:0] stage4_stage4_path;
+  reg [2:0] stage4_stage4_path;
 
   wire latest_rs1_in_writeback = (opfetch_rs1_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
   wire latest_rs2_in_writeback = (opfetch_rs2_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
@@ -448,7 +449,8 @@ module rv32i_pipe
   always @(*) begin
     case (stage4_stage4_path)
       default: stage4_result = alu_link ? alu_link_data : alu_result;
-      2'b10: stage4_result = mem_data_out;
+      3'b010: stage4_result = mem_data_out;
+      3'b100: stage4_result = muldiv_result;
     endcase
   end
 
@@ -594,6 +596,46 @@ module rv32i_pipe
       3'b001: mem_data_out = {{XLEN-16{mem_data_out_raw[15]}}, mem_data_out_raw[15:0]};
       default: mem_data_out = mem_data_out_raw;
     endcase
+  end
+
+  //////////////////////////////////////////////////////////////
+  // ~~STAGE 4~~ ~~BRANCH 3~~ Muldiv signals
+  //////////////////////////////////////////////////////////////
+
+  wire muldiv_clear = stage4_clear;
+  wire muldiv_busy;
+  wire muldiv_ce;
+  wire muldiv_stall;
+  wire muldiv_valid;
+
+  wire [XLEN-1:0] muldiv_result;
+
+  reg muldiv_data_ready_o;
+
+  assign muldiv_ce = stage4_ce & opfetch_stage4_path[2];
+  assign muldiv_stall = (muldiv_data_ready_o & writeback_stalled) | muldiv_busy;
+
+  rv32im_muldiv #(
+    .XLEN(XLEN)
+  ) RV32IM_MULDIV (
+    .clk_i(clk_i),
+    .clear_i(muldiv_clear),
+    .operation_i(alu_operation[2:0]),
+    .data_ready_i(muldiv_ce),
+    .operand1_i(stage4_latest_rs1),
+    .operand2_i(stage4_latest_rs2),
+    .result_o(muldiv_result),
+    .data_ready_o(muldiv_valid),
+    .busy_o(muldiv_busy)
+  );
+
+  always @(posedge clk_i) begin
+    if (muldiv_clear) begin
+      muldiv_data_ready_o <= 1'b0;
+    end else if (muldiv_valid) begin
+      muldiv_data_ready_o <= 1'b1;
+    end else if (writeback_ce)
+      muldiv_data_ready_o <= 1'b0;
   end
 
   //////////////////////////////////////////////////////////////

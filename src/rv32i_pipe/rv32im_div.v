@@ -1,17 +1,19 @@
 `ifndef RV32IM_DIV
 `define RV32IM_DIV
 
-module div_int #(parameter WIDTH=4) (
+module rv32im_div #(parameter WIDTH=4) (
     input wire clk_i,
     input wire start,          // start signal
-    output     busy,           // calculation in progress
-    output     valid,          // quotient and remainder are valid
-    output     dbz,            // divide by zero flag
+    output reg busy,           // calculation in progress
+    output reg valid,          // quotient and remainder are valid
+    output reg dbz,            // divide by zero flag
     input wire [WIDTH-1:0] x,  // dividend
     input wire [WIDTH-1:0] y,  // divisor
-    output     [WIDTH-1:0] q,  // quotient
-    output     [WIDTH-1:0] r   // remainder
+    output reg [WIDTH-1:0] q,  // quotient
+    output reg [WIDTH-1:0] r   // remainder
     );
+
+    localparam WIDTH_M1 = WIDTH-1;
 
     logic [WIDTH-1:0] y1;            // copy of divisor
     logic [WIDTH-1:0] q1, q1_next;   // intermediate quotient
@@ -41,7 +43,7 @@ module div_int #(parameter WIDTH=4) (
                 {ac, q1} <= {{WIDTH{1'b0}}, x, 1'b0};
             end
         end else if (busy) begin
-            if (i == WIDTH-1) begin  // we're done
+            if (i == WIDTH_M1[$clog2(WIDTH)-1:0]) begin  // we're done
                 busy <= 0;
                 valid <= 1;
                 q <= q1_next;
