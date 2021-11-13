@@ -1,2 +1,2 @@
 # Corisc
- Corvus's RISC-V CPU
+ Corvus's pipelined RISC-V CPU.
