@@ -1,0 +1,18 @@
+[options]
+# mode bmc
+# depth 10
+mode prove
+
+[engines]
+# smtbmc yices
+# smtbmc boolector
+smtbmc z3
+
+[script]
+read -formal rv32im_muldiv.v
+prep -top rv32im_muldiv
+# opt_merge -share_all
+
+[files]
+../../rv32im_muldiv.v
+../../rv32im_div.v

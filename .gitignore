@@ -7,12 +7,18 @@
 build
 read_elf
 .DS_Store
-*.sby
 formal
 *.bin
 *.out
 settings.json
 tasks.json
+src/rv32i_pipe/lattice/pipe/pipe_Implmnt
+src/rv32i_pipe/lattice/pipe/*.v
+src/rv32i_pipe/lattice/pipe/*.hex
+*.bak
+synlog*
+trace.vcd
+src/eurones/lattice/eurones
 
 # User-specific files
 *.rsuser

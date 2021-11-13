@@ -1,0 +1,27 @@
+[options]
+mode bmc
+depth 25
+# mode prove
+
+[engines]
+smtbmc yices
+# smtbmc boolector
+# smtbmc z3
+
+[script]
+read -formal rv32im.v
+prep -top rv32im
+# opt_merge -share_all
+
+[files]
+../../rv32im.v
+../../rv32im_alu.v
+../../rv32im_decode.v
+../../rv32im_registers.v
+../../rv32im_memory.v
+../../rv32im_instruction_cache.v
+../../rv32im_interrupts.v
+../../rv32im_muldiv.v
+../../rv32im_div.v
+../../../blocks/bram_dual.v
+../../../blocks/stack.v

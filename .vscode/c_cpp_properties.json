@@ -3,12 +3,9 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/src/sim/build",
-                "${workspaceFolder}/src/sim/examples",
-                "${workspaceFolder}/src/sim/examples/core",
-                "${workspaceFolder}/src/sim/examples/modules",
-                "/usr/local/share/verilator/include"
+                "${workspaceFolder}/src/rv32im/tests",
+                "${workspaceFolder}/src/rv32im/tests/**",
+                "${VERILATOR_INCL}/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
