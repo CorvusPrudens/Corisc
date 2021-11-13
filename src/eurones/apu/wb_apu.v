@@ -65,8 +65,7 @@ module wb_apu
   // I/O interface
   localparam APU_IDLE   = 2'b00;
   localparam APU_DECODE = 2'b01;
-  localparam APU_OP     = 2'b10;
-  localparam APU_DONE   = 2'b11;
+  localparam APU_DONE   = 2'b10;
 
   wire [1:0] section_sel_w = adr_i[12:11]; // I think this is right -- should be bits 14/13 of full address
   reg [1:0] section_sel;

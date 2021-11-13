@@ -541,6 +541,7 @@ module rv32i_pipe
   wire mem_err;
 
   reg mem_data_ready_o;
+  wire mem_transaction_done = ack_i & ~instruction_cache_arbitor;
   wire memory_clear = stage4_clear;
   wire memory_ce = stage4_ce & opfetch_stage4_path[1];
   wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy | (opfetch_data_ready_o & instruction_cache_arbitor & opfetch_stage4_path[1]);
@@ -584,7 +585,7 @@ module rv32i_pipe
   always @(posedge clk_i) begin
     if (memory_clear)
        mem_data_ready_o <= 1'b0;
-    else if (ack_i & ~instruction_cache_arbitor) begin
+    else if (mem_transaction_done) begin
       mem_data_ready_o <= 1'b1;
       mem_word_size <= opfetch_word_size;
     end else if (writeback_ce)

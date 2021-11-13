@@ -75,7 +75,7 @@ module eurones(
   wire master_stb;
   wire master_we;
 
-  wire [1:0] address_select = {master_adr[21:20]};
+  wire [1:0] address_select = {master_adr[19:18]};
 
   wire [XLEN-1:0] apu_data;
   wire [XLEN-1:0] gen_data = 0;
