@@ -1,4 +1,0 @@
-@N: MF248 |Running in 64-bit mode.
-@N: MF666 |Clock conversion enabled. (Command "set_option -fix_gated_and_generated_clocks 1" in the project file.)
-@N: BN362 :"/home/corvus/Documents/github/pers/corisc/src/rv32i/rv32i_memory.v":87:2:87:7|Removing sequential instance illegal_access_o (in view: work.rv32i_memory_Z2(verilog)) of type view:PrimLib.sdffse(prim) because it does not drive other instances.
-@N: BN225 |Writing default property annotation file /home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/ram_project_Implmnt/ram_project.sap.

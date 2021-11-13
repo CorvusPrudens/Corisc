@@ -1,1 +1,0 @@
-@W: MT529 :"/home/corvus/Documents/github/pers/corisc/src/lattice/ram_project/bram_dual.v":28:2:28:7|Found inferred clock rv32i|clk_i which controls 1233 sequential elements including RV32I_REGISTERS.RS1.data_o[31:0]. This clock has no specified timing constraint which may prevent conversion of gated or generated clocks and may adversely impact design performance. 

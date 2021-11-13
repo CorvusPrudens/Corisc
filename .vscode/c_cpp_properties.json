@@ -3,16 +3,9 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/src/eurones/sim/build",
-                "${workspaceFolder}/src/eurones/sim/examples",
-                "${workspaceFolder}/src/eurones/sim/examples/core",
-                "${workspaceFolder}/src/eurones/sim/examples/modules",
-                "${workspaceFolder}/src/sim/build",
-                "${workspaceFolder}/src/sim/examples",
-                "${workspaceFolder}/src/sim/examples/core",
-                "${workspaceFolder}/src/sim/examples/modules",
-                "/usr/local/share/verilator/include"
+                "${workspaceFolder}/src/rv32im/tests",
+                "${workspaceFolder}/src/rv32im/tests/**",
+                "${VERILATOR_INCL}/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

@@ -1,1 +1,0 @@
-../../common/bram_init_dual.v
