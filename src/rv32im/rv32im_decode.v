@@ -87,8 +87,10 @@ module rv32im_decode
   wire rs1_link = (rs1_addr == LINK_REGISTER) | (rs1_addr == LINK_REGISTER_ALT);
   wire rd_rs1_eq = rd_addr == rs1_addr;
 
-  reg push_ras = 0;
-  reg pop_ras = 0;
+  reg  push_ras;
+  initial push_ras = 0;
+  reg  pop_ras;
+  initial pop_ras = 0;
 
   wire jal_ras = (opcode[6:2] == OP_JAL);
   wire jalr_ras = (opcode[6:2] == OP_JALR);
@@ -123,12 +125,14 @@ module rv32im_decode
   // TODO -- we'll need to figure this out
   wire pc_save_uepc = 0;
 
-  reg [XLEN-1:0] uepc = 0;
+  reg [XLEN-1:0] uepc;
+  initial uepc = 0;
   always @(posedge clk_i)
     if (pc_save_uepc)
       uepc <= pc_data_i;
 
-  reg [5:0] instruction_encoding = 0;
+  reg [5:0] instruction_encoding;
+  initial instruction_encoding = 0;
   localparam R_TYPE = 6'b000001; // Register-register operations
   localparam I_TYPE = 6'b000010; // Immediate operations
   localparam S_TYPE = 6'b000100; // Stores

@@ -1,3 +1,5 @@
+`ifndef RV32IM_INTERRUPTS_GUARD
+`define RV32IM_INTERRUPTS_GUARD
 
 module rv32im_interrupts
   #(
@@ -18,10 +20,12 @@ module rv32im_interrupts
     input wire interrupt_advance_i
   );
 
-  reg [INT_VECT_LEN-1:0] interrupt_mask = 0;
+  reg [INT_VECT_LEN-1:0] interrupt_mask;
+  initial interrupt_mask = 0;
   assign interrupt_mask_o = interrupt_mask;
   wire [INT_VECT_LEN-1:0] interrupt_masked = interrupt_vector_i & interrupt_mask;
-  reg [INT_VECT_LEN-1:0] interrupt_vector = 0;
+  reg [INT_VECT_LEN-1:0] interrupt_vector;
+  initial interrupt_vector = 0;
   assign interrupt_vector_o = interrupt_handling;
   wire [XLEN-1:0] interrupt_vector_offset_full;
 
@@ -35,7 +39,8 @@ module rv32im_interrupts
       interrupt_vector <= interrupt_vector | interrupt_masked;
   end
 
-  reg [INT_VECT_LEN-1:0] interrupt_handling = 0;
+  reg [INT_VECT_LEN-1:0] interrupt_handling;
+  initial interrupt_handling = 0;
   wire [INT_VECT_LEN-1:0] interrupt_vector_low;
 
   assign interrupt_vector_low[0] = interrupt_vector[0];
@@ -105,3 +110,5 @@ module rv32im_interrupts
   assign interrupt_vector_offset_full = {{(XLEN-OFFSET_LEN)-2{1'b0}}, interrupt_vector_offset, 2'b0};
 
 endmodule
+
+`endif // RV32IM_INTERRUPTS_GUARD

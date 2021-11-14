@@ -85,7 +85,8 @@ module rv32im_alu
 
   `ifdef FORMAL
 
-    reg timeValid_f = 0;
+    reg  timeValid_f;
+    initial timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
 
     // // We'll assume no data is input while stalled

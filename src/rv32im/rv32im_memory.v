@@ -81,7 +81,8 @@ module rv32im_memory
   end
 
   `ifdef FORMAL
-    reg timeValid_f = 0;
+    reg  timeValid_f;
+    initial timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
 
     always @(posedge clk_i) begin

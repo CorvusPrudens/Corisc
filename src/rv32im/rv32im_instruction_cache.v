@@ -44,17 +44,26 @@ module rv32im_instruction_cache
     output wire stb_o
   );
 
-  reg cache_valid = 0;
+  reg  cache_valid;
+  initial cache_valid = 0;
   assign cache_invalid_o = ~cache_valid;
 
-  reg cache_busy = 0;
-  reg vtable_busy = 0;
-  reg cache_req = 0;
-  reg vtable_req = 0;
-  reg cache_stb = 0;
-  reg vtable_stb = 0;
-  reg [XLEN-3:0] cache_adr = 0;
-  reg [XLEN-3:0] vtable_adr = 0;
+  reg  cache_busy;
+  initial cache_busy = 0;
+  reg  vtable_busy;
+  initial vtable_busy = 0;
+  reg  cache_req;
+  initial cache_req = 0;
+  reg  vtable_req;
+  initial vtable_req = 0;
+  reg  cache_stb;
+  initial cache_stb = 0;
+  reg  vtable_stb;
+  initial vtable_stb = 0;
+  reg [XLEN-3:0] cache_adr;
+  initial cache_adr = 0;
+  reg [XLEN-3:0] vtable_adr;
+  initial vtable_adr = 0;
   
   assign busy_o = cache_busy | vtable_busy;
   assign ctrl_req_o = cache_req | vtable_req;
@@ -66,10 +75,12 @@ module rv32im_instruction_cache
 
   // reg cache_write = 0;
   // wire [ILEN-1:0] instruction_i;
-  reg [CACHE_LEN-1:0] cache_waddr = 0;
+  reg [CACHE_LEN-1:0] cache_waddr;
+  initial cache_waddr = 0;
   wire [CACHE_LEN-1:0] cache_raddr;
 
-  reg [XLEN-1:0] working_addr = 0;
+  reg [XLEN-1:0] working_addr;
+  initial working_addr = 0;
 
   bram_dual #(
     .memSize_p(CACHE_LEN),
@@ -91,10 +102,11 @@ module rv32im_instruction_cache
   // wire [CACHE_LEN-1:0] index = addr_i[LINE_LEN+1:2];
   wire misaligned_exception = addr_i[0] | addr_i[1];
 
-  reg [LINE_COUNT-1:0] current_line = 0;
+  reg [LINE_COUNT-1:0] current_line;
+  initial current_line = 0;
   reg [TAG_WIDTH-1:0] tags [(2**LINE_COUNT)-1:0]; 
 
-  reg [LINE_COUNT:0] matching_tag = 0;
+  reg [LINE_COUNT:0] matching_tag;
   integer i;
   always @(*) begin
     matching_tag = {1'b1, {LINE_COUNT{1'b0}}};
@@ -104,8 +116,10 @@ module rv32im_instruction_cache
   end
 
   assign cache_raddr = {matching_tag[LINE_COUNT-1:0], addr_i[LINE_LEN+1:2]};
-  reg fetch_done = 0;
-  reg vtable_lookup_init = 0;
+  reg  fetch_done;
+  initial fetch_done = 0;
+  reg  vtable_lookup_init;
+  initial vtable_lookup_init = 0;
   
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -134,10 +148,12 @@ module rv32im_instruction_cache
       vtable_busy <= 1'b0;
   end
 
-  reg [LINE_LEN:0] cache_write_idx = 0;
+  reg [LINE_LEN:0] cache_write_idx;
+  initial cache_write_idx = 0;
   // wire [LINE_LEN:0] cache_write_idx_p1 = cache_write_idx + 1'b1;
   wire cache_write_done = cache_write_idx[LINE_LEN];
-  reg [2:0] fetch_sm = 0;
+  reg [2:0] fetch_sm;
+  initial fetch_sm = 0;
   localparam FETCH_IDLE = 3'b000;
   localparam FETCH_ARB =  3'b001;
   localparam FETCH_READ = 3'b010;
@@ -203,12 +219,14 @@ module rv32im_instruction_cache
   // TODO -- if the critical path lies along the memory, then consider
   // combining the always blocks of these two state machines so the
   // output address doesn't have to be muxed
-  reg [2:0] vtable_sm = 0;
+  reg [2:0] vtable_sm;
+  initial vtable_sm = 0;
   localparam VTABLE_IDLE = 3'b000;
   localparam VTABLE_ARB  = 3'b001;
   localparam VTABLE_WRITE = 3'b010;
   localparam VTABLE_DONE = 3'b100;
-  reg vtable_done = 0;
+  reg  vtable_done;
+  initial vtable_done = 0;
 
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -254,7 +272,8 @@ module rv32im_instruction_cache
   end
 
   `ifdef FORMAL
-    reg timeValid_f = 0;
+    reg  timeValid_f;
+    initial timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
 
     initial assume(reset_i);
