@@ -42,15 +42,11 @@ module rv32im_muldiv #(
   wire [XLEN-1:0] remainder;
   reg  div_outsign;
   initial div_outsign = 0;
-  reg mul_outsign;
-  initial mul_outsign = 0;
-  wire [XLEN*2-1] product;
 
   wire [XLEN-1:0] designed_op1 = operand1[XLEN-1] ? ~operand1 + 32'b1 : operand1;
   wire [XLEN-1:0] designed_op2 = operand2[XLEN-1] ? ~operand2 + 32'b1 : operand2;
   wire [XLEN-1:0] signed_quotient = div_outsign ? ~quotient + 32'b1 : quotient;
   wire [XLEN-1:0] signed_remainder = div_outsign ? ~remainder + 32'b1 : remainder;
-  wire [XLEN-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
 
   reg  div_start;
   initial div_start = 0;
@@ -58,10 +54,18 @@ module rv32im_muldiv #(
   wire div_zero;
   wire div_valid;
 
+  `ifndef HARDWARE_MULTIPLY
   reg  mul_start;
   initial mul_start = 0;
   wire mul_busy;
   wire mul_valid;
+
+  reg mul_outsign;
+  initial mul_outsign = 0;
+  wire [XLEN*2-1:0] product;
+
+  wire [XLEN-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
+  `endif
 
   localparam MUL    = 3'b000;
   localparam MULH   = 3'b001; // I'm just gonna ignore these for now since I don't find them very useful
@@ -191,6 +195,7 @@ module rv32im_muldiv #(
     end
   end
 
+  `ifndef HARDWARE_MULTIPLY
   rv32im_mul #(
     .XLEN(XLEN)
   ) RV32IM_MUL (
@@ -203,6 +208,7 @@ module rv32im_muldiv #(
     .operand2_i(designed_op2),
     .product_o(product)
   );
+  `endif
 
   rv32im_div #(
     .WIDTH(XLEN)

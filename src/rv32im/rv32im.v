@@ -167,7 +167,7 @@ module rv32im
 
   // // For rolling back after a cache miss
   // reg [XLEN-1:0] prev_program_counter;
-  initial prev_program_counter = 0;
+  // initial prev_program_counter = 0;
   // always @(posedge clk_i) begin
   //   prev_program_counter <= prefetch_pc;
   // end
@@ -297,14 +297,14 @@ module rv32im
   // ~~STAGE 3~~ Opfetch signals
   //////////////////////////////////////////////////////////////
 
-  wire registers_write = 0;
+  wire registers_write;
   wire [REG_BITS-1:0] rs1_addr = decode_rs1_addr;
   wire [REG_BITS-1:0] rs2_addr = decode_rs2_addr;
   wire [REG_BITS-1:0] rd_addr;
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
   wire [XLEN-1:0] ras;
-  wire [XLEN-1:0] registers_in = 0;
+  wire [XLEN-1:0] registers_in;
 
   rv32im_registers #(
     .XLEN          (XLEN),

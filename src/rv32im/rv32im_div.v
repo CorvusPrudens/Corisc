@@ -19,7 +19,7 @@ module rv32im_div #(parameter WIDTH=4) (
     reg [WIDTH-1:0] y1;
     initial y1 = 0;            // copy of divisor
     reg [WIDTH-1:0] q1, q1_next;
-    initial q1 = 0
+    initial q1 = 0;
     initial q1_next = 0;   // intermediate quotient
     reg [WIDTH:0] ac, ac_next;
     initial ac = 0;
