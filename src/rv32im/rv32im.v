@@ -8,10 +8,6 @@
 `include "rv32im_instruction_cache.v"
 `include "rv32im_muldiv.v"
 
-`ifndef PROGRAM_PATH
-`define PROGRAM_PATH "eurones.hex"
-`endif
-
 module rv32im
   #(
     parameter XLEN = 32,

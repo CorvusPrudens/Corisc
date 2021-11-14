@@ -64,7 +64,7 @@ module rv32im_muldiv #(
   initial mul_outsign = 0;
   wire [XLEN*2-1:0] product;
 
-  wire [XLEN-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
+  wire [XLEN*2-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
   `endif
 
   localparam MUL    = 3'b000;
