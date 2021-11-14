@@ -3,6 +3,10 @@
 
 `include "rv32im_div.v"
 
+`ifndef HARDWARE_MULTIPLY
+`include "rv32im_mul.v"
+`endif
+
 module rv32im_muldiv #(
     XLEN = 32
   ) (
@@ -38,17 +42,26 @@ module rv32im_muldiv #(
   wire [XLEN-1:0] remainder;
   reg  div_outsign;
   initial div_outsign = 0;
+  reg mul_outsign;
+  initial mul_outsign = 0;
+  wire [XLEN*2-1] product;
 
   wire [XLEN-1:0] designed_op1 = operand1[XLEN-1] ? ~operand1 + 32'b1 : operand1;
   wire [XLEN-1:0] designed_op2 = operand2[XLEN-1] ? ~operand2 + 32'b1 : operand2;
   wire [XLEN-1:0] signed_quotient = div_outsign ? ~quotient + 32'b1 : quotient;
   wire [XLEN-1:0] signed_remainder = div_outsign ? ~remainder + 32'b1 : remainder;
+  wire [XLEN-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
 
   reg  div_start;
   initial div_start = 0;
   wire div_busy;
   wire div_zero;
   wire div_valid;
+
+  reg  mul_start;
+  initial mul_start = 0;
+  wire mul_busy;
+  wire mul_valid;
 
   localparam MUL    = 3'b000;
   localparam MULH   = 3'b001; // I'm just gonna ignore these for now since I don't find them very useful
@@ -86,11 +99,29 @@ module rv32im_muldiv #(
       op_steps <= 0;
     end else if (busy_o) begin
       case ({op_steps, operation})
+        `ifdef HARDWARE_MULTIPLY
         default: // MUL
           begin
-            result_o <= operand1 * operand2; // TODO -- probably better to add a synchronous multiply
+            result_o <= operand1 * operand2;
             output_ready <= 1'b1;
           end
+        `else
+        default: output_ready <= 1'b1; // errors silently passed
+        {2'b00, MUL}: 
+          begin
+            mul_outsign <= operand1[XLEN-1] ^ operand2[XLEN-1];
+            mul_start <= 1'b1;
+            op_steps <= op_steps + 1'b1;
+          end
+        {2'b01, MUL}:
+          begin
+            mul_start <= 1'b0;
+            if (mul_valid) begin
+              result_o <= signed_product[XLEN-1:0];
+              output_ready <= 1'b1;
+            end
+          end
+        `endif
         {2'b00, DIV}:
           begin
             divop1 <= designed_op1;
@@ -159,6 +190,19 @@ module rv32im_muldiv #(
       op_steps <= 0;
     end
   end
+
+  rv32im_mul #(
+    .XLEN(XLEN)
+  ) RV32IM_MUL (
+    .clk_i(clk_i),
+    .reset_i(clear_i),
+    .start_i(mul_start),
+    .busy_o(mul_busy),
+    .valid_o(mul_valid),
+    .operand1_i(designed_op1),
+    .operand2_i(designed_op2),
+    .product_o(product)
+  );
 
   rv32im_div #(
     .WIDTH(XLEN)
