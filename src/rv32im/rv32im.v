@@ -8,6 +8,9 @@
 `include "rv32im_instruction_cache.v"
 `include "rv32im_muldiv.v"
 
+// TODO -- need to insert stalls in cases where a JAL or JALR follows a BRANCH -- since they can push / pop the stack, this
+// may result in a corrupted RAS
+
 module rv32im
   #(
     parameter XLEN = 32,
@@ -44,6 +47,7 @@ module rv32im
   // pipeline
   wire prefetch_ce;
   wire prefetch_stall;
+  wire prefetch_clear = prefetch_pc_write;
   reg  prefetch_data_ready_o;
   initial prefetch_data_ready_o = 0;
 
@@ -202,7 +206,7 @@ module rv32im
   assign prefetch_ce = ~prefetch_stall;
 
   always @(posedge clk_i) begin
-    if (reset_i | clear_pipeline)
+    if (reset_i | jal_jump)
       prefetch_data_ready_o <= 1'b0;
     else if (prefetch_ce & ~cache_invalid)
       prefetch_data_ready_o <= 1'b1;
@@ -216,6 +220,8 @@ module rv32im
 
   reg  decode_data_ready_o;
   initial decode_data_ready_o = 0;
+
+  wire processing_jump;
 
   wire decode_stall;
   wire decode_ce;
@@ -241,6 +247,7 @@ module rv32im
 
   wire decode_link;
   wire [XLEN-1:0] decode_link_data;
+  
 
   rv32im_decode #(
     .XLEN(32),
@@ -270,14 +277,15 @@ module rv32im
     .pop_ras_o(pop_ras),
     .push_ras_o(push_ras),
     .stage4_path_o(decode_stage4_path),
-    .memory_write_o(decode_write)
+    .memory_write_o(decode_write),
+    .processing_jump(processing_jump)
   );
 
   //////////////////////////////////////////////////////////////
   // ~~STAGE 2~~ Instruction decode pipeline logic
   //////////////////////////////////////////////////////////////
 
-  assign decode_stall = decode_data_ready_o & opfetch_stall;
+  assign decode_stall = (decode_data_ready_o & opfetch_stall) | processing_jump & (decode_branch | decode_jalr);
   assign decode_ce = prefetch_data_ready_o & ~decode_stall;
 
   always @(posedge clk_i) begin
@@ -336,7 +344,7 @@ module rv32im
 
   reg  opfetch_jalr;
   initial opfetch_jalr = 0;
-  assign jalr_jump = opfetch_jalr;
+  assign jalr_jump = opfetch_jalr & ~mem_stb_o;
   reg [XLEN-1:0] opfetch_jalr_target;
   initial opfetch_jalr_target = 0;
   reg  opfetch_pop_ras;
@@ -629,14 +637,28 @@ module rv32im
 
   always @(posedge clk_i) begin
     if (memory_clear)
+      mem_word_size <= 0;
+    else if (memory_ce) begin
+      mem_word_size <= opfetch_word_size;
+    end
+  end
+
+  always @(posedge clk_i) begin
+    if (memory_clear)
        mem_data_ready_o <= 1'b0;
     else if (mem_transaction_done) begin
       mem_data_ready_o <= 1'b1;
-      mem_word_size <= opfetch_word_size;
+      // mem_word_size <= opfetch_word_size;
+      // case (mem_word_size)
+      //   3'b000: mem_data_out <= {{XLEN-8{mem_data_out_raw[7]}}, mem_data_out_raw[7:0]};
+      //   3'b001: mem_data_out <= {{XLEN-16{mem_data_out_raw[15]}}, mem_data_out_raw[15:0]};
+      //   default: mem_data_out <= mem_data_out_raw;
+      // endcase
     end else if (writeback_ce)
       mem_data_ready_o <= 1'b0;
   end 
 
+  // Shouldn't this just be synchronous?
   always @(*) begin
     case (mem_word_size)
       3'b000: mem_data_out = {{XLEN-8{mem_data_out_raw[7]}}, mem_data_out_raw[7:0]};
@@ -719,6 +741,7 @@ module rv32im
       writeback_registers_write <= 1'b0;
       writeback_data <= 0;
       writeback_rd_addr <= 0;
+      writeback_branch <= 1'b0;
     end else if (writeback_ce) begin
       writeback_data <= stage4_result;
       writeback_rd_addr <= stage4_rd_addr;
@@ -737,8 +760,10 @@ module rv32im
       end else begin
         writeback_branch <= 1'b0;
       end
-    end else
+    end else begin
       writeback_registers_write <= 1'b0;
+      writeback_branch <= 1'b0;
+    end
   end
   // always @(posedge clk_i) begin
   //   if (reset_i | clear_pipeline)

@@ -40,7 +40,9 @@ module rv32im_decode
     output reg push_ras_o,
 
     output reg [2:0] stage4_path_o,
-    output reg memory_write_o
+    output reg memory_write_o,
+
+    output reg processing_jump
   );
 
   localparam OP_L     = 5'b00000;
@@ -159,6 +161,16 @@ module rv32im_decode
       OP_JALR:  instruction_encoding = I_TYPE;
       OP_JAL:   instruction_encoding = J_TYPE;
       OP_SYS:   instruction_encoding = I_TYPE;
+    endcase
+  end
+
+  // TODO -- this is all sorts of buggy
+  always @(*) begin
+    case (opcode[6:2])
+      default: processing_jump = 0;
+      OP_JAL: processing_jump = 1;
+      OP_JALR: processing_jump = 1;
+      OP_B: processing_jump = 1;
     endcase
   end
 
