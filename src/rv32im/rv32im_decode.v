@@ -120,7 +120,8 @@ module rv32im_decode
     endcase
   end
 
-  wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} + pc_data_i - 32'd4 : {u_immediate, 12'b0};
+  // Difference between AUIPC and LUI is bit 5
+  wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} : {u_immediate, 12'b0} + pc_data_i;
 
   // TODO -- we'll need to figure this out
   wire pc_save_uepc = 0;
@@ -230,8 +231,8 @@ module rv32im_decode
             immediate_o <= funct3[2] ? {20'b0, i_immediate} : load_offset;
             word_size_o <= funct3;
 
-            // I believe this is sufficient to determine a JALR
-            if (~opcode[4]) begin
+            // One bit is needed to distinguish between JALR and L/AI
+            if (opcode[5]) begin
               jalr_o <= 1'b1; // no need to reset because this will be cleared
               alu_operation_o <= 4'b0000;
               link_data_o <= pc_data_i + 32'h04;
@@ -255,7 +256,7 @@ module rv32im_decode
             rd_addr_o <= rd_addr;
             alu_operation_o <= 4'b0000;
             // Difference between AUIPC and LUI is bit 5
-            immediate_o <= opcode[5] ? upper_immediate : upper_immediate + pc_data_i;
+            immediate_o <= upper_immediate;
           end
         J_TYPE:
           begin

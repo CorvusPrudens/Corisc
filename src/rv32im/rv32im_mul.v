@@ -19,6 +19,7 @@ module rv32im_mul #(
   reg [XLEN-1:0] operand1;
   reg [XLEN-1:0] operand2;
   reg [$clog2(XLEN):0] counter; // NOTE -- requires inputs to be powers of two!
+  wire [$clog2(XLEN):0] counter_p1 = counter + 1;
 
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -29,7 +30,7 @@ module rv32im_mul #(
       valid_o <= 1'b0;
     end else if (busy_o) begin
       counter <= counter + 1'b1;
-      if (counter[$clog2(XLEN)]) begin
+      if (counter_p1[$clog2(XLEN)]) begin
         valid_o <= 1'b1;
         busy_o <= 1'b0;
       end

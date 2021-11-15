@@ -18,7 +18,8 @@ module rv32im_muldiv #(
     input wire [XLEN-1:0] operand2_i,
     output reg [XLEN-1:0] result_o,
     output reg data_ready_o,
-    output reg busy_o
+    output reg busy_o,
+    input wire writeback_ce_i
   );
 
   reg [XLEN-1:0] operand1;
@@ -89,10 +90,10 @@ module rv32im_muldiv #(
       operand1 <= operand1_i;
       operand2 <= operand2_i;
       operation <= operation_i;
-    end else if (output_ready) begin
+    end else if (output_ready & busy_o) begin
       data_ready_o <= 1'b1;
       busy_o <= 1'b0;
-    end else begin
+    end else if (writeback_ce_i) begin
       data_ready_o <= 1'b0;
     end
   end

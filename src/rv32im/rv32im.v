@@ -180,16 +180,16 @@ module rv32im
         prefetch_pc <= program_counter;
         program_counter <= program_counter + 32'b100;
       end
-    end else if (prefetch_pc_write & ~cache_invalid) begin
+    end else if (prefetch_pc_write) begin
       prefetch_pc <= prefetch_pc_in;
       program_counter <= prefetch_pc_in;
-    end else if (vtable_pc_write) begin
-      prefetch_pc <= prefetch_pc_in;
-      program_counter <= prefetch_pc_in;
-    end else if (cache_invalid & decode_ce) begin
-      program_counter <= program_counter - 4;
-      // program_counter <= prev_program_counter;
-      // prefetch_pc <= prev_program_counter;
+    // end else if (vtable_pc_write) begin
+    //   prefetch_pc <= prefetch_pc_in;
+    //   program_counter <= prefetch_pc_in;
+    // end else if (cache_invalid & decode_ce) begin
+    //   program_counter <= program_counter - 4;
+    //   // program_counter <= prev_program_counter;
+    //   // prefetch_pc <= prev_program_counter;
     end else
       prefetch_pc <= program_counter; // another major hack? I swear this is just going to add bugs
   end
@@ -219,7 +219,7 @@ module rv32im
 
   wire decode_stall;
   wire decode_ce;
-  wire decode_clear = clear_pipeline | jal_jump | jalr_jump | branch_jump | cache_invalid;
+  wire decode_clear = clear_pipeline | jal_jump | jalr_jump | branch_jump;
 
   // Outputs
   wire [3:0] alu_operation_decode;
@@ -302,6 +302,8 @@ module rv32im
   wire [XLEN-1:0] ras;
   wire [XLEN-1:0] registers_in;
 
+  wire opfetch_ce;
+
   rv32im_registers #(
     .XLEN          (XLEN),
     .REG_BITS      (REG_BITS)
@@ -309,6 +311,7 @@ module rv32im
     .clk_i         (clk_i),
     .write_i       (registers_write),
     .data_i        (registers_in),
+    .data_ready_i  (opfetch_ce),
     .rs1_addr_i    (rs1_addr),
     .rs2_addr_i    (rs2_addr),
     .rd_addr_i     (rd_addr),
@@ -328,7 +331,6 @@ module rv32im
 
   reg  opfetch_data_ready_o;
   initial opfetch_data_ready_o = 0;
-  wire opfetch_ce;
   wire opfetch_stall;
   wire opfetch_clear = clear_pipeline | jalr_jump | branch_jump;
 
@@ -342,7 +344,7 @@ module rv32im
   reg [XLEN-1:0] opfetch_ras;
   initial opfetch_ras = 0;
 
-  wire [XLEN-1:0] jalr_base = opfetch_pop_ras ? opfetch_ras : latest_rs1_in_writeback ? alu_result : rs1;
+  wire [XLEN-1:0] jalr_base = opfetch_pop_ras ? opfetch_ras : stage4_latest_rs1;
   assign prefetch_pc_in_jalr = opfetch_jalr_target + jalr_base;
   reg  opfetch_branch;
   initial opfetch_branch = 0;
@@ -432,14 +434,16 @@ module rv32im
 
   wire stage4_stalled = alu_stalled | memory_stalled | muldiv_stall;
 
-  reg stage4_ce;
-  always @(*) begin
-    case (opfetch_stage4_path)
-      default: stage4_ce = opfetch_data_ready_o & ~alu_stalled;
-      3'b010: stage4_ce = opfetch_data_ready_o & ~memory_stalled;
-      3'b100: stage4_ce = opfetch_data_ready_o & ~muldiv_stall;
-    endcase
-  end
+  // // TODO -- is this actually valid?
+  // reg stage4_ce;
+  // always @(*) begin
+  //   case (opfetch_stage4_path)
+  //     default: stage4_ce = opfetch_data_ready_o & ~alu_stalled;
+  //     3'b010: stage4_ce = opfetch_data_ready_o & ~memory_stalled;
+  //     3'b100: stage4_ce = opfetch_data_ready_o & ~muldiv_stall;
+  //   endcase
+  // end
+  wire stage4_ce = opfetch_data_ready_o & ~stage4_stalled;
 
   wire stage4_clear = clear_pipeline | branch_jump;
   wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o | muldiv_data_ready_o;
@@ -456,11 +460,14 @@ module rv32im
   reg [2:0] stage4_stage4_path;
   initial stage4_stage4_path = 0;
 
-  wire latest_rs1_in_writeback = (opfetch_rs1_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
-  wire latest_rs2_in_writeback = (opfetch_rs2_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
+  wire latest_rs1_in_writeback1 = (opfetch_rs1_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
+  wire latest_rs2_in_writeback1 = (opfetch_rs2_addr == stage4_rd_addr) & (stage4_rd_addr != 0);
 
-  wire [XLEN-1:0] stage4_latest_rs1 = latest_rs1_in_writeback ? stage4_result : rs1;
-  wire [XLEN-1:0] stage4_latest_rs2 = latest_rs2_in_writeback ? stage4_result : rs2;
+  wire latest_rs1_in_writeback2 = (opfetch_rs1_addr == writeback_rd_addr) & (writeback_rd_addr != 0);
+  wire latest_rs2_in_writeback2 = (opfetch_rs2_addr == writeback_rd_addr) & (writeback_rd_addr != 0);
+
+  wire [XLEN-1:0] stage4_latest_rs1 = latest_rs1_in_writeback1 ? stage4_result : latest_rs1_in_writeback2 ? writeback_data : rs1;
+  wire [XLEN-1:0] stage4_latest_rs2 = latest_rs2_in_writeback1 ? stage4_result : latest_rs2_in_writeback2 ? writeback_data : rs2;
 
   always @(posedge clk_i) begin
     if (stage4_clear) begin
@@ -540,6 +547,8 @@ module rv32im
   assign alu_stalled = alu_data_ready_o & writeback_stalled;
   assign alu_ce = stage4_ce & opfetch_stage4_path[0];
   assign alu_clear = stage4_clear;
+
+  wire writeback_ce;
 
   always @(posedge clk_i) begin
     if (alu_clear) begin
@@ -648,8 +657,7 @@ module rv32im
 
   wire [XLEN-1:0] muldiv_result;
 
-  reg  muldiv_data_ready_o;
-  initial muldiv_data_ready_o = 0;
+  wire  muldiv_data_ready_o;
 
   assign muldiv_ce = stage4_ce & opfetch_stage4_path[2];
   assign muldiv_stall = (muldiv_data_ready_o & writeback_stalled) | muldiv_busy;
@@ -665,17 +673,20 @@ module rv32im
     .operand2_i(stage4_latest_rs2),
     .result_o(muldiv_result),
     .data_ready_o(muldiv_valid),
-    .busy_o(muldiv_busy)
+    .busy_o(muldiv_busy),
+    .writeback_ce_i(writeback_ce)
   );
 
-  always @(posedge clk_i) begin
-    if (muldiv_clear) begin
-      muldiv_data_ready_o <= 1'b0;
-    end else if (muldiv_valid) begin
-      muldiv_data_ready_o <= 1'b1;
-    end else if (writeback_ce)
-      muldiv_data_ready_o <= 1'b0;
-  end
+  assign muldiv_data_ready_o = muldiv_valid;
+
+  // always @(posedge clk_i) begin
+  //   if (muldiv_clear) begin
+  //     muldiv_data_ready_o <= 1'b0;
+  //   end else if (muldiv_valid) begin
+  //     muldiv_data_ready_o <= 1'b1;
+  //   end else if (writeback_ce)
+  //     muldiv_data_ready_o <= 1'b0;
+  // end
 
   //////////////////////////////////////////////////////////////
   // ~~STAGE 5~~ Writeback signals
@@ -687,7 +698,6 @@ module rv32im
   initial writeback_rd_addr = 0;
   reg  writeback_registers_write;
   initial writeback_registers_write = 0;
-  wire writeback_ce;
   wire writeback_stalled;
   wire writeback_clear = clear_pipeline;
   reg  writeback_branch;

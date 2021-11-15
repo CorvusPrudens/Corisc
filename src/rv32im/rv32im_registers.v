@@ -1,7 +1,7 @@
 `ifndef RV32I_REGISTERS_GUARD
 `define RV32I_REGISTERS_GUARD
 
-`include "bram_dual.v"
+`include "bram_dual_re.v"
 `include "stack.v"
 
 // NOTE -- address setup needs at least half a clock!
@@ -14,6 +14,7 @@ module rv32im_registers
     input wire clk_i,
     input wire write_i,
     input wire [XLEN-1:0] data_i,
+    input wire data_ready_i,
 
     input wire [REG_BITS-1:0] rs1_addr_i,
     input wire [REG_BITS-1:0] rs2_addr_i,
@@ -32,12 +33,13 @@ module rv32im_registers
   // Register 0 can't be written to
   wire reg_write = rd_addr_i == 0 ? 1'b0 : write_i;
 
-  bram_dual #(
+  bram_dual_re #(
     .memSize_p(REG_BITS),
     .dataWidth_p(XLEN)
   ) RS1 (
     .clk_i(clk_i),
     .write_i(reg_write),
+    .read_i(data_ready_i),
     .data_i(data_i),
 
     .waddr_i(rd_addr_i),
@@ -46,12 +48,13 @@ module rv32im_registers
     .data_o(rs1_o)
   );
 
-  bram_dual #(
+  bram_dual_re #(
     .memSize_p(REG_BITS),
     .dataWidth_p(XLEN)
   ) RS2 (
     .clk_i(clk_i),
     .write_i(reg_write),
+    .read_i(data_ready_i),
     .data_i(data_i),
 
     .waddr_i(rd_addr_i),

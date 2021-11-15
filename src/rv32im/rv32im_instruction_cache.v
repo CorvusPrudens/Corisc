@@ -1,7 +1,7 @@
 `ifndef RV32IM_INSTRUCTION_CACHE
 `define RV32IM_INSTRUCTION_CACHE
 
-`include "bram_dual.v"
+`include "bram_dual_re.v"
 `include "rv32im_interrupts.v"
 
 module rv32im_instruction_cache 
@@ -46,7 +46,8 @@ module rv32im_instruction_cache
 
   reg  cache_valid;
   initial cache_valid = 0;
-  assign cache_invalid_o = ~cache_valid;
+  // assign cache_invalid_o = ~cache_valid;
+  assign cache_invalid_o = matching_tag[LINE_COUNT];
 
   reg  cache_busy;
   initial cache_busy = 0;
@@ -82,12 +83,13 @@ module rv32im_instruction_cache
   reg [XLEN-1:0] working_addr;
   initial working_addr = 0;
 
-  bram_dual #(
+  bram_dual_re #(
     .memSize_p(CACHE_LEN),
     .dataWidth_p(ILEN)
-  ) BRAM_DUAL (
+  ) BRAM_DUAL_RE (
     .clk_i(clk_i),
     .write_i(ack_i & cache_req),
+    .read_i(advance_i),
     .data_i(master_dat_i),
     .waddr_i(cache_waddr),
     .raddr_i(cache_raddr),
