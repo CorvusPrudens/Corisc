@@ -71,8 +71,8 @@ module rv32im_registers
     .SIZE(7) // 128 address ought to be way more than sufficient
   ) RAS (
     .clk_i(clk_i),
-    .push_i(push_ras_i),
-    .pop_i(pop_ras_i),
+    .push_i(push_ras_i & data_ready_i),
+    .pop_i(pop_ras_i & data_ready_i),
     .data_i(pc_i + 32'h04),
     .data_o(ras_o),
     .overflow_o(stack_overflow)

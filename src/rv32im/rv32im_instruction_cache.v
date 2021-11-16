@@ -17,6 +17,7 @@ module rv32im_instruction_cache
     input wire clk_i,
     input wire reset_i,
     input wire advance_i,
+    input wire jump_i,
     output wire busy_o,
     input wire [XLEN-1:0] addr_i,
     output wire [ILEN-1:0] instruction_o,
@@ -89,7 +90,7 @@ module rv32im_instruction_cache
   ) BRAM_DUAL_RE (
     .clk_i(clk_i),
     .write_i(ack_i & cache_req),
-    .read_i(advance_i),
+    .read_i(advance_i | jump_i),
     .data_i(master_dat_i),
     .waddr_i(cache_waddr),
     .raddr_i(cache_raddr),

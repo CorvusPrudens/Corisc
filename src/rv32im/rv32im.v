@@ -38,6 +38,8 @@ module rv32im
     output wire we_o
   );
 
+  wire wb_we;
+
   wire clear_pipeline = reset_i;
 
   //////////////////////////////////////////////////////////////
@@ -124,6 +126,8 @@ module rv32im
       instruction_cache_arbitor <= 1'b0;
   end
 
+  assign we_o = instruction_cache_arbitor ? 1'b0 : wb_we;
+
   rv32im_instruction_cache #(
     .CACHE_LEN(7),
     .LINE_LEN(4), // NOTE -- this is the bits for the word count, not byte count
@@ -134,6 +138,7 @@ module rv32im
     .clk_i(clk_i),
     .reset_i(reset_i),
     .advance_i(prefetch_ce),
+    .jump_i(prefetch_pc_write),
     .busy_o(icache_busy),
     .addr_i(prefetch_pc_write ? prefetch_pc_in : program_counter),
     .instruction_o(prefetch_instruction),
@@ -157,11 +162,11 @@ module rv32im
   assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump | vtable_pc_write;
 
   always @(*) begin
-    case ({vtable_pc_write, branch_jump, jalr_jump})
+    casez ({vtable_pc_write, branch_jump, jalr_jump})
       default: prefetch_pc_in = prefetch_pc_in_jal;
       3'b001: prefetch_pc_in = prefetch_pc_in_jalr;
-      3'b010: prefetch_pc_in = prefetch_pc_in_branch;
-      3'b100: prefetch_pc_in = vtable_pc;
+      3'b01?: prefetch_pc_in = prefetch_pc_in_branch;
+      3'b1??: prefetch_pc_in = vtable_pc;
     endcase
   end
 
@@ -202,7 +207,7 @@ module rv32im
   // ~~STAGE 1~~ Prefetch pipeline logic 
   //////////////////////////////////////////////////////////////
 
-  assign prefetch_stall = (prefetch_data_ready_o & decode_stall) | icache_busy;
+  assign prefetch_stall = (prefetch_data_ready_o & decode_stall) | icache_busy | jal_jump; // just be careful with this jal_jump stall
   assign prefetch_ce = ~prefetch_stall;
 
   always @(posedge clk_i) begin
@@ -285,7 +290,11 @@ module rv32im
   // ~~STAGE 2~~ Instruction decode pipeline logic
   //////////////////////////////////////////////////////////////
 
-  assign decode_stall = (decode_data_ready_o & opfetch_stall) | processing_jump & (decode_branch | decode_jalr);
+  // If a branch instruction is being evaluated and another branch instruction will be decoded, 
+  // the decode stage needs to stall until that branch is evaluated, since JAL and JALR would otherwise happen first
+  reg branch_stall_condition_clear;
+
+  assign decode_stall = (decode_data_ready_o & opfetch_stall) | (processing_jump & ~branch_stall_condition_clear & (decode_branch | decode_jalr));
   assign decode_ce = prefetch_data_ready_o & ~decode_stall;
 
   always @(posedge clk_i) begin
@@ -327,7 +336,7 @@ module rv32im
     .rs2_o         (rs2),
     .pc_i          (decode_pc),
     .ras_o         (ras),
-    .push_ras_i    (push_ras),
+    .push_ras_i    (branch_jump ? 1'b0 : push_ras),
     .pop_ras_i     (pop_ras)
   );
 
@@ -479,7 +488,8 @@ module rv32im
 
   always @(posedge clk_i) begin
     if (stage4_clear) begin
-
+      stage4_rd_addr <= 0;
+      stage4_stage4_path <= 0;
     end else if (stage4_ce) begin
       stage4_rs1_addr <= opfetch_rs1_addr;
       stage4_rs2_addr <= opfetch_rs2_addr;
@@ -632,7 +642,7 @@ module rv32im
     .err_i(err_i),
     .sel_o(mem_sel_o),
     .stb_o(mem_stb_o),
-    .we_o(we_o)
+    .we_o(wb_we)
   );
 
   always @(posedge clk_i) begin
@@ -742,6 +752,7 @@ module rv32im
       writeback_data <= 0;
       writeback_rd_addr <= 0;
       writeback_branch <= 1'b0;
+      branch_stall_condition_clear <= 1'b0;
     end else if (writeback_ce) begin
       writeback_data <= stage4_result;
       writeback_rd_addr <= stage4_rd_addr;
@@ -750,19 +761,21 @@ module rv32im
       if (alu_branch) begin
         case (alu_branch_conditions)
           default: writeback_branch <= 1'b0;
-          3'b000: if (alu_equal) writeback_branch <= 1'b1;
-          3'b001: if (~alu_equal) writeback_branch <= 1'b1;
-          3'b100: if (alu_less) writeback_branch <= 1'b1;
-          3'b101: if (~alu_less) writeback_branch <= 1'b1;
-          3'b110: if (alu_less_signed) writeback_branch <= 1'b1;
-          3'b111: if (~alu_less_signed) writeback_branch <= 1'b1;
+          3'b000: if (alu_equal) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b001: if (~alu_equal) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b100: if (alu_less) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b101: if (~alu_less) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b110: if (alu_less_signed) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b111: if (~alu_less_signed) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
         endcase
       end else begin
         writeback_branch <= 1'b0;
+        branch_stall_condition_clear <= 1'b0;
       end
     end else begin
       writeback_registers_write <= 1'b0;
       writeback_branch <= 1'b0;
+      branch_stall_condition_clear <= 1'b0;
     end
   end
   // always @(posedge clk_i) begin
