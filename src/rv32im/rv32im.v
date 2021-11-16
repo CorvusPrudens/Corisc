@@ -336,6 +336,7 @@ module rv32im
     .rs2_o         (rs2),
     .pc_i          (decode_pc),
     .ras_o         (ras),
+    .ras_write_i   (prefetch_pc_write),
     .push_ras_i    (branch_jump ? 1'b0 : push_ras),
     .pop_ras_i     (pop_ras)
   );
