@@ -22,7 +22,9 @@ module rv32im
     input wire clk_i,
     input wire reset_i,
 
-    input wire [INT_VECT_LEN-1:0] interrupt_vector,
+    input wire [XLEN-1:0] interrupt_vector_offset,
+    input wire interrupt_active,
+    output wire interrupt_routine_complete,
 
     // Wishbone Master signals
     input wire [XLEN-1:0] master_dat_i,
