@@ -2,7 +2,6 @@
 `define RV32IM_INSTRUCTION_CACHE
 
 `include "bram_dual_re.v"
-`include "rv32im_interrupts.v"
 
 module rv32im_instruction_cache 
   #(
@@ -129,7 +128,6 @@ module rv32im_instruction_cache
       working_addr <= 0;
       cache_valid <= 1'b0;
       vtable_lookup_init <= 1'b0;
-      interrupt_accepted <= 1'b0;
     end else if (advance_i) begin
       if (~vtable_lookup_init | interrupt_trigger_i) begin
         vtable_busy <= 1'b1;

@@ -19,9 +19,9 @@ module rv32im
     input wire clk_i,
     input wire reset_i,
 
-    input wire [XLEN-1:0] interrupt_vector_offset,
+    input wire [XLEN-1:0] interrupt_vector_offset_i,
     input wire interrupt_trigger_i,
-    output wire interrupt_routine_complete,
+    output wire interrupt_routine_complete_o,
 
     // Wishbone Master signals
     input wire [XLEN-1:0] master_dat_i,
@@ -72,33 +72,6 @@ module rv32im
   initial program_counter = 0;
   localparam VTABLE_ADDR = 32'h00300000;
 
-  // Trap controller
-  wire interrupt_routine_complete = 0;
-  wire [INT_VECT_LEN-1:0] interrupt_vector_read;
-  wire [INT_VECT_LEN-1:0] interrupt_mask = 0;
-  wire [INT_VECT_LEN-1:0] interrupt_mask_read;
-  wire interrupt_mask_write = 0;
-  wire [XLEN-1:0] interrupt_vector_offset;
-  wire [1:0] interrupt_state;
-  wire interrupt_advance;
-  
-  rv32im_interrupts #(
-    .XLEN(XLEN),
-    .ILEN(ILEN),
-    .INT_VECT_LEN(INT_VECT_LEN)
-  ) RV32IM_INTERRUPTS (
-    .clk_i(clk_i),
-    .clear_interrupt_i(interrupt_routine_complete),
-    .interrupt_vector_i(interrupt_vector),
-    .interrupt_vector_o(interrupt_vector_read),
-    .interrupt_mask_i(interrupt_mask),
-    .interrupt_mask_o(interrupt_mask_read),
-    .interrupt_mask_write_i(interrupt_mask_write),
-    .interrupt_vector_offset_o(interrupt_vector_offset),
-    .interrupt_state_o(interrupt_state),
-    .interrupt_advance_i(interrupt_advance)
-  );
-
   // Instruction cache
   reg  instruction_cache_arbitor;
   initial instruction_cache_arbitor = 0;
@@ -146,7 +119,7 @@ module rv32im
     .ctrl_req_o(icache_arb_req),
     .ctrl_grant_i(instruction_cache_arbitor),
     .interrupt_trigger_i(interrupt_trigger_i),
-    .vtable_offset_i(interrupt_vector_offset),
+    .vtable_offset_i(interrupt_vector_offset_i),
     .vtable_pc_o(vtable_pc),
     .vtable_pc_write(vtable_pc_write),
     .master_dat_i(master_dat_i),
@@ -248,6 +221,8 @@ module rv32im
   wire mret;
   wire [XLEN-1:0] uepc;
 
+  assign interrupt_routine_complete_o = mret & jalr_jump;
+
   wire decode_jalr;
   wire decode_branch;
 
@@ -271,7 +246,6 @@ module rv32im
     .immediate_o(decode_immediate_data),
     .immediate_valid_o(decode_immediate),
     .interrupt_trigger_i(interrupt_trigger_i),
-    .interrupt_routine_complete_o(interrupt_routine_complete),
     .mret_o(mret),
     .uepc_o(uepc),
     .link_o(decode_link),

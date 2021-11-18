@@ -26,8 +26,7 @@ module rv32im_decode
     input wire [XLEN-1:0] pc_data_i,
     output reg [XLEN-1:0] pc_data_o,
 
-    input wire interrupt_active_i,
-    output reg interrupt_routine_complete_o,
+    input wire interrupt_trigger_i,
     output reg mret_o,
     output reg [XLEN-1:0] uepc_o,
 
