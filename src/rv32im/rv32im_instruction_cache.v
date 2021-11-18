@@ -87,7 +87,7 @@ module rv32im_instruction_cache
     .dataWidth_p(ILEN)
   ) BRAM_DUAL_RE (
     .clk_i(clk_i),
-    .write_i(ack_i & cache_req),
+    .write_i(ack_i & cache_stb),
     .read_i(advance_i | jump_i),
     .data_i(master_dat_i),
     .waddr_i(cache_waddr),
@@ -121,6 +121,14 @@ module rv32im_instruction_cache
   initial fetch_done = 0;
   reg  vtable_lookup_init;
   initial vtable_lookup_init = 0;
+
+  reg interrupt_catch;
+  always @(posedge clk_i) begin
+    if (interrupt_trigger_i)
+      interrupt_catch <= 1'b1;
+    else if (vtable_busy)
+      interrupt_catch <= 1'b0;
+  end
   
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -129,7 +137,7 @@ module rv32im_instruction_cache
       cache_valid <= 1'b0;
       vtable_lookup_init <= 1'b0;
     end else if (advance_i) begin
-      if (~vtable_lookup_init | interrupt_trigger_i) begin
+      if (~vtable_lookup_init | interrupt_catch) begin
         vtable_busy <= 1'b1;
         vtable_lookup_init <= 1'b1;
       end else begin

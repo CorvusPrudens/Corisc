@@ -91,9 +91,9 @@ module rv32im
   assign stb_o = instruction_cache_arbitor ? icache_stb_o : mem_stb_o;
 
   // Extremely simple bus arbitor
-  // TODO -- need to wait to grant to vtable if a jump instruction is in the pipeline
+  wire branch_in_pipeline = decode_branch | opfetch_branch | alu_branch | decode_jalr;
   always @(posedge clk_i) begin
-    if (icache_arb_req & ~mem_stb_o)
+    if (icache_arb_req & ~mem_stb_o & ~branch_in_pipeline)
       instruction_cache_arbitor <= 1'b1;
     else if (instruction_cache_arbitor & ~icache_arb_req)
       instruction_cache_arbitor <= 1'b0;
@@ -171,19 +171,19 @@ module rv32im
     //   program_counter <= program_counter - 4;
     //   // program_counter <= prev_program_counter;
     //   // prefetch_pc <= prev_program_counter;
-    end else
-      prefetch_pc <= program_counter; // another major hack? I swear this is just going to add bugs
+    end else if (decode_ce)
+      prefetch_pc <= program_counter;
   end
 
   //////////////////////////////////////////////////////////////
   // ~~STAGE 1~~ Prefetch pipeline logic 
   //////////////////////////////////////////////////////////////
 
-  assign prefetch_stall = (prefetch_data_ready_o & decode_stall) | icache_busy | jal_jump; // just be careful with this jal_jump stall
+  assign prefetch_stall = (prefetch_data_ready_o & decode_stall) | icache_busy | jal_jump | jalr_jump | branch_jump; // just be careful with this jal_jump stall
   assign prefetch_ce = ~prefetch_stall;
 
   always @(posedge clk_i) begin
-    if (reset_i | jal_jump)
+    if (reset_i | jal_jump | jalr_jump | branch_jump | icache_arb_req)
       prefetch_data_ready_o <= 1'b0;
     else if (prefetch_ce & ~cache_invalid)
       prefetch_data_ready_o <= 1'b1;
@@ -245,7 +245,7 @@ module rv32im
     .rd_addr_o(decode_rd_addr),
     .immediate_o(decode_immediate_data),
     .immediate_valid_o(decode_immediate),
-    .interrupt_trigger_i(interrupt_trigger_i),
+    .interrupt_trigger_i(vtable_pc_write),
     .mret_o(mret),
     .uepc_o(uepc),
     .link_o(decode_link),
@@ -272,7 +272,7 @@ module rv32im
   // the decode stage needs to stall until that branch is evaluated, since JAL and JALR would otherwise happen first
   reg branch_stall_condition_clear;
 
-  assign decode_stall = (decode_data_ready_o & opfetch_stall) | (processing_jump & ~branch_stall_condition_clear & (decode_branch | decode_jalr));
+  assign decode_stall = (decode_data_ready_o & opfetch_stall) | (processing_jump & ~branch_stall_condition_clear & (decode_branch | opfetch_branch | alu_branch)) | mret | decode_jalr;
   assign decode_ce = prefetch_data_ready_o & ~decode_stall;
 
   always @(posedge clk_i) begin
@@ -710,7 +710,7 @@ module rv32im
   reg  writeback_registers_write;
   initial writeback_registers_write = 0;
   wire writeback_stalled;
-  wire writeback_clear = clear_pipeline;
+  wire writeback_clear = clear_pipeline | writeback_branch;
   reg  writeback_branch;
   initial writeback_branch = 0;
   assign branch_jump = writeback_branch;
