@@ -26,6 +26,11 @@ module rv32im_decode
     input wire [XLEN-1:0] pc_data_i,
     output reg [XLEN-1:0] pc_data_o,
 
+    input wire interrupt_active_i,
+    output reg interrupt_routine_complete_o,
+    output reg mret_o,
+    output reg [XLEN-1:0] uepc_o,
+
     output reg jal_jump_o,
     output reg [XLEN-1:0] pc_jal_data_o,
 
@@ -125,14 +130,10 @@ module rv32im_decode
   // Difference between AUIPC and LUI is bit 5
   wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} : {u_immediate, 12'b0} + pc_data_i;
 
-  // TODO -- we'll need to figure this out
-  wire pc_save_uepc = 0;
-
-  reg [XLEN-1:0] uepc;
-  initial uepc = 0;
+  initial uepc_o = 0;
   always @(posedge clk_i)
-    if (pc_save_uepc)
-      uepc <= pc_data_i;
+    if (interrupt_trigger_i)
+      uepc_o <= pc_data_i;
 
   reg [5:0] instruction_encoding;
   initial instruction_encoding = 0;
@@ -171,6 +172,7 @@ module rv32im_decode
       OP_JAL: processing_jump = 1;
       OP_JALR: processing_jump = 1;
       OP_B: processing_jump = 1;
+      OP_SYS: processing_jump = 1;
     endcase
   end
 
@@ -184,6 +186,7 @@ module rv32im_decode
       branch_condition_o <= 3'b0;
       memory_write_o <= 1'b0;
       link_o <= 1'b0;
+      mret_o <= 1'b0;
     end else if (data_ready_i) begin
 
       pop_ras_o <= pop_ras;
@@ -219,6 +222,11 @@ module rv32im_decode
       else
         link_o <= 1'b0;
 
+      if (opcode[6:2] == OP_SYS)
+        mret_o <= 1'b1;
+      else
+        mret_o <= 1'b0;
+
       // determining whether the register addresses should be asserted
       case (instruction_encoding) 
         default: 
@@ -243,7 +251,7 @@ module rv32im_decode
             immediate_o <= funct3[2] ? {20'b0, i_immediate} : load_offset;
             word_size_o <= funct3;
 
-            // One bit is needed to distinguish between JALR and L/AI
+            // One bit is needed to distinguish between JALR/MRET and L/AI
             if (opcode[5]) begin
               jalr_o <= 1'b1; // no need to reset because this will be cleared
               alu_operation_o <= 4'b0000;

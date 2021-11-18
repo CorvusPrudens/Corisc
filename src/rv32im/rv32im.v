@@ -8,9 +8,6 @@
 `include "rv32im_instruction_cache.v"
 `include "rv32im_muldiv.v"
 
-// TODO -- need to insert stalls in cases where a JAL or JALR follows a BRANCH -- since they can push / pop the stack, this
-// may result in a corrupted RAS
-
 module rv32im
   #(
     parameter XLEN = 32,
@@ -23,7 +20,7 @@ module rv32im
     input wire reset_i,
 
     input wire [XLEN-1:0] interrupt_vector_offset,
-    input wire interrupt_active,
+    input wire interrupt_trigger_i,
     output wire interrupt_routine_complete,
 
     // Wishbone Master signals
@@ -121,6 +118,7 @@ module rv32im
   assign stb_o = instruction_cache_arbitor ? icache_stb_o : mem_stb_o;
 
   // Extremely simple bus arbitor
+  // TODO -- need to wait to grant to vtable if a jump instruction is in the pipeline
   always @(posedge clk_i) begin
     if (icache_arb_req & ~mem_stb_o)
       instruction_cache_arbitor <= 1'b1;
@@ -147,8 +145,7 @@ module rv32im
     .cache_invalid_o(cache_invalid),
     .ctrl_req_o(icache_arb_req),
     .ctrl_grant_i(instruction_cache_arbitor),
-    .interrupt_trigger_i(interrupt_state[0]),
-    .interrupt_grant_o(interrupt_advance),
+    .interrupt_trigger_i(interrupt_trigger_i),
     .vtable_offset_i(interrupt_vector_offset),
     .vtable_pc_o(vtable_pc),
     .vtable_pc_write(vtable_pc_write),
@@ -166,7 +163,7 @@ module rv32im
   always @(*) begin
     casez ({vtable_pc_write, branch_jump, jalr_jump})
       default: prefetch_pc_in = prefetch_pc_in_jal;
-      3'b001: prefetch_pc_in = prefetch_pc_in_jalr;
+      3'b001: prefetch_pc_in = mret ? uepc : prefetch_pc_in_jalr;
       3'b01?: prefetch_pc_in = prefetch_pc_in_branch;
       3'b1??: prefetch_pc_in = vtable_pc;
     endcase
@@ -248,13 +245,14 @@ module rv32im
   wire [2:0] decode_branch_condition;
   wire [2:0] decode_stage4_path;
   wire decode_write;
+  wire mret;
+  wire [XLEN-1:0] uepc;
 
   wire decode_jalr;
   wire decode_branch;
 
   wire decode_link;
   wire [XLEN-1:0] decode_link_data;
-  
 
   rv32im_decode #(
     .XLEN(32),
@@ -272,6 +270,10 @@ module rv32im
     .rd_addr_o(decode_rd_addr),
     .immediate_o(decode_immediate_data),
     .immediate_valid_o(decode_immediate),
+    .interrupt_trigger_i(interrupt_trigger_i),
+    .interrupt_routine_complete_o(interrupt_routine_complete),
+    .mret_o(mret),
+    .uepc_o(uepc),
     .link_o(decode_link),
     .link_data_o(decode_link_data),
     .pc_data_i(prefetch_pc),
@@ -340,7 +342,7 @@ module rv32im
     .ras_o         (ras),
     .ras_write_i   (prefetch_pc_write),
     .push_ras_i    (branch_jump ? 1'b0 : push_ras),
-    .pop_ras_i     (pop_ras)
+    .pop_ras_i     (mret & jalr_jump ? 1'b0 : pop_ras) // TODO -- could this cause bugs?
   );
 
   //////////////////////////////////////////////////////////////

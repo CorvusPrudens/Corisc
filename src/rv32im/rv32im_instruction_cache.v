@@ -26,7 +26,6 @@ module rv32im_instruction_cache
     output wire cache_invalid_o,
 
     input wire interrupt_trigger_i,
-    output reg interrupt_grant_o,
     input wire [XLEN-1:0] vtable_offset_i,
 
     // Arbitration signals
@@ -130,8 +129,9 @@ module rv32im_instruction_cache
       working_addr <= 0;
       cache_valid <= 1'b0;
       vtable_lookup_init <= 1'b0;
+      interrupt_accepted <= 1'b0;
     end else if (advance_i) begin
-      if (~vtable_lookup_init) begin
+      if (~vtable_lookup_init | interrupt_trigger_i) begin
         vtable_busy <= 1'b1;
         vtable_lookup_init <= 1'b1;
       end else begin
@@ -145,10 +145,11 @@ module rv32im_instruction_cache
           // nothing -- the output will be the valid cached instruction
         end
       end
-    end else if (fetch_done)
+    end else if (fetch_done) begin
       cache_busy <= 1'b0;
-    else if (vtable_done)
+    end else if (vtable_done) begin
       vtable_busy <= 1'b0;
+    end
   end
 
   reg [LINE_LEN:0] cache_write_idx;
@@ -231,6 +232,7 @@ module rv32im_instruction_cache
   reg  vtable_done;
   initial vtable_done = 0;
 
+  // TODO -- may want to distinguish this activity since it will write to the program counter
   always @(posedge clk_i) begin
     if (reset_i) begin
       vtable_sm <= VTABLE_IDLE;
@@ -242,11 +244,9 @@ module rv32im_instruction_cache
           begin
             vtable_sm <= VTABLE_ARB;
             vtable_req <= 1'b1;
-            interrupt_grant_o <= 1'b1;
           end
         VTABLE_ARB:
           begin
-            interrupt_grant_o <= 1'b0;
             if (ctrl_grant_i) begin
               vtable_sm <= VTABLE_WRITE;
               vtable_stb <= 1'b1;
