@@ -91,7 +91,7 @@ module rv32im
   assign stb_o = instruction_cache_arbitor ? icache_stb_o : mem_stb_o;
 
   // Extremely simple bus arbitor
-  wire branch_in_pipeline = decode_branch | opfetch_branch | alu_branch | decode_jalr;
+  wire branch_in_pipeline = decode_branch | decode_jalr;
   always @(posedge clk_i) begin
     if (icache_arb_req & ~mem_stb_o & ~branch_in_pipeline)
       instruction_cache_arbitor <= 1'b1;
@@ -221,6 +221,10 @@ module rv32im
   wire mret;
   wire [XLEN-1:0] uepc;
 
+  // If a branch instruction is being evaluated and another branch instruction will be decoded, 
+  // the decode stage needs to stall until that branch is evaluated, since JAL and JALR would otherwise happen first
+  reg branch_stall_condition_clear;
+
   assign interrupt_routine_complete_o = mret & jalr_jump;
 
   wire decode_jalr;
@@ -256,6 +260,7 @@ module rv32im
     .jalr_o(decode_jalr),
     .branch_o(decode_branch),
     .branch_condition_o(decode_branch_condition),
+    .clear_branch_stall_i(branch_stall_condition_clear),
     .pc_jal_data_o(prefetch_pc_in_jal),
     .pop_ras_o(pop_ras),
     .push_ras_o(push_ras),
@@ -267,10 +272,6 @@ module rv32im
   //////////////////////////////////////////////////////////////
   // ~~STAGE 2~~ Instruction decode pipeline logic
   //////////////////////////////////////////////////////////////
-
-  // If a branch instruction is being evaluated and another branch instruction will be decoded, 
-  // the decode stage needs to stall until that branch is evaluated, since JAL and JALR would otherwise happen first
-  reg branch_stall_condition_clear;
 
   assign decode_stall = (decode_data_ready_o & opfetch_stall) | (processing_jump & ~branch_stall_condition_clear & (decode_branch | opfetch_branch | alu_branch)) | mret | decode_jalr;
   assign decode_ce = prefetch_data_ready_o & ~decode_stall;

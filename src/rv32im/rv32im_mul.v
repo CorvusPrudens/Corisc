@@ -28,6 +28,7 @@ module rv32im_mul #(
     end else if (start_i) begin
       busy_o <= 1'b1;
       valid_o <= 1'b0;
+      counter <= 0;
     end else if (busy_o) begin
       counter <= counter + 1'b1;
       if (counter_p1[$clog2(XLEN)]) begin

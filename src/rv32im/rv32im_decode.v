@@ -36,6 +36,7 @@ module rv32im_decode
     output reg jalr_o,
     output reg branch_o,
     output reg [2:0] branch_condition_o,
+    input wire clear_branch_stall_i,
 
     output reg link_o,
     output reg [XLEN-1:0] link_data_o,
@@ -246,8 +247,8 @@ module rv32im_decode
             rs1_addr_o <= rs1_addr;
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
-            // Unsigned stuff only happens with the last bit of funct3 (unsigned immediate arith)
-            immediate_o <= funct3[2] ? {20'b0, i_immediate} : load_offset;
+            // Unsigned stuff only happens with the last bit of funct3 (unsigned immediate arith) and we're doing an arithmetic immediate
+            immediate_o <= funct3[2] & opcode[4] ? {20'b0, i_immediate} : load_offset;
             word_size_o <= funct3;
 
             // One bit is needed to distinguish between JALR/MRET and L/AI
@@ -297,7 +298,8 @@ module rv32im_decode
           end
       endcase
 
-    end
+    end else if (clear_branch_stall_i) 
+      branch_o <= 1'b0;
   end
 
 endmodule
