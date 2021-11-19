@@ -66,14 +66,17 @@ module rv32im_registers
 
   wire stack_overflow;
 
+  wire push_ras = push_ras_i & ras_write_i; 
+  wire pop_ras = pop_ras_i & data_ready_i;
+
   // TODO -- might want a reset here?
   stack #(
     .XLEN(XLEN),
     .SIZE(7) // 128 address ought to be way more than sufficient
   ) RAS (
     .clk_i(clk_i),
-    .push_i(push_ras_i & (data_ready_i | ras_write_i)),
-    .pop_i(pop_ras_i & data_ready_i),
+    .push_i(push_ras),
+    .pop_i(pop_ras),
     .data_i(pc_i + 32'h04),
     .data_o(ras_o),
     .overflow_o(stack_overflow)

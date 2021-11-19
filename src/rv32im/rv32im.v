@@ -441,7 +441,7 @@ module rv32im
   // end
   wire stage4_ce = opfetch_data_ready_o & ~stage4_stalled;
 
-  wire stage4_clear = clear_pipeline | branch_jump;
+  wire stage4_clear = clear_pipeline | branch_jump; // TODO -- should jalr's also clear this?
   wire stage4_data_ready_o = alu_data_ready_o | mem_data_ready_o | muldiv_data_ready_o;
 
   reg [REG_BITS-1:0] stage4_rs1_addr;
