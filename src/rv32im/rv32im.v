@@ -586,7 +586,7 @@ module rv32im
   wire mem_transaction_done = ack_i & ~instruction_cache_arbitor;
   wire memory_clear = stage4_clear;
   wire memory_ce = stage4_ce & opfetch_stage4_path[1];
-  wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy | (((opfetch_data_ready_o & instruction_cache_arbitor) | alu_branch) & opfetch_stage4_path[1]);
+  wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy | (opfetch_data_ready_o & instruction_cache_arbitor & opfetch_stage4_path[1]);
 
   wire [XLEN-1:0] memory_data_in = stage4_latest_rs2;
   wire [XLEN-1:0] memory_addr_in = stage4_latest_rs1 + opfetch_immediate_data;
@@ -598,7 +598,8 @@ module rv32im
   wire [XLEN-3:0] mem_adr_o;
   wire mem_cyc_o;
   wire [3:0] mem_sel_o;
-  wire mem_stb_o;
+  wire mem_stb_raw;
+  wire mem_stb_o = memory_clear ? 1'b0 : mem_stb_raw; // fixes issue with starting transactions _just_ as branch branches
 
   rv32im_memory #(
     .XLEN(XLEN)
@@ -621,7 +622,7 @@ module rv32im
     .cyc_o(mem_cyc_o),
     .err_i(err_i),
     .sel_o(mem_sel_o),
-    .stb_o(mem_stb_o),
+    .stb_o(mem_stb_raw),
     .we_o(wb_we)
   );
 
