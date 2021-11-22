@@ -586,7 +586,7 @@ module rv32im
   wire mem_transaction_done = ack_i & ~instruction_cache_arbitor;
   wire memory_clear = stage4_clear;
   wire memory_ce = stage4_ce & opfetch_stage4_path[1];
-  wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy | (opfetch_data_ready_o & instruction_cache_arbitor & opfetch_stage4_path[1]);
+  wire memory_stalled = (mem_data_ready_o & writeback_stalled) | mem_busy | (((opfetch_data_ready_o & instruction_cache_arbitor) | alu_branch) & opfetch_stage4_path[1]);
 
   wire [XLEN-1:0] memory_data_in = stage4_latest_rs2;
   wire [XLEN-1:0] memory_addr_in = stage4_latest_rs1 + opfetch_immediate_data;
