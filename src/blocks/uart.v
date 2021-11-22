@@ -15,15 +15,15 @@ module uart(
   );
 
 
-  // assuming a frequncy of 14.31818 MHz, 458
-  // produces a baudrate of 31,262 -- close enough!
-  reg [8:0] tx_acc = 0;
+  // assuming a frequncy of 14.31818 MHz, 1375
+  // produces a baudrate of 31,239 -- close enough!
+  reg [10:0] tx_acc = 0;
   reg tx_tick = 0;
 
   `ifdef SIM
   localparam ACC_COMPARE = 2;
   `else
-  localparam ACC_COMPARE = 458;
+  localparam ACC_COMPARE = 1374;
   `endif
 
   // TRANSMITTER
@@ -71,7 +71,7 @@ module uart(
   // RECIEVER
 
   reg [3:0] RXstate = 0;
-  reg [8:0] rx_acc = 0;
+  reg [10:0] rx_acc = 0;
   reg rx_tick = 0;
 
   always @(negedge clk_i) begin
