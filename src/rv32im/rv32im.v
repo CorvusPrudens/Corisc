@@ -13,7 +13,8 @@ module rv32im
     parameter XLEN = 32,
     parameter ILEN = 32,
     parameter INT_VECT_LEN = 8,
-    parameter REG_BITS = 5
+    parameter REG_BITS = 5,
+    parameter VTABLE_ADDR = 32'h00300000
   )
   (
     input wire clk_i,
@@ -70,7 +71,6 @@ module rv32im
 
   reg [XLEN-1:0] program_counter;
   initial program_counter = 0;
-  localparam VTABLE_ADDR = 32'h00300000;
 
   // Instruction cache
   reg  instruction_cache_arbitor;
