@@ -751,12 +751,14 @@ module rv32im
         endcase
       end else begin
         writeback_branch <= 1'b0;
-        branch_stall_condition_clear <= 1'b0;
+        if (decode_ce)
+          branch_stall_condition_clear <= 1'b0;
       end
     end else begin
       writeback_registers_write <= 1'b0;
       writeback_branch <= 1'b0;
-      branch_stall_condition_clear <= 1'b0;
+      if (decode_ce)
+        branch_stall_condition_clear <= 1'b0;
     end
   end
   // always @(posedge clk_i) begin
