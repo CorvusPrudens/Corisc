@@ -23,7 +23,7 @@ module uart(
   `ifdef SIM
   localparam ACC_COMPARE = 2;
   `else
-  localparam ACC_COMPARE = 1374;
+  localparam ACC_COMPARE = 1375;
   `endif
 
   // TRANSMITTER
