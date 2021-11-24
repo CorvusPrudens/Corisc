@@ -63,6 +63,8 @@ module rv32im_div #(parameter WIDTH=4) (
                 ac <= ac_next;
                 q1 <= q1_next;
             end
+        end else begin
+            valid <= 1'b0;
         end
     end
 endmodule

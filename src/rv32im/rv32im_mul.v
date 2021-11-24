@@ -35,6 +35,8 @@ module rv32im_mul #(
         valid_o <= 1'b1;
         busy_o <= 1'b0;
       end
+    end else begin
+      valid_o <= 1'b0;
     end
   end
 
