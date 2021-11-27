@@ -257,7 +257,7 @@ module rv32im_decode
               alu_operation_o <= 4'b0000;
               link_data_o <= pc_data_i + 32'h04;
             end else begin
-              alu_operation_o <= {funct7[5] & (opcode[6:2] == OP_A), funct3};
+              alu_operation_o <= {funct7[5] & (funct3 == 3'b101), funct3};
             end
             
           end

@@ -42,7 +42,7 @@ module rv32im_alu
 
   wire [XLEN-1:0] sll = operand1_i << operand2_i[4:0];
   wire [XLEN-1:0] srl = operand1_i >> operand2_i[4:0];
-  wire [XLEN-1:0] sra = operand1_i >>> operand2_i[4:0];
+  wire [XLEN-1:0] sra = operand1_signed >>> operand2_i[4:0];
 
   always @(posedge clk_i) begin
     if (clear_i) begin
