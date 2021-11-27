@@ -8,6 +8,9 @@
 `include "rv32im_instruction_cache.v"
 `include "rv32im_muldiv.v"
 
+// TODO -- if more errors crop up, make sure all important signals (like branch flags and such) are set to
+// zero if a stage isn't ready but the next one accepts its data (like I just did with the alu_branch flag in this commit)
+
 module rv32im
   #(
     parameter XLEN = 32,
@@ -564,8 +567,10 @@ module rv32im
       alu_data_ready_o <= opfetch_data_ready_o;
       alu_link <= opfetch_link;
       alu_link_data <= opfetch_link_data;
-    end else if (writeback_ce)
+    end else if (writeback_ce) begin
       alu_data_ready_o <= 1'b0;
+      alu_branch <= 1'b0;
+    end
   end
 
 
