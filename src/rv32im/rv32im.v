@@ -749,10 +749,10 @@ module rv32im
           default: writeback_branch <= 1'b0;
           3'b000: if (alu_equal) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
           3'b001: if (~alu_equal) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
-          3'b100: if (alu_less) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
-          3'b101: if (~alu_less) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
-          3'b110: if (alu_less_signed) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
-          3'b111: if (~alu_less_signed) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b100: if (alu_less_signed) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b101: if (~alu_less_signed) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b110: if (alu_less) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
+          3'b111: if (~alu_less) writeback_branch <= 1'b1; else branch_stall_condition_clear <= 1'b1;
         endcase
       end else begin
         writeback_branch <= 1'b0;
