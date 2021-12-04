@@ -8,7 +8,7 @@
 `endif
 
 module rv32im_muldiv #(
-    XLEN = 32
+    parameter XLEN = 32
   ) (
     input wire clk_i,
     input wire clear_i,

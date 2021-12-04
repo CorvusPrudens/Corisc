@@ -13,7 +13,7 @@ module spi_wo(
   );
 
   reg ack;
-  localparam divisor = 3; // this can be set to 1 for final version
+  localparam divisor = 5; // this can be set to 1 for final version
   reg [divisor:0] clkdiv;
   always @(posedge clk_i) clkdiv <= clkdiv + 1'b1;
 

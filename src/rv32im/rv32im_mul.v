@@ -2,7 +2,7 @@
 `define RV32IM_MUL_GUARD
 
 module rv32im_mul #(
-    XLEN = 32
+    parameter XLEN = 32
   ) (
     input wire clk_i,
     input wire reset_i,
