@@ -44,6 +44,8 @@ module rv32im_muldiv #(
   reg  div_outsign;
   initial div_outsign = 0;
 
+  reg [XLEN-1:0] mul_op1;
+  reg [XLEN-1:0] mul_op2;
   wire [XLEN-1:0] designed_op1 = operand1[XLEN-1] ? ~operand1 + 32'b1 : operand1;
   wire [XLEN-1:0] designed_op2 = operand2[XLEN-1] ? ~operand2 + 32'b1 : operand2;
   wire [XLEN-1:0] signed_quotient = div_outsign ? ~quotient + 32'b1 : quotient;
@@ -66,11 +68,16 @@ module rv32im_muldiv #(
   wire [XLEN*2-1:0] product;
 
   wire [XLEN*2-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
+  `else
+  wire signed operand1_signed = operand1;
+  wire signed operand2_signed = operand2;
+  wire signed [XLEN*2-1:0] signed_product = operand1_signed * operand2_signed;
+  wire [XLEN*2-1:0] product = operand1 * operand2;
   `endif
 
   localparam MUL    = 3'b000;
-  localparam MULH   = 3'b001; // I'm just gonna ignore these for now since I don't find them very useful
-  localparam MULHSU = 3'b010;
+  localparam MULH   = 3'b001;
+  localparam MULHSU = 3'b010; // This implementation I'll just skip for now for the hardware mul
   localparam MULHU  = 3'b011;
   localparam DIV    = 3'b100;
   localparam DIVU   = 3'b101;
@@ -107,7 +114,17 @@ module rv32im_muldiv #(
         `ifdef HARDWARE_MULTIPLY
         default: // MUL
           begin
-            result_o <= operand1 * operand2;
+            result_o <= signed_product[XLEN-1:0];
+            output_ready <= 1'b1;
+          end
+        {2'b00, MULH}:
+          begin
+            result_o <= signed_product[XLEN*2-1:XLEN];
+            output_ready <= 1'b1;
+          end
+        {2'b00, MULHU}:
+          begin
+            result_o <= product[XLEN*2-1:XLEN];
             output_ready <= 1'b1;
           end
         `else
@@ -117,12 +134,62 @@ module rv32im_muldiv #(
             mul_outsign <= operand1[XLEN-1] ^ operand2[XLEN-1];
             mul_start <= 1'b1;
             op_steps <= op_steps + 1'b1;
+            mul_op1 <= designed_op1;
+            mul_op2 <= designed_op2;
           end
         {2'b01, MUL}:
           begin
             mul_start <= 1'b0;
             if (mul_valid) begin
               result_o <= signed_product[XLEN-1:0];
+              output_ready <= 1'b1;
+            end
+          end
+        {2'b00, MULH}: 
+          begin
+            mul_outsign <= operand1[XLEN-1] ^ operand2[XLEN-1];
+            mul_start <= 1'b1;
+            op_steps <= op_steps + 1'b1;
+            mul_op1 <= designed_op1;
+            mul_op2 <= designed_op2;
+          end
+        {2'b01, MULH}:
+          begin
+            mul_start <= 1'b0;
+            if (mul_valid) begin
+              result_o <= signed_product[XLEN*2-1:XLEN];
+              output_ready <= 1'b1;
+            end
+          end
+        {2'b00, MULHU}: 
+          begin
+            mul_outsign <= 1'b0;
+            mul_start <= 1'b1;
+            op_steps <= op_steps + 1'b1;
+            mul_op1 <= operand1;
+            mul_op2 <= operand2;
+          end
+        {2'b01, MULHU}:
+          begin
+            mul_start <= 1'b0;
+            if (mul_valid) begin
+              result_o <= product[XLEN*2-1:XLEN];
+              output_ready <= 1'b1;
+            end
+          end
+        {2'b00, MULHSU}: 
+          begin
+            mul_outsign <= operand1[XLEN-1];
+            mul_start <= 1'b1;
+            op_steps <= op_steps + 1'b1;
+            mul_op1 <= designed_op1;
+            mul_op2 <= operand2;
+          end
+        {2'b01, MULHSU}:
+          begin
+            mul_start <= 1'b0;
+            if (mul_valid) begin
+              result_o <= signed_product[XLEN*2-1:XLEN];
               output_ready <= 1'b1;
             end
           end
@@ -205,8 +272,8 @@ module rv32im_muldiv #(
     .start_i(mul_start),
     .busy_o(mul_busy),
     .valid_o(mul_valid),
-    .operand1_i(designed_op1),
-    .operand2_i(designed_op2),
+    .operand1_i(mul_op1),
+    .operand2_i(mul_op2),
     .product_o(product)
   );
   `endif
