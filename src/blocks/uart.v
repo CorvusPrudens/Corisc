@@ -2,7 +2,9 @@
 `define UART_GUARD
 // 8 data bits, 1 stop bit, no parity
 
-module uart(
+module uart #(
+    parameter COMPARE = 2 // The comparison register for the TX / RX tick registers
+  ) (
     input wire clk_i,
     input wire RX,
     input wire [7:0] TXbuffer_i,
@@ -14,17 +16,12 @@ module uart(
     output wire TXbusy_o
   );
 
+  localparam TICK_BITS = $clog2(COMPARE + 1);
 
   // assuming a frequncy of 14.31818 MHz, 1375
   // produces a baudrate of 31,239 -- close enough!
-  reg [10:0] tx_acc = 0;
+  reg [TICK_BITS-1:0] tx_acc = 0;
   reg tx_tick = 0;
-
-  `ifdef SIM
-  localparam ACC_COMPARE = 2;
-  `else
-  localparam ACC_COMPARE = 1375;
-  `endif
 
   // TRANSMITTER
 
@@ -41,7 +38,7 @@ module uart(
 
     if (TXstate == 4'b0000) tx_acc <= 0;
     else begin
-      if (tx_acc == ACC_COMPARE) begin
+      if (tx_acc == COMPARE) begin
         tx_tick <= 1'b1;
         tx_acc <= 0;
       end else begin
@@ -71,7 +68,7 @@ module uart(
   // RECIEVER
 
   reg [3:0] RXstate = 0;
-  reg [10:0] rx_acc = 0;
+  reg [TICK_BITS-1:0] rx_acc = 0;
   reg rx_tick = 0;
 
   always @(negedge clk_i) begin
@@ -92,7 +89,7 @@ module uart(
 
     if (RXstate == 4'b0000) rx_acc <= 0;
     else begin
-      if (rx_acc == ACC_COMPARE) begin
+      if (rx_acc == COMPARE) begin
         rx_tick <= 1'b1;
         rx_acc <= 0;
       end else begin
