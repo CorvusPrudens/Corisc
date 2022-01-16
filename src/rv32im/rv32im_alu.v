@@ -44,22 +44,24 @@ module rv32im_alu
   wire [XLEN-1:0] srl = operand1_i >> operand2_i[4:0];
   wire [XLEN-1:0] sra = operand1_signed >>> operand2_i[4:0];
 
-  // This can be verified in functional tests because I'm too lazy to 
-  // manually write all the tests here
   always @(posedge clk_i) begin
-    case (operation_i)
-      default: result_o <= 0;
-      OP_ADD:  result_o <= operand1_i + operand2_i;
-      OP_SUB:  result_o <= operand1_i - operand2_i; 
-      OP_SLT:  result_o <= {{XLEN-1{1'b0}}, less_signed};
-      OP_SLTU: result_o <= {{XLEN-1{1'b0}}, less};
-      OP_AND:  result_o <= operand1_i & operand2_i;
-      OP_OR:   result_o <= operand1_i | operand2_i;
-      OP_XOR:  result_o <= operand1_i ^ operand2_i;
-      OP_SLL:  result_o <= sll;
-      OP_SRL:  result_o <= srl;
-      OP_SRA:  result_o <= sra;
-    endcase
+    if (clear_i) begin
+      result_o <= 0;
+    end else if (data_ready_i) begin
+      case (operation_i)
+        default: result_o <= 0;
+        OP_ADD:  result_o <= operand1_i + operand2_i;
+        OP_SUB:  result_o <= operand1_i - operand2_i; 
+        OP_SLT:  result_o <= {{XLEN-1{1'b0}}, less};
+        OP_SLTU: result_o <= {{XLEN-1{1'b0}}, less_signed};
+        OP_AND:  result_o <= operand1_i & operand2_i;
+        OP_OR:   result_o <= operand1_i | operand2_i;
+        OP_XOR:  result_o <= operand1_i ^ operand2_i;
+        OP_SLL:  result_o <= sll;
+        OP_SRL:  result_o <= srl;
+        OP_SRA:  result_o <= sra;
+      endcase
+    end
   end
 
   always @(posedge clk_i) begin
@@ -87,26 +89,6 @@ module rv32im_alu
     initial timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
 
-    always @(*)
-      assume(clear_i == ~timeValid_f);
-
-    // Just simple sanity checks
-    always @(posedge clk_i) begin
-      if (timeValid_f & $past(timeValid_f) & $past(data_ready_i & ~clear_i)) begin
-        assert(equal_o == $past(equal));
-        assert(less_o == $past(less));
-        assert(less_signed_o == $past(less_signed));
-      end
-    end
-
-    always @(posedge clk_i) begin
-      if (timeValid_f & $past(timeValid_f) & $past(clear_i)) begin
-        assert(equal_o == 0);
-        assert(less_o == 0);
-        assert(less_signed_o == 0);
-      end
-    end
-
     // // We'll assume no data is input while stalled
     // always @(posedge clk_i) begin
     //   if (stall_o)
@@ -116,9 +98,9 @@ module rv32im_alu
     // Data will always travel through on a single clock, and will never be ready
     // if nothing was input
     // always @(posedge clk_i) begin
-    //   if (timeValid_f & $past(timeValid_f) & $past(data_ready_i) & ~$past(clear_i))
+    //   if (timeValid_f & $past(data_ready_i) & ~$past(clear_i))
     //     assert(data_ready_o);
-    //   if (timeValid_f & $past(timeValid_f) & ~$past(data_ready_i) & ~$past(clear_i))
+    //   if (timeValid_f & ~$past(data_ready_i) & ~$past(clear_i))
     //     assert(~data_ready_o);
     // end
 
@@ -132,7 +114,7 @@ module rv32im_alu
 
     // // Following a stall, the data should become valid
     // always @(posedge clk_i) begin
-    //   if (timeValid_f & $past(timeValid_f) & $past(stall_o) & ~stall_o)
+    //   if (timeValid_f & $past(stall_o) & ~stall_o)
     //     assert($past(clear_i) | data_ready_o);
     // end
 
