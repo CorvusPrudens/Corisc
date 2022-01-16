@@ -1,0 +1,17 @@
+[options]
+# mode bmc
+# depth 10
+mode prove
+
+[engines]
+# smtbmc yices
+# smtbmc boolector
+smtbmc z3
+
+[script]
+read -formal rv32im_alu.v
+prep -top rv32im_alu
+# opt_merge -share_all
+
+[files]
+../../rv32im_alu.v
