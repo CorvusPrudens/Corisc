@@ -610,7 +610,6 @@ module rv32im
     .XLEN(XLEN)
   ) RV32IM_MEMORY (
     .clk_i(clk_i),
-    .rst_i(reset_i),
     .clear_i(memory_clear),
     .data_ready_i(memory_ce),
     .data_i(memory_data_in),
