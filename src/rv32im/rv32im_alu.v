@@ -44,6 +44,8 @@ module rv32im_alu
   wire [XLEN-1:0] srl = operand1_i >> operand2_i[4:0];
   wire [XLEN-1:0] sra = operand1_signed >>> operand2_i[4:0];
 
+  // TODO -- this extra logic (if clear ... if data_ready_i) is necessary because I guess we depend on
+  // passing zeros through the ALU for certain things? -- pls fix
   always @(posedge clk_i) begin
     if (clear_i) begin
       result_o <= 0;
@@ -52,8 +54,8 @@ module rv32im_alu
         default: result_o <= 0;
         OP_ADD:  result_o <= operand1_i + operand2_i;
         OP_SUB:  result_o <= operand1_i - operand2_i; 
-        OP_SLT:  result_o <= {{XLEN-1{1'b0}}, less};
-        OP_SLTU: result_o <= {{XLEN-1{1'b0}}, less_signed};
+        OP_SLT:  result_o <= {{XLEN-1{1'b0}}, less_signed};
+        OP_SLTU: result_o <= {{XLEN-1{1'b0}}, less};
         OP_AND:  result_o <= operand1_i & operand2_i;
         OP_OR:   result_o <= operand1_i | operand2_i;
         OP_XOR:  result_o <= operand1_i ^ operand2_i;
@@ -88,6 +90,26 @@ module rv32im_alu
     reg  timeValid_f;
     initial timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
+
+    always @(*)
+      assume(clear_i == ~timeValid_f);
+
+    // Just simple sanity checks
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(timeValid_f) & $past(data_ready_i & ~clear_i)) begin
+        assert(equal_o == $past(equal));
+        assert(less_o == $past(less));
+        assert(less_signed_o == $past(less_signed));
+      end
+    end
+
+    always @(posedge clk_i) begin
+      if (timeValid_f & $past(timeValid_f) & $past(clear_i)) begin
+        assert(equal_o == 0);
+        assert(less_o == 0);
+        assert(less_signed_o == 0);
+      end
+    end
 
     // // We'll assume no data is input while stalled
     // always @(posedge clk_i) begin
