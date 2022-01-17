@@ -247,8 +247,8 @@ module rv32im_decode
             rs1_addr_o <= rs1_addr;
             rs2_addr_o <= 0;
             rd_addr_o <= rd_addr;
-            // Unsigned stuff only happens with the last bit of funct3 (unsigned immediate arith) and we're doing an arithmetic immediate
-            immediate_o <= funct3[2] & opcode[4] ? {20'b0, i_immediate} : load_offset;
+            // Immediates are always sign-extended
+            immediate_o <= load_offset;
             word_size_o <= funct3;
 
             // One bit is needed to distinguish between JALR/MRET and L/AI
