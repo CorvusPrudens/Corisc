@@ -69,8 +69,8 @@ module rv32im_muldiv #(
 
   wire [XLEN*2-1:0] signed_product = mul_outsign ? ~product + 64'b1 : product;
   `else
-  wire signed operand1_signed = operand1;
-  wire signed operand2_signed = operand2;
+  wire signed [XLEN-1:0] operand1_signed = operand1;
+  wire signed [XLEN-1:0] operand2_signed = operand2;
   wire signed [XLEN*2-1:0] signed_product = operand1_signed * operand2_signed;
   wire [XLEN*2-1:0] product = operand1 * operand2;
   `endif
