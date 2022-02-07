@@ -228,8 +228,8 @@ module rv32im_decode
         mret_o <= 1'b0;
 
       // determining whether the register addresses should be asserted
-      case (instruction_encoding) 
-        default: 
+      case (instruction_encoding)
+        default:
           begin
             rs1_addr_o <= 0;
             rs2_addr_o <= 0;
@@ -301,6 +301,37 @@ module rv32im_decode
     end else if (clear_branch_stall_i) 
       branch_o <= 1'b0;
   end
+
+  `ifdef FORMAL
+
+    reg  timeValid_f;
+    initial timeValid_f = 0;
+    always @(posedge clk_i) timeValid_f <= 1;
+
+    always @(*)
+      assume(clear_i == ~timeValid_f);
+
+    always @(posedge clk_i) begin
+
+      // just a sanity check clear test
+      if (timeValid_f & $past(timeValid_f) & $past(clear_i)) begin
+        assert(immediate_valid_o == 1'b0);
+        assert(jal_jump_o == 1'b0);
+        assert(jalr_o == 1'b0);
+        assert(branch_o == 1'b0);
+        assert(branch_condition_o == 3'b0);
+        assert(memory_write_o == 1'b0);
+        assert(link_o == 1'b0);
+        assert(mret_o == 1'b0);
+      end
+
+      if (timeValid_f & $past(timeValid_f) & $past(data_ready_i)) begin
+        
+      end
+
+    end
+
+  `endif
 
 endmodule
 

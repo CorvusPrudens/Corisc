@@ -14,4 +14,4 @@ prep -top rv32im_decode
 # opt_merge -share_all
 
 [files]
-../rv32im_decode.v
+../../rv32im_decode.v
