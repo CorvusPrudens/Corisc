@@ -10,7 +10,7 @@ module rv32im_instruction_cache
     parameter ILEN = 32,
     parameter XLEN = 32,
     parameter VTABLE_ADDRESS = 32'h00000000,
-    parameter UNUSED_ADDR_BITS = 8
+    parameter UNUSED_ADDR_BITS = 10
   )
   (
     input wire clk_i,
