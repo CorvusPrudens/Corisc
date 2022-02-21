@@ -38,7 +38,9 @@ module rv32im
     input wire err_i,
     output wire [3:0] sel_o,
     output wire stb_o,
-    output wire we_o
+    output wire we_o,
+
+    output wire [13:0] debug_o
   );
 
   wire wb_we;
@@ -75,6 +77,8 @@ module rv32im
   reg [XLEN-1:0] program_counter;
   initial program_counter = 0;
 
+  assign debug_o = {icache_busy, program_counter[14:2]};
+
   // Instruction cache
   reg  instruction_cache_arbitor;
   initial instruction_cache_arbitor = 0;
@@ -105,7 +109,7 @@ module rv32im
   assign we_o = instruction_cache_arbitor ? 1'b0 : wb_we;
 
   rv32im_instruction_cache #(
-    .CACHE_LEN(7),
+    .CACHE_LEN(6),
     .LINE_LEN(4), // NOTE -- this is the bits for the word count, not byte count
     .ILEN(ILEN),
     .XLEN(XLEN),
@@ -144,13 +148,6 @@ module rv32im
       3'b1??: prefetch_pc_in = vtable_pc;
     endcase
   end
-
-  // // For rolling back after a cache miss
-  // reg [XLEN-1:0] prev_program_counter;
-  // initial prev_program_counter = 0;
-  // always @(posedge clk_i) begin
-  //   prev_program_counter <= prefetch_pc;
-  // end
 
   always @(posedge clk_i) begin
     if (reset_i) begin
