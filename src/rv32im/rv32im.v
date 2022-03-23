@@ -77,7 +77,7 @@ module rv32im
   reg [XLEN-1:0] program_counter;
   initial program_counter = 0;
 
-  assign debug_o = {icache_busy, program_counter[14:2]};
+  assign debug_o = {stb_o, icache_arb_req, program_counter[13:2]};
 
   // Instruction cache
   reg  instruction_cache_arbitor;
