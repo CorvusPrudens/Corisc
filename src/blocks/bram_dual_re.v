@@ -5,34 +5,41 @@
 
 module bram_dual_re
   #(
-    parameter memSize_p = 8,
-    parameter dataWidth_p = 16
+    parameter memSize_p = 6,
+    parameter XLEN = 32
   )
   (
     input wire clk_i,
     input wire write_i,
     input wire read_i,
-    input wire [dataWidth_p-1:0] data_i,
+    input wire [XLEN-1:0] data_i,
 
     input wire [(memSize_p - 1):0]  waddr_i,
     input wire [(memSize_p - 1):0]  raddr_i,
 
-    output reg [(dataWidth_p - 1):0] data_o = 0
+    output wire [(XLEN - 1):0] data_o
   );
 
-  reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0] /* synthesis syn_ramstyle = "no_rw_check" */;
+  reg [(XLEN-1):0] memory [2**memSize_p-1:0] /* synthesis syn_ramstyle = "no_rw_check" */;
+  reg [(XLEN-1):0] bram_out;
+  reg [(XLEN-1):0] writethrough;
+
+  wire writethrough_condition = (waddr_i == raddr_i) && write_i;
+  reg writethrough_satisfied;
+
+  assign data_o = writethrough_satisfied ? writethrough : bram_out;
 
   always @(posedge clk_i) begin
-    if (write_i) begin
+    if (write_i)
       memory[waddr_i] <= data_i;
-      if (read_i) begin
-        if (waddr_i == raddr_i)
-          data_o <= data_i;
-        else
-          data_o <= memory[raddr_i];
-      end
-    end else if (read_i)
-      data_o <= memory[raddr_i];
+  end
+
+  always @(posedge clk_i) begin
+    if (read_i) begin
+      bram_out <= memory[raddr_i];
+      writethrough <= data_i;
+      writethrough_satisfied <= writethrough_condition;
+    end
   end
 
   `ifdef FORMAL

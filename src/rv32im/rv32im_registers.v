@@ -36,7 +36,7 @@ module rv32im_registers
 
   bram_dual_re #(
     .memSize_p(REG_BITS),
-    .dataWidth_p(XLEN)
+    .XLEN(XLEN)
   ) RS1 (
     .clk_i(clk_i),
     .write_i(reg_write),
@@ -51,7 +51,7 @@ module rv32im_registers
 
   bram_dual_re #(
     .memSize_p(REG_BITS),
-    .dataWidth_p(XLEN)
+    .XLEN(XLEN)
   ) RS2 (
     .clk_i(clk_i),
     .write_i(reg_write),

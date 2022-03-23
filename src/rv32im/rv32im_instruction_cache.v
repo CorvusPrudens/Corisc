@@ -84,7 +84,7 @@ module rv32im_instruction_cache
 
   bram_dual_re #(
     .memSize_p(CACHE_LEN),
-    .dataWidth_p(ILEN)
+    .XLEN(ILEN)
   ) BRAM_DUAL_RE (
     .clk_i(clk_i),
     .write_i(ack_i & cache_stb),

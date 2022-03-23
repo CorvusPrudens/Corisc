@@ -16,7 +16,7 @@ module bram_init_rom
 
   reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];
 
-  initial $readmemh(initFile_p, memory);
+  initial if (initFile_p) $readmemh(initFile_p, memory);
 
   always @(posedge clk_i) begin
     data_o <= memory[addr_i];
