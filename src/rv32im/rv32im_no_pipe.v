@@ -5,11 +5,17 @@ module rv32im_no_pipe
   #(
     parameter XLEN = 32,
     parameter ILEN = 32,
-    parameter REG_BITS = 5
+    parameter REG_BITS = 5,
+    parameter INT_VECT_LEN = 8,
+    parameter VTABLE_ADDR = 32'h00300000
   )
   (
     input wire clk_i,
     input wire reset_i,
+
+    input wire [XLEN-1:0] interrupt_vector_offset_i,
+    input wire interrupt_trigger_i,
+    output wire interrupt_routine_complete_o,
 
     input wire [XLEN-1:0] master_dat_i,
     output wire [XLEN-1:0] master_dat_o,
@@ -20,10 +26,9 @@ module rv32im_no_pipe
     output wire [3:0] sel_o,
     output wire stb_o,
     output wire we_o,
+    
     input wire ctrl_req_i,
-    output wire ctrl_grant_o,
-
-    input wire interrupt_trigger_i
+    output wire ctrl_grant_o
   );
 
   wire memory_ctrl_req;
@@ -127,26 +132,22 @@ module rv32im_no_pipe
   wire immediate_valid;
   wire [XLEN-1:0] irrelevant_pc;
 
-  wire mret_o;
-  wire [XLEN-1:0] uepc_o;
-  wire jal_jump_o;
-  wire [XLEN-1:0] pc_jal_data_o;
-  wire jalr_o;
-  wire branch_o;
-  wire [2:0] branch_condition_o;
-  wire clear_branch_stall_i;
-  wire link_o;
-  wire [XLEN-1:0] link_data_o;
-  wire pop_ras_o;
-  wire push_ras_o;
-  wire [2:0] stage4_path_o;
-  wire memory_write_o;
+  wire mret;
+  wire [XLEN-1:0] uepc;
+  wire jal_jump;
+  wire [XLEN-1:0] pc_jal_data;
+  wire jalr;
+  wire branch;
+  wire [2:0] branch_condition;
+  wire link;
+  wire [XLEN-1:0] link_data;
+  wire [2:0] stage4_path;
+  wire memory_write;
   wire processing_jump;
 
   wire ras_pop;
   wire ras_push;
   wire ras_write;
-
 
   rv32im_decode #(
     .XLEN(XLEN),
@@ -167,24 +168,36 @@ module rv32im_no_pipe
     .pc_data_i(program_counter),
     .pc_data_o(irrelevant_pc),
     .interrupt_trigger_i(interrupt_trigger_i),
-    .mret_o(),
-    .uepc_o(),
-    .jal_jump_o(),
-    .pc_jal_data_o(),
-    .jalr_o(),
-    .branch_o(),
-    .branch_condition_o(),
-    .clear_branch_stall_i(),
-    .link_o(),
-    .link_data_o(),
+    .mret_o(mret),
+    .uepc_o(uepc),
+    .jal_jump_o(jal_jump),
+    .pc_jal_data_o(pc_jal_data),
+    .jalr_o(jalr),
+    .branch_o(branch),
+    .branch_condition_o(branch_condition),
+    .clear_branch_stall_i(1'b0),
+    .link_o(link),
+    .link_data_o(link_data),
     .pop_ras_o(ras_pop),
     .push_ras_o(ras_push),
-    .stage4_path_o(),
-    .memory_write_o(),
-    .processing_jump()
+    .stage4_path_o(stage4_path),
+    .memory_write_o(memory_write),
+    .processing_jump(processing_jump)
   );
 
-  reg registers_write;
+  wire decode_clear = reset_i;
+  reg decode_data_ready;
+
+  always @(posedge clk_i) begin
+    if (decode_clear)
+      decode_data_ready <= 1'b0;
+    else if (prefetch_data_ready)
+      decode_data_ready <= prefetch_data_ready;
+    else
+      decode_data_ready <= 1'b0;
+  end
+
+  wire registers_write = writeback_registers_write;
   wire [XLEN-1:0] writeback_data;
 
   wire [XLEN-1:0] rs1;
@@ -198,7 +211,7 @@ module rv32im_no_pipe
     .clk_i(clk_i),
     .write_i(registers_write),
     .data_i(writeback_data),
-    .data_ready_i(),
+    .data_ready_i(decode_data_ready),
     .rs1_addr_i(rs1_addr),
     .rs2_addr_i(rs2_addr),
     .rd_addr_i(rd_addr),
@@ -207,9 +220,26 @@ module rv32im_no_pipe
     .ras_o(ras),
     .pc_i(program_counter),
     .ras_write_i(),
-    .push_ras_i(ras_push),
-    .pop_ras_i(ras_pop)
+    .push_ras_i(branch_jump ? 1'b0 : ras_push),
+    .pop_ras_i(mret & jalr_jump ? 1'b0 : ras_pop)
   );
+
+  wire opfetch_clear = reset_i;
+  reg opfetch_data_ready;
+  reg stage4_data_ready;
+
+  always @(posedge clk_i) begin
+    if (opfetch_clear)
+      opfetch_data_ready <= 1'b0;
+    else if (decode_data_ready)
+      opfetch_data_ready <= decode_data_ready;
+    else if (stage4_data_ready)
+      opfetch_data_ready <= 1'b0;
+  end
+
+  wire stage4_path_alu = stage4_path[0];
+  reg [XLEN-1:0] stage4_result;
+  reg [XLEN-1:0] mem_data_out;
 
   // Splitty stage
   wire [XLEN-1:0] alu_result;
@@ -217,14 +247,28 @@ module rv32im_no_pipe
   wire alu_less;
   wire alu_less_unsigned;
 
+  wire alu_advance = stage4_path[0] & opfetch_data_ready;
+  wire [XLEN-1:0] alu_operand2 = immediate_valid ? immediate : rs2;
+  reg alu_data_ready;
+
+  always @(posedge clk_i) begin
+    if (reset_i) begin
+      alu_data_ready <= 1'b0;
+    end else if (alu_advance) begin
+      alu_data_ready <= 1'b1;
+    end else if (writeback_advance) begin
+      alu_data_ready <= 1'b0;
+    end
+  end
+
   rv32im_alu #(
     .XLEN(XLEN)
   ) RV32IM_ALU (
     .clk_i(clk_i),
-    .data_ready_i(),
+    .data_ready_i(alu_advance),
     .operation_i(alu_operation),
     .operand1_i(rs1),
-    .operand2_i(),
+    .operand2_i(alu_operand2),
     .result_o(alu_result),
     .equal_o(alu_equal),
     .less_o(alu_less_unsigned),
@@ -232,21 +276,29 @@ module rv32im_no_pipe
     .clear_i(1'b0)
   );
 
+  wire memory_clear = reset_i;
   wire memory_ctrl_grant = bus_master[0];
+  wire [XLEN-1:0] memory_addr_in = rs1 + immediate;
+  wire mem_busy;
+  wire mem_err;
+  wire mem_advance = opfetch_data_ready & stage4_path[1];
+
+  wire mem_transaction_done = ack_i & memory_ctrl_grant & memory_ctrl_req;
+  reg mem_data_ready;
 
   rv32im_memory_nopipe #(
     .XLEN(XLEN)
   ) RV32IM_MEMORY (
     .clk_i(clk_i),
-    .clear_i(),
-    .data_ready_i(),
-    .data_i(),
-    .data_o(),
-    .addr_i(),
-    .word_size_i(),
-    .write_i(),
-    .busy_o(),
-    .err_o(),
+    .clear_i(memory_clear),
+    .data_ready_i(mem_advance),
+    .data_i(rs2),
+    .data_o(mem_data_out),
+    .addr_i(memory_addr_in),
+    .word_size_i(word_size),
+    .write_i(memory_write),
+    .busy_o(mem_busy),
+    .err_o(mem_err),
 
     .master_dat_i(master_dat_i),
     .master_dat_o(memory_dat_o),
@@ -261,26 +313,87 @@ module rv32im_no_pipe
     .ctrl_grant_i(memory_ctrl_grant),
     .ctrl_req_o(memory_ctrl_req)
   );
+ 
+  always @(posedge clk_i) begin
+    if (memory_clear) begin
+      mem_data_ready <= 1'b0;
+    end else if (mem_transaction_done) begin
+      mem_data_ready <= 1'b1;
+    end else if (writeback_advance) begin
+      mem_data_ready <= 1'b0;
+    end
+  end
 
   wire [XLEN-1:0] muldiv_result;
+  wire muldiv_clear = reset_i;
+  wire muldiv_advance = opfetch_data_ready & stage4_path[2];
+  wire muldiv_data_ready;
+  wire muldiv_busy;
 
   rv32im_muldiv #(
     .XLEN(XLEN)
   ) RV32IM_MULDIV (
     .clk_i(clk_i),
-    .clear_i(),
+    .clear_i(muldiv_clear),
     .operation_i(alu_operation[2:0]),
-    .data_ready_i(),
+    .data_ready_i(muldiv_advance),
     .operand1_i(rs1),
-    .operand2_i(),
+    .operand2_i(rs2),
     .result_o(muldiv_result),
-    .data_ready_o(),
-    .busy_o(),
-    .writeback_ce_i()
+    .data_ready_o(muldiv_data_ready),
+    .busy_o(muldiv_busy),
+    .writeback_ce_i(writeback_advance)
   );
+
+  always @(*) begin
+    case (stage4_path)
+      default: stage4_data_ready = alu_data_ready;
+      3'b010: stage4_data_ready = mem_data_ready;
+      3'b100: stage4_data_ready = muldiv_data_ready;
+    endcase
+  end
+
+  always @(*) begin
+    case (stage4_path)
+      default: stage4_result = alu_link ? alu_link_data : alu_result;
+      3'b010: stage4_result = mem_data_out;
+      3'b100: stage4_result = muldiv_result;
+    endcase
+  end
   
   // writeback stage
+  reg writeback_branch;
+  reg [XLEN-1:0] writeback_data;
+  reg [XLEN-1:0] writeback_branch_data;
+  wire writeback_advance = stage4_data_ready;
 
+  always @(posedge clk_i) begin
+    if (writeback_clear) begin
+      writeback_registers_write <= 1'b0;
+      writeback_data <= 0;
+      writeback_branch <= 1'b0;
+    end else if (writeback_advance) begin
+      writeback_data <= stage4_result;
+      writeback_registers_write <= (rd_addr > 0);
+      writeback_branch_data <= immediate + program_counter;
+      if (branch) begin
+        case (branch_condition)
+          default: writeback_branch <= 1'b0;
+          3'b000: if (alu_equal) writeback_branch <= 1'b1;
+          3'b001: if (~alu_equal) writeback_branch <= 1'b1;
+          3'b100: if (alu_less) writeback_branch <= 1'b1;
+          3'b101: if (~alu_less) writeback_branch <= 1'b1;
+          3'b110: if (alu_less_unsigned) writeback_branch <= 1'b1;
+          3'b111: if (~alu_less_unsigned) writeback_branch <= 1'b1;
+        endcase
+      end else begin
+        writeback_branch <= 1'b0;
+      end
+    end else begin
+      writeback_registers_write <= 1'b0;
+      writeback_branch <= 1'b0;
+    end
+  end
 
 
 endmodule
