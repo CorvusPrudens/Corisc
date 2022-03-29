@@ -89,16 +89,71 @@ module rv32im_no_pipe
   assign we_o = bus_master[1]  ? 1'b0 : memory_we_o;
   assign stb_o = bus_master[1] ? prefetch_stb : memory_stb;
   assign cyc_o = bus_master[1] ? prefetch_cyc : memory_cyc;
-  assign sel_o = bus_master[1] ? prefetch_sel : memory_sel;  
+  assign sel_o = bus_master[1] ? prefetch_sel : memory_sel;
 
+
+  reg initial_push;
+
+  always @(posedge clk_i) begin
+    if (reset_i)
+      initial_push <= 1'b0;
+    else if (prefetch_data_ready)
+      initial_push <= 1'b1;
+  end
 
   reg [XLEN-1:0] program_counter;
-  wire prefetch_advance;
+  wire prefetch_advance = ~initial_push | writeback_data_ready | prefetch_advance_after_jump;
   wire prefetch_data_ready;
   wire [XLEN-1:0] prefetch_instruction;
 
   wire prefetch_ctrl_req;
   wire prefetch_ctrl_grant = bus_master[1];
+
+  wire [XLEN-1:0] interrupt_pc;
+  wire interrupt_pc_write;
+
+  wire jalr_jump = jalr & ~stb_o;
+  wire branch_jump = writeback_branch;
+
+  wire prefetch_advance_after_jump;
+
+  assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump | interrupt_pc_write;
+
+  wire [XLEN-1:0] jalr_base = ras_pop ? ras : rs1;
+
+  always @(*) begin
+    casez ({vtable_pc_write, branch_jump, jalr_jump})
+      default: prefetch_pc_in = prefetch_pc_in_jal;
+      3'b001: prefetch_pc_in = mret ? uepc : immediate + jalr_base;
+      3'b01?: prefetch_pc_in = writeback_branch_data;
+      3'b1??: prefetch_pc_in = interrupt_pc;
+    endcase
+  end
+
+  // This is sure to cause some bugs
+  always @(posedge clk_i) begin
+    if (reset_i) begin
+
+    end else if (prefetch_advance) begin
+      if (prefetch_pc_write) begin
+        program_counter <= prefetch_pc_in + 32'b100;
+      end else begin
+        program_counter <= program_counter + 32'b100;
+      end
+    end else if (prefetch_pc_write) begin
+      program_counter <= prefetch_pc_in;
+    end
+  end
+
+  always @(posedge clk_i) begin
+    if (reset_i) begin
+      prefetch_advance_after_jump <= 1'b0;
+    end else if (prefetch_pc_write) begin
+      prefetch_advance_after_jump <= 1'b1;
+    end else if (prefetch_data_ready) begin
+      prefetch_advance_after_jump <= 1'b0;
+    end
+  end
 
   // The only thing that each stage needs to do is check if the next one is ready.
   // No need for more complex chained stalls.
@@ -108,7 +163,7 @@ module rv32im_no_pipe
   ) RV32IM_PREFETCH (
     .clk_i(clk_i),
     .reset_i(reset_i),
-    .program_counter_i(program_counter),
+    .program_counter_i(prefetch_pc_write ? prefetch_pc_in : program_counter),
     .advance_i(prefetch_advance),
     .data_ready_o(prefetch_data_ready),
     .instruction_o(prefetch_instruction),
@@ -120,7 +175,14 @@ module rv32im_no_pipe
     .cyc_o(prefetch_cyc),
     .err_i(err_i),
     .sel_o(prefetch_sel),
-    .stb_o(prefetch_stb)
+    .stb_o(prefetch_stb),
+
+    .interrupt_trigger_i(interrupt_trigger_i),
+    .vtable_addr(VTABLE_ADDR),
+    .vtable_offset(interrupt_vector_offset_i),
+
+    .interrupt_pc_o(interrupt_pc),
+    .interrupt_pc_write(interrupt_pc_write)
   );
 
   wire [3:0] alu_operation;
@@ -185,7 +247,7 @@ module rv32im_no_pipe
     .processing_jump(processing_jump)
   );
 
-  wire decode_clear = reset_i;
+  wire decode_clear = reset_i | jal_jump | jalr_jump | branch_jump;;
   reg decode_data_ready;
 
   always @(posedge clk_i) begin
@@ -224,7 +286,7 @@ module rv32im_no_pipe
     .pop_ras_i(mret & jalr_jump ? 1'b0 : ras_pop)
   );
 
-  wire opfetch_clear = reset_i;
+  wire opfetch_clear = reset_i | jalr_jump | branch_jump;
   reg opfetch_data_ready;
   reg stage4_data_ready;
 
@@ -366,13 +428,16 @@ module rv32im_no_pipe
   reg [XLEN-1:0] writeback_data;
   reg [XLEN-1:0] writeback_branch_data;
   wire writeback_advance = stage4_data_ready;
+  reg writeback_data_ready;
 
   always @(posedge clk_i) begin
     if (writeback_clear) begin
       writeback_registers_write <= 1'b0;
       writeback_data <= 0;
       writeback_branch <= 1'b0;
+      writeback_data_ready <= 1'b0;
     end else if (writeback_advance) begin
+      writeback_data_ready <= 1'b1;
       writeback_data <= stage4_result;
       writeback_registers_write <= (rd_addr > 0);
       writeback_branch_data <= immediate + program_counter;
@@ -392,6 +457,8 @@ module rv32im_no_pipe
     end else begin
       writeback_registers_write <= 1'b0;
       writeback_branch <= 1'b0;
+      if (prefetch_data_ready)
+        writeback_data_ready <= 1'b0;
     end
   end
 
