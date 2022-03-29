@@ -5,7 +5,7 @@
 
 module rv32im_prefetch 
     #(
-        parameter XLEN = 32
+        parameter XLEN = 32,
         parameter ILEN = 32
     ) (
         input wire clk_i,
@@ -62,31 +62,41 @@ module rv32im_prefetch
             stb_o <= 1'b0;
             data_ready_o <= 1'b0;
             vtable_lookup_init <= 1'b0;
+            interrupt_pc_write <= 1'b0;
         end else if (pursue_vtable) begin
 
             // load from vtable routine
-            if (((advance_i & handle_interrupt) | ~vtable_lookup_init) & !stb_o) begin
+            if (((advance_i & handle_interrupt) | ~vtable_lookup_init) & ~ctrl_req_o) begin
                 stb_o <= 1'b1;
+                ctrl_req_o <= 1'b1;
                 adr_o <= vtable_addr[XLEN-1:2] + vtable_offset[XLEN-1:2];
             end else if (ack_i & ctrl_grant_i) begin
                 stb_o <= 1'b0;
-                interrupt_handled = 1'b1;
+                ctrl_req_o <= 1'b0;
+                interrupt_handled <= 1'b1;
                 interrupt_pc_o <= master_dat_i;
                 interrupt_pc_write <= 1'b1;
                 vtable_lookup_init <= 1'b1;
+            end else begin
+                interrupt_handled <= 1'b0;
+                interrupt_pc_write <= 1'b0;
             end
             
-        end else if (advance_i & !stb_o) begin
+        end else if (advance_i & ~ctrl_req_o) begin
+            ctrl_req_o <= 1'b1;
             stb_o <= 1'b1;
             adr_o <= program_counter_i[XLEN-1:2];
             data_ready_o <= 1'b0;
+            interrupt_pc_write <= 1'b0;
         end else if (ack_i & ctrl_grant_i) begin
             instruction_o <= master_dat_i;
             ctrl_req_o <= 1'b0;
             stb_o <= 1'b0;
             data_ready_o <= 1'b1;
-        end else
+        end else begin
             data_ready_o <= 1'b0;
+            interrupt_pc_write <= 1'b0;
+        end
     end
 
 endmodule

@@ -39,6 +39,7 @@ module rv32im_no_pipe
   );
 
   wire memory_ctrl_req;
+  assign interrupt_routine_complete_o = mret & jalr_jump;
 
   // Bus arbitration
   reg [2:0] bus_master;
@@ -89,7 +90,6 @@ module rv32im_no_pipe
   wire memory_stb;
   wire memory_we_o;
 
-
   // For the moment, if external control of the bus is taken,
   // the the state of the bus doesn't matter within this module
   assign master_dat_o = memory_dat_o;
@@ -97,6 +97,7 @@ module rv32im_no_pipe
   assign stb_o = bus_master[1] ? prefetch_stb : memory_stb;
   assign cyc_o = bus_master[1] ? prefetch_cyc : memory_cyc;
   assign sel_o = bus_master[1] ? prefetch_sel : memory_sel;
+  assign adr_o = bus_master[1] ? prefetch_adr : memory_adr;
 
 
   reg initial_push;
@@ -109,7 +110,7 @@ module rv32im_no_pipe
   end
 
   reg [XLEN-1:0] program_counter;
-  wire prefetch_advance = ~initial_push | writeback_data_ready | prefetch_advance_after_jump;
+  wire prefetch_advance = ~initial_push | writeback_data_ready | prefetch_pc_write;
   wire prefetch_data_ready;
   wire [XLEN-1:0] prefetch_instruction;
 
@@ -122,15 +123,16 @@ module rv32im_no_pipe
   wire jalr_jump = jalr & ~stb_o;
   wire branch_jump = writeback_branch;
 
-  wire prefetch_advance_after_jump;
+  reg prefetch_advance_after_jump;
 
-  assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump | interrupt_pc_write;
+  wire prefetch_pc_write = jal_jump | jalr_jump | branch_jump | interrupt_pc_write;
 
   wire [XLEN-1:0] jalr_base = ras_pop ? ras : rs1;
+  reg [XLEN-1:0] prefetch_pc_in;
 
   always @(*) begin
-    casez ({vtable_pc_write, branch_jump, jalr_jump})
-      default: prefetch_pc_in = prefetch_pc_in_jal;
+    casez ({interrupt_pc_write, branch_jump, jalr_jump})
+      default: prefetch_pc_in = pc_jal_data;
       3'b001: prefetch_pc_in = mret ? uepc : immediate + jalr_base;
       3'b01?: prefetch_pc_in = writeback_branch_data;
       3'b1??: prefetch_pc_in = interrupt_pc;
@@ -267,7 +269,7 @@ module rv32im_no_pipe
   end
 
   wire registers_write = writeback_registers_write;
-  wire [XLEN-1:0] writeback_data;
+  reg [XLEN-1:0] writeback_data;
 
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
@@ -288,7 +290,7 @@ module rv32im_no_pipe
     .rs2_o(rs2),
     .ras_o(ras),
     .pc_i(program_counter),
-    .ras_write_i(),
+    .ras_write_i(prefetch_pc_write),
     .push_ras_i(branch_jump ? 1'b0 : ras_push),
     .pop_ras_i(mret & jalr_jump ? 1'b0 : ras_pop)
   );
@@ -319,6 +321,8 @@ module rv32im_no_pipe
   wire alu_advance = stage4_path[0] & opfetch_data_ready;
   wire [XLEN-1:0] alu_operand2 = immediate_valid ? immediate : rs2;
   reg alu_data_ready;
+
+  wire writeback_advance;
 
   always @(posedge clk_i) begin
     if (reset_i) begin
@@ -354,6 +358,7 @@ module rv32im_no_pipe
 
   wire mem_transaction_done = ack_i & memory_ctrl_grant & memory_ctrl_req;
   reg mem_data_ready;
+  wire [XLEN-1:0] mem_data_out_raw;
 
   rv32im_memory_nopipe #(
     .XLEN(XLEN)
@@ -362,9 +367,9 @@ module rv32im_no_pipe
     .clear_i(memory_clear),
     .data_ready_i(mem_advance),
     .data_i(rs2),
-    .data_o(mem_data_out),
+    .data_o(mem_data_out_raw),
     .addr_i(memory_addr_in),
-    .word_size_i(word_size),
+    .word_size_i(word_size[1:0]),
     .write_i(memory_write),
     .busy_o(mem_busy),
     .err_o(mem_err),
@@ -391,6 +396,14 @@ module rv32im_no_pipe
     end else if (writeback_advance) begin
       mem_data_ready <= 1'b0;
     end
+  end
+
+  always @(*) begin
+    case (word_size)
+      3'b000: mem_data_out = {{XLEN-8{mem_data_out_raw[7]}}, mem_data_out_raw[7:0]};
+      3'b001: mem_data_out = {{XLEN-16{mem_data_out_raw[15]}}, mem_data_out_raw[15:0]};
+      default: mem_data_out = mem_data_out_raw;
+    endcase
   end
 
   wire [XLEN-1:0] muldiv_result;
@@ -424,7 +437,7 @@ module rv32im_no_pipe
 
   always @(*) begin
     case (stage4_path)
-      default: stage4_result = alu_link ? alu_link_data : alu_result;
+      default: stage4_result = link ? link_data : alu_result;
       3'b010: stage4_result = mem_data_out;
       3'b100: stage4_result = muldiv_result;
     endcase
@@ -432,10 +445,11 @@ module rv32im_no_pipe
   
   // writeback stage
   reg writeback_branch;
-  reg [XLEN-1:0] writeback_data;
   reg [XLEN-1:0] writeback_branch_data;
-  wire writeback_advance = stage4_data_ready;
+  assign writeback_advance = stage4_data_ready;
   reg writeback_data_ready;
+  reg writeback_registers_write;
+  wire writeback_clear = reset_i;
 
   always @(posedge clk_i) begin
     if (writeback_clear) begin
@@ -464,8 +478,7 @@ module rv32im_no_pipe
     end else begin
       writeback_registers_write <= 1'b0;
       writeback_branch <= 1'b0;
-      if (prefetch_data_ready)
-        writeback_data_ready <= 1'b0;
+      writeback_data_ready <= 1'b0;
     end
   end
 
