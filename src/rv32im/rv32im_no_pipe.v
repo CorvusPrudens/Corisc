@@ -1,6 +1,13 @@
 `ifndef RV32IM_NO_PIPE_GUARD
 `define RV32IM_NO_PIPE_GUARD
 
+`include "rv32im_alu.v"
+`include "rv32im_decode.v"
+`include "rv32im_registers.v"
+`include "rv32im_memory_nopipe.v"
+`include "rv32im_prefetch.v"
+`include "rv32im_muldiv.v"
+
 module rv32im_no_pipe 
   #(
     parameter XLEN = 32,
