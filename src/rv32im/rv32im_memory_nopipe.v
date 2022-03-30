@@ -61,15 +61,15 @@ module rv32im_memory_nopipe
       busy_o <= 1'b0;
       err_o <= 1'b0;
       ctrl_req_o <= 1'b0;
-    end else if (data_ready_i & ~ctrl_grant_i) begin
+    end else if (data_ready_i & ~ctrl_req_o) begin
       ctrl_req_o <= 1'b1;
-    end else if (ctrl_grant_i & ~stb_o) begin
+    end else if (ctrl_req_o & ctrl_grant_i & ~stb_o) begin
       adr_o <= addr_i[XLEN-1:2];
       sel_o <= sel;
       stb_o <= 1'b1;
       master_dat_o <= data_i;
       we_o <= write_i;
-    end else if (ctrl_grant_i & err_i) begin
+    end else if (ctrl_req_o & ctrl_grant_i & err_i) begin
       // an error occurred and the transaction is immediately cancelled
       stb_o <= 1'b0;
       sel_o <= 0;
@@ -77,7 +77,7 @@ module rv32im_memory_nopipe
       busy_o <= 1'b0;
       err_o <= 1'b1;
       ctrl_req_o <= 1'b0;
-    end else if (ctrl_grant_i & ack_i) begin
+    end else if (ctrl_req_o & ctrl_grant_i & ack_i) begin
       // transaction complete
       stb_o <= 1'b0;
       busy_o <= 1'b0;

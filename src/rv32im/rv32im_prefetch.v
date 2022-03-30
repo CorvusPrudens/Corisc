@@ -37,7 +37,9 @@ module rv32im_prefetch
         input wire [XLEN-1:0] vtable_offset,
 
         output reg [XLEN-1:0] interrupt_pc_o,
-        output reg interrupt_pc_write
+        output reg interrupt_pc_write,
+
+        output reg initialized
     );
 
     assign sel_o = 4'b1111;
@@ -63,6 +65,8 @@ module rv32im_prefetch
             data_ready_o <= 1'b0;
             vtable_lookup_init <= 1'b0;
             interrupt_pc_write <= 1'b0;
+            initialized <= 1'b0;
+            interrupt_handled <= 1'b0;
         end else if (pursue_vtable) begin
 
             // load from vtable routine
@@ -70,7 +74,7 @@ module rv32im_prefetch
                 stb_o <= 1'b1;
                 ctrl_req_o <= 1'b1;
                 adr_o <= vtable_addr[XLEN-1:2] + vtable_offset[XLEN-1:2];
-            end else if (ack_i & ctrl_grant_i) begin
+            end else if (ack_i & ctrl_grant_i & ctrl_req_o) begin
                 stb_o <= 1'b0;
                 ctrl_req_o <= 1'b0;
                 interrupt_handled <= 1'b1;
@@ -88,14 +92,18 @@ module rv32im_prefetch
             adr_o <= program_counter_i[XLEN-1:2];
             data_ready_o <= 1'b0;
             interrupt_pc_write <= 1'b0;
-        end else if (ack_i & ctrl_grant_i) begin
+            initialized <= 1'b1;
+            interrupt_handled <= 1'b0;
+        end else if (ack_i & ctrl_grant_i & ctrl_req_o) begin
             instruction_o <= master_dat_i;
             ctrl_req_o <= 1'b0;
             stb_o <= 1'b0;
             data_ready_o <= 1'b1;
+            interrupt_handled <= 1'b0;
         end else begin
             data_ready_o <= 1'b0;
             interrupt_pc_write <= 1'b0;
+            interrupt_handled <= 1'b0;
         end
     end
 
