@@ -39,7 +39,8 @@ module rv32im_prefetch
         output reg [XLEN-1:0] interrupt_pc_o,
         output reg interrupt_pc_write,
 
-        output reg initialized
+        output reg initialized,
+        output reg save_uepc
     );
 
     assign sel_o = 4'b1111;
@@ -56,10 +57,16 @@ module rv32im_prefetch
             handle_interrupt <= 1'b1;
     end
 
-    wire pursue_vtable = ~vtable_lookup_init | (handle_interrupt & ~interrupt_handled);
+    reg [1:0] vtable_sm;
+    reg [1:0] prefetch_sm;
+
+    wire pursue_vtable = (~vtable_lookup_init | (handle_interrupt & ~interrupt_handled)) & (prefetch_sm == 0);
 
     always @(posedge clk_i) begin
         if (reset_i) begin
+            vtable_sm <= 0;
+            prefetch_sm <= 0;
+
             ctrl_req_o <= 1'b0;
             stb_o <= 1'b0;
             data_ready_o <= 1'b0;
@@ -67,43 +74,70 @@ module rv32im_prefetch
             interrupt_pc_write <= 1'b0;
             initialized <= 1'b0;
             interrupt_handled <= 1'b0;
-        end else if (pursue_vtable) begin
-
-            // load from vtable routine
-            if (((advance_i & handle_interrupt) | ~vtable_lookup_init) & ~ctrl_req_o) begin
-                stb_o <= 1'b1;
-                ctrl_req_o <= 1'b1;
-                adr_o <= vtable_addr[XLEN-1:2] + vtable_offset[XLEN-1:2];
-            end else if (ack_i & ctrl_grant_i & ctrl_req_o) begin
-                stb_o <= 1'b0;
-                ctrl_req_o <= 1'b0;
-                interrupt_handled <= 1'b1;
-                interrupt_pc_o <= master_dat_i;
-                interrupt_pc_write <= 1'b1;
-                vtable_lookup_init <= 1'b1;
-            end else begin
-                interrupt_handled <= 1'b0;
-                interrupt_pc_write <= 1'b0;
-            end
-            
-        end else if (advance_i & ~ctrl_req_o) begin
-            ctrl_req_o <= 1'b1;
-            stb_o <= 1'b1;
-            adr_o <= program_counter_i[XLEN-1:2];
-            data_ready_o <= 1'b0;
-            interrupt_pc_write <= 1'b0;
-            initialized <= 1'b1;
-            interrupt_handled <= 1'b0;
-        end else if (ack_i & ctrl_grant_i & ctrl_req_o) begin
-            instruction_o <= master_dat_i;
-            ctrl_req_o <= 1'b0;
-            stb_o <= 1'b0;
-            data_ready_o <= 1'b1;
-            interrupt_handled <= 1'b0;
         end else begin
-            data_ready_o <= 1'b0;
-            interrupt_pc_write <= 1'b0;
-            interrupt_handled <= 1'b0;
+            case (vtable_sm)
+                2'b00: 
+                begin
+                    if (advance_i & pursue_vtable) begin
+                        stb_o <= 1'b1;
+                        ctrl_req_o <= 1'b1;
+                        adr_o <= vtable_addr[XLEN-1:2] + vtable_offset[XLEN-1:2];
+                        vtable_sm <= vtable_sm + 1'b1;
+                        save_uepc <= 1'b1;
+                    end
+                end
+                2'b01:
+                begin
+                    if (ack_i & ctrl_grant_i) begin
+                        stb_o <= 1'b0;
+                        ctrl_req_o <= 1'b0;
+                        interrupt_handled <= 1'b1;
+                        interrupt_pc_o <= master_dat_i;
+                        interrupt_pc_write <= 1'b1;
+                        vtable_lookup_init <= 1'b1;
+                        vtable_sm <= vtable_sm + 1'b1;
+                    end
+                    save_uepc <= 1'b0;
+                end
+                default:
+                begin
+                    interrupt_handled <= 1'b0;
+                    interrupt_pc_write <= 1'b0;
+                    vtable_sm <= 0;
+                end
+            endcase
+
+            case (prefetch_sm)
+                2'b00:
+                begin
+                    if (advance_i & ~pursue_vtable) begin
+                        ctrl_req_o <= 1'b1;
+                        stb_o <= 1'b1;
+                        adr_o <= program_counter_i[XLEN-1:2];
+                        data_ready_o <= 1'b0;
+                        interrupt_pc_write <= 1'b0;
+                        initialized <= 1'b1;
+                        prefetch_sm <= prefetch_sm + 1'b1;
+                    end
+                end
+                2'b01:
+                begin
+                    if (ack_i & ctrl_grant_i) begin
+                        instruction_o <= master_dat_i;
+                        ctrl_req_o <= 1'b0;
+                        stb_o <= 1'b0;
+                        data_ready_o <= 1'b1;
+                        prefetch_sm <= prefetch_sm + 1'b1;
+                    end
+                end
+                default:
+                begin
+                    data_ready_o <= 1'b0;
+                    interrupt_pc_write <= 1'b0;
+                    interrupt_handled <= 1'b0;
+                    prefetch_sm <= 0;
+                end
+            endcase
         end
     end
 

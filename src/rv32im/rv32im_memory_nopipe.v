@@ -53,38 +53,59 @@ module rv32im_memory_nopipe
     endcase
   end
 
+  reg [1:0] mem_sm;
+
   always @(posedge clk_i) begin
     if (clear_i) begin
+      mem_sm <= 0;
+
       stb_o <= 1'b0;
       sel_o <= 0;
       we_o <= 1'b0;
       busy_o <= 1'b0;
       err_o <= 1'b0;
       ctrl_req_o <= 1'b0;
-    end else if (data_ready_i & ~ctrl_req_o) begin
-      ctrl_req_o <= 1'b1;
-    end else if (ctrl_req_o & ctrl_grant_i & ~stb_o) begin
-      adr_o <= addr_i[XLEN-1:2];
-      sel_o <= sel;
-      stb_o <= 1'b1;
-      master_dat_o <= data_i;
-      we_o <= write_i;
-    end else if (ctrl_req_o & ctrl_grant_i & err_i) begin
-      // an error occurred and the transaction is immediately cancelled
-      stb_o <= 1'b0;
-      sel_o <= 0;
-      we_o <= 1'b0;
-      busy_o <= 1'b0;
-      err_o <= 1'b1;
-      ctrl_req_o <= 1'b0;
-    end else if (ctrl_req_o & ctrl_grant_i & ack_i) begin
-      // transaction complete
-      stb_o <= 1'b0;
-      busy_o <= 1'b0;
-      we_o <= 1'b0;
-      data_o <= master_dat_i;
-      ctrl_req_o <= 1'b0;
-    end 
+    end else begin
+      case (mem_sm)
+        2'b00:
+        begin
+          if (data_ready_i) begin
+            ctrl_req_o <= 1'b1;
+            mem_sm <= mem_sm + 1'b1;
+          end
+        end
+        2'b01:
+        begin
+          if (ctrl_grant_i) begin
+            adr_o <= addr_i[XLEN-1:2];
+            sel_o <= sel;
+            stb_o <= 1'b1;
+            master_dat_o <= data_i;
+            we_o <= write_i;
+            mem_sm <= mem_sm + 1'b1;
+          end
+        end
+        default:
+        begin
+          if (ack_i) begin
+            stb_o <= 1'b0;
+            busy_o <= 1'b0;
+            we_o <= 1'b0;
+            data_o <= master_dat_i;
+            ctrl_req_o <= 1'b0;
+            mem_sm <= 0;
+          end else if (err_i) begin
+            stb_o <= 1'b0;
+            sel_o <= 0;
+            we_o <= 1'b0;
+            busy_o <= 1'b0;
+            err_o <= 1'b1;
+            ctrl_req_o <= 1'b0;
+            mem_sm <= 0;
+          end
+        end
+      endcase
+    end
   end
 
   `ifdef FORMAL
