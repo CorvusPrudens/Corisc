@@ -187,6 +187,9 @@ module rv32im_decode
       memory_write_o <= 1'b0;
       link_o <= 1'b0;
       mret_o <= 1'b0;
+
+      pop_ras_o <= 0;
+      push_ras_o <= 0;
     end else if (data_ready_i) begin
 
       pop_ras_o <= pop_ras;

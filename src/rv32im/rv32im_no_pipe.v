@@ -46,8 +46,9 @@ module rv32im_no_pipe
   wire [2:0] bus_requests = {ctrl_req_i, prefetch_ctrl_req, memory_ctrl_req};
   assign ctrl_grant_o = bus_master[2];
 
+  // TODO -- very easy optimization is to give prefetch the master by default
+
   always @(posedge clk_i) begin
-    // This could be made parametric, but this works for now
     case (bus_master)
       3'b000:
       begin
@@ -57,6 +58,8 @@ module rv32im_no_pipe
           bus_master <= 3'b010;
         else if (bus_requests[2])
           bus_master <= 3'b100;
+        else
+          bus_master <= 3'b010;
       end
       3'b001:
       begin
@@ -65,18 +68,55 @@ module rv32im_no_pipe
       end
       3'b010:
       begin
-        if (~bus_requests[1])
-          bus_master <= 0;
+        if (~bus_requests[1]) begin
+          if (bus_requests[0])
+            bus_master <= 3'b001;
+          else if (bus_requests[2])
+            bus_master <= 3'b100;
+        end
       end
       3'b100:
       begin
         if (~bus_requests[2])
-          bus_master <= 0;
+          bus_master <= 3'b010;
       end
       default:
-        bus_master <= 0;
+        bus_master <= 3'b010;
     endcase
   end
+
+  // // No default master
+  // always @(posedge clk_i) begin
+  //   // This could be made parametric, but this works for now
+  //   case (bus_master)
+  //     3'b000:
+  //     begin
+  //       if (bus_requests[0])
+  //         bus_master <= 3'b001;
+  //       else if (bus_requests[1])
+  //         bus_master <= 3'b010;
+  //       else if (bus_requests[2])
+  //         bus_master <= 3'b100;
+  //     end
+  //     3'b001:
+  //     begin
+  //       if (~bus_requests[0])
+  //         bus_master <= 0;
+  //     end
+  //     3'b010:
+  //     begin
+  //       if (~bus_requests[1])
+  //         bus_master <= 0;
+  //     end
+  //     3'b100:
+  //     begin
+  //       if (~bus_requests[2])
+  //         bus_master <= 0;
+  //     end
+  //     default:
+  //       bus_master <= 0;
+  //   endcase
+  // end
 
   wire [XLEN-3:0] prefetch_adr;
   wire prefetch_cyc;
@@ -112,7 +152,7 @@ module rv32im_no_pipe
   wire [XLEN-1:0] interrupt_pc;
   wire interrupt_pc_write;
 
-  wire jalr_jump = jalr & ~stb_o;
+  wire jalr_jump = opfetch_jalr & ~stb_o;
   wire branch_jump = writeback_branch;
 
   reg prefetch_advance_after_jump;
@@ -121,11 +161,12 @@ module rv32im_no_pipe
 
   wire [XLEN-1:0] jalr_base = ras_pop ? ras : rs1;
   reg [XLEN-1:0] prefetch_pc_in;
+  wire [XLEN-1:0] prefetch_jalr_pc = mret ? uepc : immediate + jalr_base;
 
   always @(*) begin
     casez ({interrupt_pc_write, branch_jump, jalr_jump})
       default: prefetch_pc_in = pc_jal_data;
-      3'b001: prefetch_pc_in = mret ? uepc : immediate + jalr_base;
+      3'b001: prefetch_pc_in = prefetch_jalr_pc;
       3'b01?: prefetch_pc_in = writeback_branch_data;
       3'b1??: prefetch_pc_in = interrupt_pc;
     endcase
@@ -159,6 +200,8 @@ module rv32im_no_pipe
   // The only thing that each stage needs to do is check if the next one is ready.
   // No need for more complex chained stalls.
 
+  wire save_uepc;
+
   wire [XLEN-1:0] program_counter_in = writeback_data_ready ? program_counter + 32'b100 : program_counter;
 
   rv32im_prefetch #(
@@ -187,7 +230,8 @@ module rv32im_no_pipe
     .interrupt_pc_o(interrupt_pc),
     .interrupt_pc_write(interrupt_pc_write),
 
-    .initialized(prefetch_initialized)
+    .initialized(prefetch_initialized),
+    .save_uepc(save_uepc)
   );
 
   wire [3:0] alu_operation;
@@ -238,7 +282,7 @@ module rv32im_no_pipe
     .immediate_valid_o(immediate_valid),
     .pc_data_i(program_counter),
     .pc_data_o(irrelevant_pc),
-    .interrupt_trigger_i(interrupt_trigger_i),
+    .interrupt_trigger_i(save_uepc),
     .mret_o(mret),
     .uepc_o(uepc),
     .jal_jump_o(jal_jump),
@@ -300,15 +344,18 @@ module rv32im_no_pipe
   wire opfetch_clear = reset_i | jal_jump | jalr_jump | branch_jump;
   reg opfetch_data_ready;
   reg stage4_data_ready;
+  reg opfetch_jalr;
 
   // wire opfetch_data_ready = decode_data_ready;
 
   always @(posedge clk_i) begin
-    if (opfetch_clear)
+    if (opfetch_clear) begin
       opfetch_data_ready <= 1'b0;
-    else if (decode_data_ready)
+      opfetch_jalr <= 1'b0;
+    end else if (decode_data_ready) begin
       opfetch_data_ready <= decode_data_ready;
-    else
+      opfetch_jalr <= jalr;
+    end else
       opfetch_data_ready <= 1'b0;
   end
 
