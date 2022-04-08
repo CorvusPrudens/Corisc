@@ -300,7 +300,6 @@ module rv32im_no_pipe
     .processing_jump(processing_jump)
   );
 
-  wire decode_clear = reset_i | jal_jump | jalr_jump | branch_jump;;
   reg decode_data_ready;
 
   // wire decode_data_ready = prefetch_data_ready;
