@@ -1,7 +1,10 @@
 `ifndef SPI_WO_GUARD
 `define SPI_WO_GUARD
 
-module spi_wo(
+module spi_wo
+    #(
+      localparam CLK_DIV = 2
+    ) (
     input wire clk_i,
     input wire [7:0] data_i,
     input wire start_i,
@@ -13,7 +16,7 @@ module spi_wo(
   );
 
   reg ack;
-  localparam divisor = 5; // this can be set to 1 for final version
+  localparam divisor = CLK_DIV; // this can be set to 1 for final version
   reg [divisor:0] clkdiv;
   always @(posedge clk_i) clkdiv <= clkdiv + 1'b1;
 
