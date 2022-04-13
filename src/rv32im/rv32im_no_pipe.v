@@ -34,89 +34,61 @@ module rv32im_no_pipe
     output wire stb_o,
     output wire we_o,
     
-    input wire ctrl_req_i,
-    output wire ctrl_grant_o
+    input wire [1:0] ctrl_req_i,
+    output wire [1:0] ctrl_grant_o
   );
 
   wire memory_ctrl_req;
   assign interrupt_routine_complete_o = mret & jalr_jump;
 
   // Bus arbitration
-  reg [2:0] bus_master;
-  wire [2:0] bus_requests = {ctrl_req_i, prefetch_ctrl_req, memory_ctrl_req};
-  assign ctrl_grant_o = bus_master[2];
+  reg [3:0] bus_master;
+  wire [3:0] bus_requests = {ctrl_req_i, prefetch_ctrl_req, memory_ctrl_req};
+  assign ctrl_grant_o = bus_master[3:2];
 
-  // TODO -- very easy optimization is to give prefetch the master by default
+  localparam [3:0] DEFAULT_MASTER = 4'b0010;
 
   always @(posedge clk_i) begin
     case (bus_master)
-      3'b000:
+      default:
       begin
         if (bus_requests[0])
-          bus_master <= 3'b001;
+          bus_master <= 4'b0001;
         else if (bus_requests[1])
-          bus_master <= 3'b010;
+          bus_master <= 4'b0010;
         else if (bus_requests[2])
-          bus_master <= 3'b100;
-        else
-          bus_master <= 3'b010;
+          bus_master <= 4'b0100;
+        else if ((bus_requests[3]))
+          bus_master <= 4'b1000;
       end
-      3'b001:
+      4'b0001:
       begin
         if (~bus_requests[0])
-          bus_master <= 0;
+          bus_master <= DEFAULT_MASTER;
       end
-      3'b010:
+      4'b0010:
       begin
         if (~bus_requests[1]) begin
           if (bus_requests[0])
-            bus_master <= 3'b001;
+            bus_master <= 4'b0001;
           else if (bus_requests[2])
-            bus_master <= 3'b100;
+            bus_master <= 4'b0100;
+          else if ((bus_requests[3]))
+             bus_master <= 4'b1000;
         end
       end
-      3'b100:
+      4'b0100:
       begin
         if (~bus_requests[2])
-          bus_master <= 3'b010;
+          bus_master <= DEFAULT_MASTER;
       end
-      default:
-        bus_master <= 3'b010;
+      4'b1000:
+      begin
+        if (~bus_requests[3])
+          bus_master <= DEFAULT_MASTER;
+      end
     endcase
   end
-
-  // // No default master
-  // always @(posedge clk_i) begin
-  //   // This could be made parametric, but this works for now
-  //   case (bus_master)
-  //     3'b000:
-  //     begin
-  //       if (bus_requests[0])
-  //         bus_master <= 3'b001;
-  //       else if (bus_requests[1])
-  //         bus_master <= 3'b010;
-  //       else if (bus_requests[2])
-  //         bus_master <= 3'b100;
-  //     end
-  //     3'b001:
-  //     begin
-  //       if (~bus_requests[0])
-  //         bus_master <= 0;
-  //     end
-  //     3'b010:
-  //     begin
-  //       if (~bus_requests[1])
-  //         bus_master <= 0;
-  //     end
-  //     3'b100:
-  //     begin
-  //       if (~bus_requests[2])
-  //         bus_master <= 0;
-  //     end
-  //     default:
-  //       bus_master <= 0;
-  //   endcase
-  // end
 
   wire [XLEN-3:0] prefetch_adr;
   wire prefetch_cyc;
