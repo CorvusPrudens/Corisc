@@ -135,14 +135,19 @@ module rv32im_no_pipe
   reg [XLEN-1:0] prefetch_pc_in;
   wire [XLEN-1:0] prefetch_jalr_pc = mret ? uepc : immediate + jalr_base;
 
-  always @(*) begin
-    casez ({interrupt_pc_write, branch_jump, jalr_jump})
-      default: prefetch_pc_in = pc_jal_data;
-      3'b001: prefetch_pc_in = prefetch_jalr_pc;
-      3'b01?: prefetch_pc_in = writeback_branch_data;
-      3'b1??: prefetch_pc_in = interrupt_pc;
-    endcase
-  end
+  // always @(*) begin
+  //   casez ({interrupt_pc_write, branch_jump, jalr_jump})
+  //     default: prefetch_pc_in = pc_jal_data;
+  //     3'b001: prefetch_pc_in = prefetch_jalr_pc;
+  //     3'b01?: prefetch_pc_in = writeback_branch_data;
+  //     3'b1??: prefetch_pc_in = interrupt_pc;
+  //   endcase
+  // end
+
+  assign prefetch_pc_in = interrupt_pc_write ? interrupt_pc
+    : branch_jump ? writeback_branch_data
+    : jalr_jump ? prefetch_jalr_pc
+    : pc_jal_data;
 
   // This is sure to cause some bugs
   always @(posedge clk_i) begin
