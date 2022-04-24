@@ -35,7 +35,9 @@ module rv32im_no_pipe
     output wire we_o,
     
     input wire [1:0] ctrl_req_i,
-    output wire [1:0] ctrl_grant_o
+    output wire [1:0] ctrl_grant_o,
+    
+    output wire [13:0] debug_o
   );
 
   wire memory_ctrl_req;
@@ -132,7 +134,7 @@ module rv32im_no_pipe
   wire prefetch_pc_write = jal_jump | jalr_jump | branch_jump | interrupt_pc_write;
 
   wire [XLEN-1:0] jalr_base = ras_pop ? ras : rs1;
-  reg [XLEN-1:0] prefetch_pc_in;
+  wire [XLEN-1:0] prefetch_pc_in;
   wire [XLEN-1:0] prefetch_jalr_pc = mret ? uepc : immediate + jalr_base;
 
   // always @(*) begin
@@ -143,6 +145,8 @@ module rv32im_no_pipe
   //     3'b1??: prefetch_pc_in = interrupt_pc;
   //   endcase
   // end
+
+  assign debug_o = program_counter[15:2];
 
   assign prefetch_pc_in = interrupt_pc_write ? interrupt_pc
     : branch_jump ? writeback_branch_data
