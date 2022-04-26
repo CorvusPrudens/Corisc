@@ -13,8 +13,7 @@ module rv32im_no_pipe
     parameter XLEN = 32,
     parameter ILEN = 32,
     parameter REG_BITS = 5,
-    parameter INT_VECT_LEN = 8,
-    parameter VTABLE_ADDR = 32'h00300000
+    parameter INT_VECT_LEN = 8
   )
   (
     input wire clk_i,
@@ -36,6 +35,8 @@ module rv32im_no_pipe
     
     input wire [1:0] ctrl_req_i,
     output wire [1:0] ctrl_grant_o,
+
+    input wire [XLEN-1:0] vtable_addr,
     
     output wire [13:0] debug_o
   );
@@ -205,7 +206,7 @@ module rv32im_no_pipe
     .stb_o(prefetch_stb),
 
     .interrupt_trigger_i(interrupt_trigger_i),
-    .vtable_addr(VTABLE_ADDR),
+    .vtable_addr(vtable_addr),
     .vtable_offset(interrupt_vector_offset_i),
 
     .interrupt_pc_o(interrupt_pc),
