@@ -23,8 +23,16 @@ module spi(
   reg [7:0] shift_i;
   reg tx_bit;
 
-  always @(negedge clk_i) begin
-    if (start_i & ~busy_o) begin
+  wire internal_busy = spiState[3] | start;
+
+  // always @(negedge clk_i) begin
+  //   if (start_i & ~busy_o) begin
+  //     start <= 1'b1;
+  //     shift_o <= data_i;
+  //   end else if (spiState[3]) start <= 1'b0;
+  // end
+  always @(posedge clk_i) begin
+    if (start_i & ~internal_busy) begin
       start <= 1'b1;
       shift_o <= data_i;
     end else if (spiState[3]) start <= 1'b0;
@@ -69,7 +77,7 @@ module spi(
   assign clk_active_o = spiState[3];
   assign sck_o  = clk_active_o ? edge_detect : 1'b0;
   assign sdo_o  = tx_bit;
-  assign busy_o = spiState[3] | start;
+  assign busy_o = internal_busy | start_i;
   // assign cs_o   = spiState == 0;
 
 endmodule

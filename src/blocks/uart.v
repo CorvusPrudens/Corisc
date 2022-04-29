@@ -17,9 +17,6 @@ module uart #(
   );
 
   localparam TICK_BITS = $clog2(COMPARE + 1);
-
-  // assuming a frequncy of 14.31818 MHz, 1375
-  // produces a baudrate of 31,239 -- close enough!
   reg [TICK_BITS-1:0] tx_acc = 0;
   reg tx_tick = 0;
 
@@ -31,7 +28,7 @@ module uart #(
 
   reg [7:0] TXshift = 0;
 
-  always @(negedge clk_i) begin
+  always @(posedge clk_i) begin
 
     if(TXready & TXstart_i) TXshift <= TXbuffer_i;
     else if(TXstate[3] & tx_tick) TXshift <= (TXshift >> 1);
@@ -71,7 +68,7 @@ module uart #(
   reg [TICK_BITS-1:0] rx_acc = 0;
   reg rx_tick = 0;
 
-  always @(negedge clk_i) begin
+  always @(posedge clk_i) begin
 
     case (RXstate)
       4'b0000: if (~RX) RXstate <= 4'b1000;     // start bit found
