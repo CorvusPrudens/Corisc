@@ -9,17 +9,17 @@ NOTE -- this utility makes a few assumptions
 4. The search space isn't very big (careful with large submodules)
 """
 
-param_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(#\((.|[\r\n\t])+?\))( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
-noparam_regex = compile(r'module +([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
-param_item_regex = compile(r'([A-Za-z_][A-Za-z_0-9]*) *(=.*)')
-item_regex = compile(r'(input|output|parameter|inout) +(wire|reg)? *(\[.+?\])? *([A-Za-z_][A-Za-z_0-9]*)')
+param_regex = compile(r'module\s+([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(#\((.|[\r\n\t])+?\))( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
+noparam_regex = compile(r'module\s+([A-Za-z_][A-Za-z_0-9]*)( |[\r\n\t])*(\((.|[\r\n\t])+?\)) *;')
+param_item_regex = compile(r'([A-Za-z_][A-Za-z_0-9]*)\s*(=.*)')
+item_regex = compile(r'(input|output|parameter|inout)\s+(wire|reg)?\s*(\[.+?\])?\s*([A-Za-z_][A-Za-z_0-9]*)')
 multiline_regex = compile(r'/\*(.|[\n\t\r])*?\*/')
 inline_regex = compile(r'//(.|[\r\n\t])*?\n')
 directive = compile(r'`(.|[\r\n\t])*?\n')
 
 def _sar(string: str, regex, replace: str='', group: int=0, ignore_first: bool=False, ignore_last: bool=False) -> str:
     """
-    Search and replace using regex. Can optionally keep the first 
+    Search and replace using regex. Can optionally keep the first
     or last character in the match, or only replace a group within a match.
     """
     offset = 1 if ignore_first else 0
@@ -28,7 +28,7 @@ def _sar(string: str, regex, replace: str='', group: int=0, ignore_first: bool=F
     while (match is not None):
         string = string[:match.start(group) + offset] + replace + string[match.end(group) - endoff:]
         match = regex.search(string, pos=match.start(group) + offset + len(replace))
-    
+
     return string
 
 # Recursively search for module
@@ -67,7 +67,7 @@ def gen_mod(modpath, insertpath, insertline):
     params = _sar(params, inline_regex, replace='\n')
     params = _sar(params, directive, replace='\n')
     param_list = [param_item_regex.search(line).group(1) for line in params.split(',')]
-  
+
   items = _sar(items, multiline_regex, replace=' ')
   items = _sar(items, inline_regex, replace='\n')
   items = _sar(items, directive, replace='\n')
@@ -84,10 +84,10 @@ def gen_mod(modpath, insertpath, insertline):
     module = f'  {name} {name.upper()} (\n'
     module += '\n'.join([f'    .{i}(),' for i in item_list])[:-1]
     module += '\n  );\n'
-  
+
   with open(insertpath, 'r') as file:
     data = [line for line in file]
-  
+
   if insertline > len(data):
     insertline = len(data) - 1
 
@@ -95,7 +95,7 @@ def gen_mod(modpath, insertpath, insertline):
 
   with open(insertpath, 'w') as file:
     file.write(''.join(data))
-  
+
   return name, insertpath, insertline + 1
 
 
