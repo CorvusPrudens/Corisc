@@ -1,6 +1,8 @@
 `ifndef RV32IM_MEMORY_GUARD
 `define RV32IM_MEMORY_GUARD
 
+`include "wb_encode_decode.v"
+
 module rv32im_memory_nopipe
   #(
     parameter XLEN = 32
@@ -21,8 +23,8 @@ module rv32im_memory_nopipe
     output reg err_o,
 
     // Wishbone Master signals
-    input wire [XLEN-1:0] master_dat_i,
-    output reg [XLEN-1:0] master_dat_o,
+    input  wire [XLEN-1:0] master_dat_i,
+    output wire [XLEN-1:0] master_dat_o,
     input wire ack_i,
     output reg [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
@@ -40,10 +42,6 @@ module rv32im_memory_nopipe
   // Works for simple one-master busses
   assign cyc_o = stb_o;
 
-  // NOTE -- misaligned addresses are silently ignored atm
-  // NOTE -- sel doesn't actually set the bit position for reads 
-  // TODO -- make sel behavior align with spec
-  // (i.e. 4'b1000 means put a byte with offset 3 in the lowest 8 bits)
   reg [3:0] sel;
   always @(*) begin
     case (word_size_i)
@@ -52,6 +50,19 @@ module rv32im_memory_nopipe
       2'b10: sel = 4'b1111; // word
     endcase
   end
+
+  reg [XLEN-1:0] unencoded_wb_output;
+  wire [XLEN-1:0] decoded_wb_input;
+
+  wb_encode_decode #(
+    .XLEN(XLEN)
+  ) WB_ENCODE_DECODE (
+    .sel_i(sel),
+    .master_dat_i(master_dat_i),
+    .unencoded_output_i(unencoded_wb_output),
+    .input_decoded_o(decoded_wb_input),
+    .master_dat_o(master_dat_o)
+  );
 
   reg [1:0] mem_sm;
 
@@ -67,34 +78,28 @@ module rv32im_memory_nopipe
       ctrl_req_o <= 1'b0;
     end else begin
       case (mem_sm)
-        2'b00:
+        default:
         begin
           if (data_ready_i) begin
             ctrl_req_o <= 1'b1;
+            adr_o <= addr_i[XLEN-1:2];
+            sel_o <= sel;
+            stb_o <= 1'b1;
+            unencoded_wb_output <= data_i;
+            we_o <= write_i;
             mem_sm <= mem_sm + 1'b1;
           end
         end
         2'b01:
         begin
-          if (ctrl_grant_i) begin
-            adr_o <= addr_i[XLEN-1:2];
-            sel_o <= sel;
-            stb_o <= 1'b1;
-            master_dat_o <= data_i;
-            we_o <= write_i;
-            mem_sm <= mem_sm + 1'b1;
-          end
-        end
-        default:
-        begin
-          if (ack_i) begin
+          if (ack_i & ctrl_grant_i) begin
             stb_o <= 1'b0;
             busy_o <= 1'b0;
             we_o <= 1'b0;
-            data_o <= master_dat_i;
+            data_o <= decoded_wb_input;
             ctrl_req_o <= 1'b0;
             mem_sm <= 0;
-          end else if (err_i) begin
+          end else if (err_i & ctrl_grant_i) begin
             stb_o <= 1'b0;
             sel_o <= 0;
             we_o <= 1'b0;
@@ -111,7 +116,7 @@ module rv32im_memory_nopipe
   `ifdef FORMAL
     reg  timeValid_f;
     initial timeValid_f = 0;
-    always @(posedge clk_i) 
+    always @(posedge clk_i)
       timeValid_f <= 1;
 
     always @(*)
@@ -135,14 +140,14 @@ module rv32im_memory_nopipe
         assert(data_o == $past(master_dat_i));
       end
 
-      // An error input while the strobe output is high will always complete a transaction 
+      // An error input while the strobe output is high will always complete a transaction
       // and raise an error flag
       if (timeValid_f & $past(timeValid_f) & $past(stb_o & err_i)) begin
         assert(stb_o == 0);
         assert(busy_o == 0);
         assert(we_o == 0);
         // We don't care what the output data is in case of error
-        // assert(data_o == $past(master_dat_i)); 
+        // assert(data_o == $past(master_dat_i));
         assert(err_o == 1'b1);
       end
 
