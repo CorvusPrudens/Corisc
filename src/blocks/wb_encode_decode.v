@@ -22,13 +22,13 @@ module wb_encode_decode #(
     assign loadstore_addr[0] = (sel_i == 4'b0010) || (sel_i == 4'b1000);
     assign loadstore_addr[1] = (sel_i == 4'b1100);
 
-    wire [31:0] input_decoded_o =
+    assign input_decoded_o =
          mem_byteAccess ? {24'b0,     LOAD_byte} :
      mem_halfwordAccess ? {16'b0, LOAD_halfword} :
-                          mem_rdata ;
+                          master_dat_i ;
 
     wire [15:0] LOAD_halfword =
-                loadstore_addr[1] ? mem_rdata[31:16] : mem_rdata[15:0];
+                loadstore_addr[1] ? master_dat_i[31:16] : master_dat_i[15:0];
 
     wire  [7:0] LOAD_byte =
                 loadstore_addr[0] ? LOAD_halfword[15:8] : LOAD_halfword[7:0];
