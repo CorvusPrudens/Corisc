@@ -16,11 +16,11 @@ module wb_encode_decode #(
     // FEMTORV Inspired
 
     wire mem_halfwordAccess = (sel_i == 4'b1100) || (sel_i == 4'b0011);
-    wire mem_byteAccess = ~mem_halfwordAccess || (sel_i != 4'b1111);
+    wire mem_byteAccess = ~mem_halfwordAccess && (sel_i != 4'b1111);
 
     wire [1:0] loadstore_addr;
     assign loadstore_addr[0] = (sel_i == 4'b0010) || (sel_i == 4'b1000);
-    assign loadstore_addr[1] = (sel_i == 4'b1100);
+    assign loadstore_addr[1] = (sel_i == 4'b1100) || (sel_i == 4'b0100);
 
     assign input_decoded_o =
          mem_byteAccess ? {24'b0,     LOAD_byte} :
