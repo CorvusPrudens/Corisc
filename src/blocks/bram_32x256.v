@@ -29,7 +29,7 @@ module bram_32x256(
         .RE(read_en_i),
         .WADDR(waddr_i),
         .WCLK(clk_i),
-        .WDATA(wdata_i),
+        .WDATA(wdata_i[15:0]),
         .WE(write_en_i),
         .MASK(wmask_i[15:0])
     );
@@ -44,7 +44,7 @@ module bram_32x256(
         .RE(read_en_i),
         .WADDR(waddr_i),
         .WCLK(clk_i),
-        .WDATA(wdata_i),
+        .WDATA(wdata_i[31:16]),
         .WE(write_en_i),
         .MASK(wmask_i[31:16])
     );
