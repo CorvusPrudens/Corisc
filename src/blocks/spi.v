@@ -17,11 +17,13 @@ module spi(
     // cs handled by controlling module
   );
 
+  initial data_o = 0;
+
   reg start = 0;
-  reg [3:0] spiState;
-  reg [7:0] shift_o;
-  reg [7:0] shift_i;
-  reg tx_bit;
+  reg [3:0] spiState = 0;
+  reg [7:0] shift_o = 0;
+  reg [7:0] shift_i = 0;
+  reg tx_bit = 0;
 
   wire internal_busy = spiState[3] | start;
 
@@ -41,7 +43,7 @@ module spi(
   // a bit messy, but
   wire [3:0] rxState = spiState + 1'b1;
 
-  reg edge_detect;
+  reg edge_detect = 0;
   wire rising_edge = ~edge_detect & spi_clk_i;
   wire falling_edge = edge_detect & ~spi_clk_i;
   always @(posedge clk_i)
@@ -67,7 +69,7 @@ module spi(
       if (rxState[3]) shift_i[spiState[2:0]] <= sdi_i;
       if (spiState == 4'b1111) data_o <= shift_i;
     end
-    
+
     if (falling_edge) begin
       if (busy_o) tx_bit <= shift_o[spiState[2:0]];
     end

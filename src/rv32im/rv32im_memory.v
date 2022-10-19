@@ -26,7 +26,6 @@ module rv32im_memory
     input wire ack_i,
     output reg [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
-    output wire cyc_o,
     // input wire stall_i,
     input wire err_i,
     output reg [3:0] sel_o,
@@ -34,11 +33,8 @@ module rv32im_memory
     output reg we_o
   );
 
-  // Works for simple one-master busses
-  assign cyc_o = stb_o;
-
   // NOTE -- misaligned addresses are silently ignored atm
-  // NOTE -- sel doesn't actually set the bit position for reads 
+  // NOTE -- sel doesn't actually set the bit position for reads
   // TODO -- make sel behavior align with spec
   // (i.e. 4'b1000 means put a byte with offset 3 in the lowest 8 bits)
   reg [3:0] sel;
@@ -77,13 +73,13 @@ module rv32im_memory
       busy_o <= 1'b0;
       we_o <= 1'b0;
       data_o <= master_dat_i;
-    end 
+    end
   end
 
   `ifdef FORMAL
     reg  timeValid_f;
     initial timeValid_f = 0;
-    always @(posedge clk_i) 
+    always @(posedge clk_i)
       timeValid_f <= 1;
 
     always @(*)
@@ -107,14 +103,14 @@ module rv32im_memory
         assert(data_o == $past(master_dat_i));
       end
 
-      // An error input while the strobe output is high will always complete a transaction 
+      // An error input while the strobe output is high will always complete a transaction
       // and raise an error flag
       if (timeValid_f & $past(timeValid_f) & $past(stb_o & err_i)) begin
         assert(stb_o == 0);
         assert(busy_o == 0);
         assert(we_o == 0);
         // We don't care what the output data is in case of error
-        // assert(data_o == $past(master_dat_i)); 
+        // assert(data_o == $past(master_dat_i));
         assert(err_o == 1'b1);
       end
 

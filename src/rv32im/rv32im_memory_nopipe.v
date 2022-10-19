@@ -14,33 +14,29 @@ module rv32im_memory_nopipe
     input wire data_ready_i,
 
     input wire [XLEN-1:0] data_i,
-    output reg [XLEN-1:0] data_o,
+    output reg [XLEN-1:0] data_o = 0,
     input wire [XLEN-1:0] addr_i,
     input wire [1:0] word_size_i,
     input wire write_i,
-    output reg busy_o,
+    output reg busy_o = 0,
 
-    output reg err_o,
+    output reg err_o = 0,
 
     // Wishbone Master signals
     input  wire [XLEN-1:0] master_dat_i,
     output wire [XLEN-1:0] master_dat_o,
     input wire ack_i,
-    output reg [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
+    output reg [XLEN-1:2] adr_o = 0, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
-    output wire cyc_o,
     // input wire stall_i,
     input wire err_i,
-    output reg [3:0] sel_o,
-    output reg stb_o,
-    output reg we_o,
+    output reg [3:0] sel_o = 0,
+    output reg stb_o = 0,
+    output reg we_o = 0,
 
     input wire ctrl_grant_i,
-    output reg ctrl_req_o
+    output reg ctrl_req_o = 0
   );
-
-  // Works for simple one-master busses
-  assign cyc_o = stb_o;
 
   reg [3:0] sel;
   always @(*) begin
@@ -51,7 +47,7 @@ module rv32im_memory_nopipe
     endcase
   end
 
-  reg [XLEN-1:0] unencoded_wb_output;
+  reg [XLEN-1:0] unencoded_wb_output = 0;
   wire [XLEN-1:0] decoded_wb_input;
 
   wb_encode_decode #(
@@ -64,7 +60,7 @@ module rv32im_memory_nopipe
     .master_dat_o(master_dat_o)
   );
 
-  reg [1:0] mem_sm;
+  reg [1:0] mem_sm = 0;
 
   always @(posedge clk_i) begin
     if (clear_i) begin

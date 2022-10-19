@@ -16,9 +16,9 @@ module rv32im_alu
     input wire [XLEN-1:0] operand2_i,
     output reg [XLEN-1:0] result_o,
 
-    output reg equal_o,
-    output reg less_o,
-    output reg less_signed_o,
+    output reg equal_o = 0,
+    output reg less_o = 0,
+    output reg less_signed_o = 0,
 
     input wire clear_i
   );

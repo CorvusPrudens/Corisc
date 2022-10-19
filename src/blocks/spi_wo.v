@@ -15,22 +15,22 @@ module spi_wo
     output wire cs_o
   );
 
-  reg ack;
+  reg ack = 0;
   localparam divisor = CLK_DIV; // this can be set to 1 for final version
-  reg [divisor:0] clkdiv;
+  reg [divisor:0] clkdiv = 0;
   always @(posedge clk_i) clkdiv <= clkdiv + 1'b1;
 
   wire clk_spi = clkdiv[divisor];
 
-  reg edge_detect;
+  reg edge_detect = 0;
   wire rising_edge = ~edge_detect & clk_spi;
   wire falling_edge = edge_detect & ~clk_spi;
   always @(posedge clk_i)
     edge_detect <= clk_spi;
 
-  reg [3:0] spiState;
-  reg [7:0] dout;
-  reg dout_bit;
+  reg [3:0] spiState = 0;
+  reg [7:0] dout = 0;
+  reg dout_bit = 0;
 
   wire internal_busy = spiState[3] | ack;
 

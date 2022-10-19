@@ -25,8 +25,8 @@ module timer(
     if (write_i) treg[addr_i[1:0]] <= data_i;
   end
 
-  reg [7:0] prescaler0;
-  reg [15:0] timer0;
+  reg [7:0] prescaler0 = 0;
+  reg [15:0] timer0 = 0;
 
   always @(posedge clk_i) begin
     if (prescaler0 == 8'b0) begin

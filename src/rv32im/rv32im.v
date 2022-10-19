@@ -33,7 +33,6 @@ module rv32im
     input wire ack_i,
     output wire [XLEN-3:0] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
-    output wire cyc_o,
     // input wire stall_i,
     input wire err_i,
     output wire [3:0] sel_o,
@@ -48,7 +47,7 @@ module rv32im
   wire clear_pipeline = reset_i;
 
   //////////////////////////////////////////////////////////////
-  // ~~STAGE 1~~ Prefetch signals 
+  // ~~STAGE 1~~ Prefetch signals
   //////////////////////////////////////////////////////////////
 
   // pipeline
@@ -82,7 +81,6 @@ module rv32im
   // Instruction cache
   reg  instruction_cache_arbitor;
   initial instruction_cache_arbitor = 0;
-  wire icache_cyc_o;
   wire [XLEN-3:0] icache_adr_o;
   wire [3:0] icache_sel_o;
   wire icache_stb_o;
@@ -92,7 +90,6 @@ module rv32im
   wire vtable_pc_write;
   wire cache_invalid;
 
-  assign cyc_o = instruction_cache_arbitor ? icache_cyc_o : mem_cyc_o;
   assign adr_o = instruction_cache_arbitor ? icache_adr_o : mem_adr_o;
   assign sel_o = instruction_cache_arbitor ? icache_sel_o : mem_sel_o;
   assign stb_o = instruction_cache_arbitor ? icache_stb_o : mem_stb_o;
@@ -132,7 +129,6 @@ module rv32im
     .master_dat_i(master_dat_i),
     .ack_i(ack_i),
     .adr_o(icache_adr_o),
-    .cyc_o(icache_cyc_o),
     .err_i(err_i),
     .sel_o(icache_sel_o),
     .stb_o(icache_stb_o)
@@ -176,7 +172,7 @@ module rv32im
   end
 
   //////////////////////////////////////////////////////////////
-  // ~~STAGE 1~~ Prefetch pipeline logic 
+  // ~~STAGE 1~~ Prefetch pipeline logic
   //////////////////////////////////////////////////////////////
 
   assign prefetch_stall = (prefetch_data_ready_o & decode_stall) | icache_busy | jal_jump | jalr_jump | branch_jump; // just be careful with this jal_jump stall
@@ -192,7 +188,7 @@ module rv32im
   end
 
   //////////////////////////////////////////////////////////////
-  // ~~STAGE 2~~ Instruction decode signals 
+  // ~~STAGE 2~~ Instruction decode signals
   //////////////////////////////////////////////////////////////
 
   reg  decode_data_ready_o;
@@ -221,7 +217,7 @@ module rv32im
   wire mret;
   wire [XLEN-1:0] uepc;
 
-  // If a branch instruction is being evaluated and another branch instruction will be decoded, 
+  // If a branch instruction is being evaluated and another branch instruction will be decoded,
   // the decode stage needs to stall until that branch is evaluated, since JAL and JALR would otherwise happen first
   reg branch_stall_condition_clear;
 
@@ -392,8 +388,8 @@ module rv32im
       opfetch_link <= 1'b0;
     end else if (opfetch_ce) begin
       opfetch_data_ready_o <= decode_data_ready_o;
-      alu_operation_opfetch <= alu_operation_decode; 
-      
+      alu_operation_opfetch <= alu_operation_decode;
+
       opfetch_immediate <= decode_immediate;
       opfetch_rd_addr <= decode_rd_addr;
 
@@ -420,7 +416,7 @@ module rv32im
         opfetch_ras <= ras;
       end else
         opfetch_immediate_data <= decode_immediate_data;
-        
+
     end else if (stage4_ce)
       opfetch_data_ready_o <= 1'b0;
   end
@@ -477,7 +473,7 @@ module rv32im
       stage4_stage4_path <= opfetch_stage4_path;
     end
   end
-  
+
   always @(*) begin
     case (stage4_stage4_path)
       default: stage4_result = alu_link ? alu_link_data : alu_result;
@@ -598,7 +594,6 @@ module rv32im
 
   // Wishbone muxed signals
   wire [XLEN-3:0] mem_adr_o;
-  wire mem_cyc_o;
   wire [3:0] mem_sel_o;
   wire mem_stb_raw;
   wire mem_stb_o = memory_clear ? 1'b0 : mem_stb_raw; // fixes issue with starting transactions _just_ as branch branches
@@ -620,7 +615,6 @@ module rv32im
     .master_dat_o(master_dat_o),
     .ack_i(ack_i & ~instruction_cache_arbitor),
     .adr_o(mem_adr_o),
-    .cyc_o(mem_cyc_o),
     .err_i(err_i),
     .sel_o(mem_sel_o),
     .stb_o(mem_stb_raw),
@@ -648,7 +642,7 @@ module rv32im
       // endcase
     end else if (writeback_ce)
       mem_data_ready_o <= 1'b0;
-  end 
+  end
 
   // Shouldn't this just be synchronous?
   always @(*) begin
@@ -780,7 +774,7 @@ module rv32im
 
     always @(*)
       assume(master_dat_i == 0); // no need for other kinds of testing I think
-    
+
     // for now we're ignoring interrupt testing
     always @(*)
       assume(interrupt_vector == 0);
@@ -800,7 +794,7 @@ module rv32im
         assume(jalr_jump == 0);
       end
     end
-    
+
     //////////////////////////////////////////////////////////////
     // ~~STAGE 1~~ Prefetch section
     //////////////////////////////////////////////////////////////
@@ -814,9 +808,9 @@ module rv32im
       if (timeValid_f & $past(prefetch_pc_write) & ~cache_invalid)
         assert(program_counter == $past(prefetch_pc_in + (prefetch_ce ? 4 : 0)));
     end
-    
 
-    
+
+
 
   `endif
 

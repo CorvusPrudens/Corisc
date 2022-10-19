@@ -5,13 +5,13 @@ module rv32im_div #(parameter WIDTH=4) (
     input wire clk_i,
     input wire clear_i,
     input wire start,          // start signal
-    output reg busy,           // calculation in progress
-    output reg valid,          // quotient and remainder are valid
-    output reg dbz,            // divide by zero flag
+    output reg busy = 0,           // calculation in progress
+    output reg valid = 0,          // quotient and remainder are valid
+    output reg dbz = 0,            // divide by zero flag
     input wire [WIDTH-1:0] x,  // dividend
     input wire [WIDTH-1:0] y,  // divisor
-    output reg [WIDTH-1:0] q,  // quotient
-    output reg [WIDTH-1:0] r   // remainder
+    output reg [WIDTH-1:0] q = 0,  // quotient
+    output reg [WIDTH-1:0] r = 0   // remainder
     );
 
     localparam WIDTH_M1 = WIDTH-1;

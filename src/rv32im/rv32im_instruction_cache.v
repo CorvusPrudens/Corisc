@@ -3,7 +3,7 @@
 
 `include "bram_dual_re.v"
 
-module rv32im_instruction_cache 
+module rv32im_instruction_cache
   #(
     parameter CACHE_LEN = 7, // 128 instructions in cache (512 bytes)
     parameter LINE_LEN = 4, // 16 instructions per line (64 bytes) therefore 8 lines
@@ -36,7 +36,6 @@ module rv32im_instruction_cache
     input wire ack_i,
     output wire [XLEN-3:0] adr_o, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
-    output wire cyc_o,
     // input wire stall_i,
     input wire err_i,
     output wire [3:0] sel_o,
@@ -64,14 +63,13 @@ module rv32im_instruction_cache
   initial cache_adr = 0;
   reg [XLEN-3:0] vtable_adr;
   initial vtable_adr = 0;
-  
+
   assign busy_o = cache_busy | vtable_busy;
   assign ctrl_req_o = cache_req | vtable_req;
   assign adr_o = cache_req ? cache_adr : vtable_adr;
   assign stb_o = cache_stb | vtable_stb;
 
   assign sel_o = 4'b1111;
-  assign cyc_o = stb_o;
 
   // reg cache_write = 0;
   // wire [ILEN-1:0] instruction_i;
@@ -97,7 +95,7 @@ module rv32im_instruction_cache
 
   localparam TAG_WIDTH = (XLEN-2-LINE_LEN-UNUSED_ADDR_BITS)+1; // we store the valid bit at MSB
   localparam LINE_COUNT = (CACHE_LEN-LINE_LEN);
-  
+
   wire [TAG_WIDTH-2:0] tag_i = addr_i[XLEN-1-UNUSED_ADDR_BITS:LINE_LEN+2];
   wire [TAG_WIDTH-2:0] working_tag_i = working_addr[XLEN-1-UNUSED_ADDR_BITS:LINE_LEN+2];
   // wire [CACHE_LEN-1:0] index = addr_i[LINE_LEN+1:2];
@@ -105,7 +103,7 @@ module rv32im_instruction_cache
 
   reg [LINE_COUNT-1:0] current_line;
   initial current_line = 0;
-  reg [TAG_WIDTH-1:0] tags [(2**LINE_COUNT)-1:0]; 
+  reg [TAG_WIDTH-1:0] tags [(2**LINE_COUNT)-1:0];
 
   reg [LINE_COUNT:0] matching_tag;
   integer i;
@@ -129,7 +127,7 @@ module rv32im_instruction_cache
     else if (vtable_busy)
       interrupt_catch <= 1'b0;
   end
-  
+
   always @(posedge clk_i) begin
     if (reset_i) begin
       cache_busy <= 1'b0;
@@ -168,7 +166,7 @@ module rv32im_instruction_cache
   localparam FETCH_ARB =  3'b001;
   localparam FETCH_READ = 3'b010;
   localparam FETCH_DONE = 3'b100;
-  
+
   wire [XLEN-3:0] cache_write_src_addr = {{UNUSED_ADDR_BITS{1'b0}}, working_addr[XLEN-1-UNUSED_ADDR_BITS:LINE_LEN+2], cache_write_idx[LINE_LEN-1:0]};
   wire [CACHE_LEN-1:0] cache_waddr_wire = {current_line, cache_write_idx[LINE_LEN-1:0]};
 
@@ -184,12 +182,12 @@ module rv32im_instruction_cache
       current_line <= 0;
     end else if (cache_busy) begin
       case (fetch_sm)
-        default: 
+        default:
           begin
             fetch_sm <= FETCH_ARB;
             cache_req <= 1'b1;
           end
-        FETCH_ARB: 
+        FETCH_ARB:
           begin
             if (ctrl_grant_i) begin
               fetch_sm <= FETCH_READ;
