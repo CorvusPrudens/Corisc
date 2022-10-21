@@ -21,25 +21,28 @@ module fifo #(
   reg [(memSize_p - 1):0] index_read  = 0;
   reg [(memSize_p - 1):0] index_write = 0;
 
-  // wire [(dataWidth_p - 1):0] bramOut;
-
   assign full_o = index_read - index_write == 1;
   assign empty_o = index_read == index_write;
 
+  wire [(memSize_p - 1):0] index_read_p1 = index_read + 1'b1;
+  wire [(memSize_p - 1):0] index_write_p1 = index_write + 1'b1;
+
   always @(posedge clk_i) begin
     if (write_i) begin
-      index_write <= index_write + 1'b1;
-
-      // data not read fast enough is ejected
-      if (index_write + 1'b1 == index_read)
-        index_read <= index_read + 1'b1;
+      index_write <= index_write_p1;
     end
+
     if (read_i) begin
       // The address is only incremented if the FIFO isn't empty
       if (!empty_o)
-        index_read <= index_read + 1'b1;
+        index_read <= index_read_p1;
       // WARNING -- this cannot be read immediately on the next clock
+    end else if (write_i) begin
+      // data not read fast enough is ejected
+      if (index_write_p1 == index_read)
+        index_read <= index_read_p1;
     end
+
   end
 
   bram_dual #(
