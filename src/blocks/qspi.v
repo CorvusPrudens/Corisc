@@ -2,7 +2,7 @@
 `define QSPI_GUARD
 
 module qspi #(
-        parameter CLK_DIV = 1
+        parameter CLK_DIV = 0
     )
     (
         input wire clk_i,
@@ -35,14 +35,12 @@ module qspi #(
         input wire enable_qspi_i
     );
 
-    reg  [8:0] shifter_in;
+
     reg  [7:0] shifter_out;
     reg  [2:0] counter;
     wire [3:0] counter_p1 = {1'b0, counter} + 1'b1;
     reg  [7:0] qpi_data_in;
     reg  [7:0] qpi_data_out;
-
-    assign data_o = enable_qspi_i ? qpi_data_in : shifter_in[8:1];
 
     wire io0_data_o = qpi_data_out[0];
     wire io1_data_o = qpi_data_out[1];
@@ -75,88 +73,138 @@ module qspi #(
     wire [3:0] nibble_in = {io3_sim_i, io2_sim_i, io1_sim_i, io0_sim_i};
     `endif
 
-    reg [1:0] spi_sm;
-    wire   clk_active = |spi_sm;
-    assign busy_o     = clk_active | start_i;
-    assign sck_o      = clk_active & clk_i;
+    generate
 
-    always @(negedge clk_i) begin
-        case (spi_sm)
-            default:
-                if (start_i) begin
-                    shifter_out <= data_i;
+        if (CLK_DIV == 0) begin
 
-                    qpi_data_out <= data_i;
-                end
-            2'b01:
-            begin
-                shifter_out <= {shifter_out[6:0], 1'b0};
+            reg [8:0] shifter_in;
+            assign data_o = enable_qspi_i ? qpi_data_in : shifter_in[8:1];
 
-                qpi_data_out[3:0] <= qpi_data_out[7:4];
+            reg [1:0] spi_sm;
+            wire   clk_active = |spi_sm;
+            assign busy_o     = clk_active | start_i;
+            assign sck_o      = clk_active & clk_i;
+
+            always @(negedge clk_i) begin
+                case (spi_sm)
+                    default:
+                        if (start_i) begin
+                            shifter_out <= data_i;
+
+                            qpi_data_out <= data_i;
+                        end
+                    2'b01:
+                    begin
+                        shifter_out <= {shifter_out[6:0], 1'b0};
+
+                        qpi_data_out[3:0] <= qpi_data_out[7:4];
+                    end
+                endcase
             end
-        endcase
-    end
 
-    always @(posedge clk_i) begin
-        case (spi_sm)
-            default:
-            begin
-                if (start_i) begin
-                    // counter <= counter_p1;
-                    counter <= 0;
-                    // shifter <= {data_i[6:0], 1'b0};
-                    // qpi_data_out <= data_i;
-                    spi_sm <= 1;
-                end
+            always @(posedge clk_i) begin
+                case (spi_sm)
+                    default:
+                    begin
+                        if (start_i) begin
+                            // counter <= counter_p1;
+                            counter <= 0;
+                            // shifter <= {data_i[6:0], 1'b0};
+                            // qpi_data_out <= data_i;
+                            spi_sm <= 1;
+                        end
+                    end
+                    2'b01:
+                    begin
+
+                        counter <= counter_p1[2:0];
+
+                        if (enable_qspi_i & counter_p1[1])
+                            spi_sm <= 0;
+                        else if (counter_p1[3])
+                            spi_sm <= 0;
+
+                        `ifndef SIM
+                        shifter_in <= {shifter_in[7:0], io1};
+                        `else
+                        shifter_in <= {shifter_in[7:0], io1_sim_i};
+                        `endif
+
+                        if (counter[0])
+                            qpi_data_in[7:4] <= nibble_in;
+                        else
+                            qpi_data_in[3:0] <= nibble_in;
+                    end
+                endcase
             end
-            2'b01:
-            begin
 
-                counter <= counter_p1[2:0];
+        end else begin
 
-                if (enable_qspi_i & counter_p1[1])
-                    spi_sm <= 0;
-                else if (counter_p1[3])
-                    spi_sm <= 0;
+            reg [7:0] shifter_in;
+            assign data_o = enable_qspi_i ? qpi_data_in : shifter_in;
 
-                `ifndef SIM
-                shifter_in <= {shifter_in[7:0], io1};
-                `else
-                shifter_in <= {shifter_in[7:0], io1_sim_i};
-                `endif
+            reg [CLK_DIV-1:0] divider;
+            wire [CLK_DIV-1:0] divider_p1 = divider + 1'b1;
+            reg [1:0] spi_sm;
+            wire   clk_active = |spi_sm;
+            assign busy_o     = clk_active | start_i;
+            assign sck_o      = clk_active & divider[CLK_DIV-1];
 
-                if (counter[0])
-                    qpi_data_in[7:4] <= nibble_in;
-                else
-                    qpi_data_in[3:0] <= nibble_in;
+            always @(posedge clk_i) begin
+                case (spi_sm)
+                    default:
+                    begin
+                        if (start_i) begin
+                            counter <= 0;
+                            divider <= 0;
+                            spi_sm <= 1;
+                            shifter_out <= data_i;
+                            qpi_data_out <= data_i;
+                        end
+                    end
+                    2'b01:
+                    begin
+                        // posedge
+                        divider <= divider_p1;
+                        if (divider_p1[CLK_DIV-1]) begin
+                            `ifndef SIM
+                            shifter_in <= {shifter_in[6:0], io1};
+                            `else
+                            shifter_in <= {shifter_in[6:0], io1_sim_i};
+                            `endif
+
+                            if (counter[0])
+                                qpi_data_in[7:4] <= nibble_in;
+                            else
+                                qpi_data_in[3:0] <= nibble_in;
+
+                            spi_sm <= spi_sm + 1'b1;
+                        end
+                    end
+                    2'b10:
+                    begin
+                        // negedge
+                        divider <= divider_p1;
+                        if (~divider_p1[CLK_DIV-1]) begin
+                            counter <= counter_p1[2:0];
+
+                            if (enable_qspi_i & counter_p1[1])
+                                spi_sm <= 0;
+                            else if (counter_p1[3])
+                                spi_sm <= 0;
+                            else
+                                spi_sm <= 1;
+
+                            shifter_out <= {shifter_out[6:0], 1'b0};
+                            qpi_data_out[3:0] <= qpi_data_out[7:4];
+                        end
+                    end
+                endcase
             end
-        endcase
 
+        end
 
-        // if (start_i) begin
-        //     counter <= counter + 1'b1;
-        //     shifter <= data_i;
-        //     qpi_data_out <= data_i;
-        // end else if (busy_o) begin
-
-        //     if (enable_qspi_i && counter == 3'b010)
-        //         counter <= 0;
-        //     else
-        //         counter <= counter + 1'b1;
-
-        //     `ifndef SIM
-        //     shifter <= {shifter[6:0], io1};
-        //     `else
-        //     shifter <= {shifter[6:0], io1_sim_i};
-        //     `endif
-
-        //     if (counter[0])
-        //         qpi_data_in[7:4] <= nibble_in;
-        //     else
-        //         qpi_data_in[3:0] <= nibble_in;
-
-        // end
-    end
+    endgenerate
 
 endmodule
 `endif // QSPI_GUARD
