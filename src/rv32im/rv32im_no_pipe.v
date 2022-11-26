@@ -130,18 +130,9 @@ module rv32im_no_pipe
 
   wire prefetch_pc_write = jal_jump | jalr_jump | branch_jump | interrupt_pc_write;
 
-  wire [XLEN-1:0] jalr_base = ras_pop ? ras : rs1;
+  wire [XLEN-1:0] jalr_base = rs1;
   wire [XLEN-1:0] prefetch_pc_in;
   wire [XLEN-1:0] prefetch_jalr_pc = mret ? uepc : immediate + jalr_base;
-
-  // always @(*) begin
-  //   casez ({interrupt_pc_write, branch_jump, jalr_jump})
-  //     default: prefetch_pc_in = pc_jal_data;
-  //     3'b001: prefetch_pc_in = prefetch_jalr_pc;
-  //     3'b01?: prefetch_pc_in = writeback_branch_data;
-  //     3'b1??: prefetch_pc_in = interrupt_pc;
-  //   endcase
-  // end
 
   assign debug_o = program_counter[15:2];
 
@@ -235,10 +226,6 @@ module rv32im_no_pipe
 
   wire decode_advance = prefetch_data_ready;
 
-  wire ras_pop;
-  wire ras_push;
-  wire ras_write;
-
   wire decode_clear = reset_i | jal_jump | jalr_jump | branch_jump;
 
   rv32im_decode #(
@@ -270,8 +257,6 @@ module rv32im_no_pipe
     .clear_branch_stall_i(1'b0),
     .link_o(link),
     .link_data_o(link_data),
-    .pop_ras_o(ras_pop),
-    .push_ras_o(ras_push),
     .stage4_path_o(stage4_path),
     .memory_write_o(memory_write),
     .processing_jump(processing_jump)
@@ -290,12 +275,13 @@ module rv32im_no_pipe
       decode_data_ready <= 1'b0;
   end
 
-  wire registers_write = writeback_registers_write;
+  wire registers_write = writeback_registers_write | jal_jump;
   reg [XLEN-1:0] writeback_data = 0;
+
+  wire [XLEN-1:0] registers_data_i = (jal_jump | jalr_jump) ? program_counter + 32'b100 : writeback_data;
 
   wire [XLEN-1:0] rs1;
   wire [XLEN-1:0] rs2;
-  wire [XLEN-1:0] ras;
 
   rv32im_registers #(
     .XLEN(XLEN),
@@ -303,18 +289,13 @@ module rv32im_no_pipe
   ) RV32IM_REGISTERS (
     .clk_i(clk_i),
     .write_i(registers_write),
-    .data_i(writeback_data),
+    .data_i(registers_data_i),
     .data_ready_i(decode_data_ready),
     .rs1_addr_i(rs1_addr),
     .rs2_addr_i(rs2_addr),
     .rd_addr_i(rd_addr),
     .rs1_o(rs1),
-    .rs2_o(rs2),
-    .ras_o(ras),
-    .pc_i(program_counter),
-    .ras_write_i(prefetch_pc_write),
-    .push_ras_i(branch_jump ? 1'b0 : ras_push),
-    .pop_ras_i(mret & jalr_jump ? 1'b0 : ras_pop)
+    .rs2_o(rs2)
   );
 
   wire opfetch_clear = reset_i | jal_jump | jalr_jump | branch_jump;

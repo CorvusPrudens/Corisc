@@ -41,8 +41,8 @@ module rv32im_decode
     output reg link_o = 0,
     output reg [XLEN-1:0] link_data_o = 0,
 
-    output reg pop_ras_o = 0,
-    output reg push_ras_o = 0,
+    // output reg pop_ras_o = 0,
+    // output reg push_ras_o = 0,
 
     output reg [2:0] stage4_path_o = 0,
     output reg memory_write_o = 0,
@@ -93,39 +93,6 @@ module rv32im_decode
   wire rd_link = (rd_addr == LINK_REGISTER) | (rd_addr == LINK_REGISTER_ALT);
   wire rs1_link = (rs1_addr == LINK_REGISTER) | (rs1_addr == LINK_REGISTER_ALT);
   wire rd_rs1_eq = rd_addr == rs1_addr;
-
-  reg  push_ras = 0;
-  initial push_ras = 0;
-  reg  pop_ras = 0;
-  initial pop_ras = 0;
-
-  wire jal_ras = (opcode[6:2] == OP_JAL);
-  wire jalr_ras = (opcode[6:2] == OP_JALR);
-
-  always @(*) begin
-    case ({rd_link & (jal_ras | jalr_ras), rs1_link & jalr_ras})
-      default:
-        begin
-          pop_ras = 1'b0;
-          push_ras = 1'b0;
-        end
-      2'b01:
-        begin
-          pop_ras = 1'b1;
-          push_ras = 1'b0;
-        end
-      2'b10:
-        begin
-          pop_ras = 1'b0;
-          push_ras = 1'b1;
-        end
-      2'b11:
-        begin
-          pop_ras = rd_rs1_eq ? 1'b1 : 1'b0;
-          push_ras = 1'b1;
-        end
-    endcase
-  end
 
   // Difference between AUIPC and LUI is bit 5
   wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} : {u_immediate, 12'b0} + pc_data_i;
@@ -188,12 +155,7 @@ module rv32im_decode
       link_o <= 1'b0;
       mret_o <= 1'b0;
 
-      pop_ras_o <= 0;
-      push_ras_o <= 0;
     end else if (data_ready_i) begin
-
-      pop_ras_o <= pop_ras;
-      push_ras_o <= push_ras;
 
       pc_data_o <= pc_data_i;
 
