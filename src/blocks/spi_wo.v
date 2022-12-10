@@ -3,7 +3,7 @@
 
 module spi_wo
     #(
-      localparam CLK_DIV = 2
+      parameter CLK_DIV = 2
     ) (
     input wire clk_i,
     input wire [7:0] data_i,
@@ -16,7 +16,7 @@ module spi_wo
   );
 
   reg ack = 0;
-  localparam divisor = CLK_DIV; // this can be set to 1 for final version
+  localparam divisor = CLK_DIV;
   reg [divisor:0] clkdiv = 0;
   always @(posedge clk_i) clkdiv <= clkdiv + 1'b1;
 
@@ -34,12 +34,6 @@ module spi_wo
 
   wire internal_busy = spiState[3] | ack;
 
-  // always @(negedge clk_i) begin
-  //   if (start_i & ~busy_o) begin
-  //     ack <= 1'b1;
-  //     dout <= data_i;
-  //   end else if (spiState[3]) ack <= 1'b0;
-  // end
   always @(posedge clk_i) begin
     if (start_i & ~internal_busy) begin
       ack <= 1'b1;
