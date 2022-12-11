@@ -20,7 +20,7 @@ module wb_encode_decode #(
 
     wire [1:0] loadstore_addr;
     assign loadstore_addr[0] = (sel_i == 4'b0010) || (sel_i == 4'b1000);
-    assign loadstore_addr[1] = (sel_i == 4'b1100) || (sel_i == 4'b0100);
+    assign loadstore_addr[1] = (sel_i == 4'b1100) || (sel_i == 4'b0100) || (sel_i == 4'b1000);
 
     assign input_decoded_o =
          mem_byteAccess ? {24'b0,     LOAD_byte} :
