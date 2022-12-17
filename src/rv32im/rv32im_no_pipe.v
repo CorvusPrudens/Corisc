@@ -32,65 +32,62 @@ module rv32im_no_pipe
     output wire stb_o,
     output wire we_o,
 
-    input wire [1:0] ctrl_req_i,
-    output wire [1:0] ctrl_grant_o,
-
     input wire [XLEN-1:0] vtable_addr,
 
     output wire [13:0] debug_o
   );
 
-  wire memory_ctrl_req;
+  // wire memory_ctrl_req;
   assign interrupt_routine_complete_o = mret & jalr_jump;
 
-  // Bus arbitration
-  reg [3:0] bus_master = 0;
-  wire [3:0] bus_requests = {ctrl_req_i, prefetch_ctrl_req, memory_ctrl_req};
-  assign ctrl_grant_o = bus_master[3:2];
+  // // Bus arbitration
+  // reg [3:0] bus_master = 0;
+  // wire [3:0] bus_requests = {ctrl_req_i, prefetch_ctrl_req, memory_ctrl_req};
+  // assign ctrl_grant_o = bus_master[3:2];
 
-  localparam [3:0] DEFAULT_MASTER = 4'b0010;
+  // localparam [3:0] DEFAULT_MASTER = 4'b0010;
 
-  always @(posedge clk_i) begin
-    case (bus_master)
-      default:
-      begin
-        if (bus_requests[0])
-          bus_master <= 4'b0001;
-        else if (bus_requests[1])
-          bus_master <= 4'b0010;
-        else if (bus_requests[2])
-          bus_master <= 4'b0100;
-        else if ((bus_requests[3]))
-          bus_master <= 4'b1000;
-      end
-      4'b0001:
-      begin
-        if (~bus_requests[0])
-          bus_master <= DEFAULT_MASTER;
-      end
-      4'b0010:
-      begin
-        if (~bus_requests[1]) begin
-          if (bus_requests[0])
-            bus_master <= 4'b0001;
-          else if (bus_requests[2])
-            bus_master <= 4'b0100;
-          else if ((bus_requests[3]))
-             bus_master <= 4'b1000;
-        end
-      end
-      4'b0100:
-      begin
-        if (~bus_requests[2])
-          bus_master <= DEFAULT_MASTER;
-      end
-      4'b1000:
-      begin
-        if (~bus_requests[3])
-          bus_master <= DEFAULT_MASTER;
-      end
-    endcase
-  end
+  // always @(posedge clk_i) begin
+  //   case (bus_master)
+  //     default:
+  //     begin
+  //       if (bus_requests[0])
+  //         bus_master <= 4'b0001;
+  //       else if (bus_requests[1])
+  //         bus_master <= 4'b0010;
+  //       else if (bus_requests[2])
+  //         bus_master <= 4'b0100;
+  //       else if ((bus_requests[3]))
+  //         bus_master <= 4'b1000;
+  //     end
+  //     4'b0001:
+  //     begin
+  //       if (~bus_requests[0])
+  //         bus_master <= DEFAULT_MASTER;
+  //     end
+  //     4'b0010:
+  //     begin
+  //       if (~bus_requests[1]) begin
+  //         if (bus_requests[0])
+  //           bus_master <= 4'b0001;
+  //         else if (bus_requests[2])
+  //           bus_master <= 4'b0100;
+  //         else if ((bus_requests[3]))
+  //            bus_master <= 4'b1000;
+  //       end
+  //     end
+  //     4'b0100:
+  //     begin
+  //       if (~bus_requests[2])
+  //         bus_master <= DEFAULT_MASTER;
+  //     end
+  //     4'b1000:
+  //     begin
+  //       if (~bus_requests[3])
+  //         bus_master <= DEFAULT_MASTER;
+  //     end
+  //   endcase
+  // end
 
   wire [XLEN-3:0] prefetch_adr;
   wire [3:0] prefetch_sel;
@@ -105,20 +102,16 @@ module rv32im_no_pipe
   // For the moment, if external control of the bus is taken,
   // the the state of the bus doesn't matter within this module
   assign master_dat_o = memory_dat_o;
-  assign we_o = bus_master[1]  ? 1'b0 : memory_we_o;
-  assign stb_o = bus_master[1] ? prefetch_stb : memory_stb;
-  assign sel_o = bus_master[1] ? prefetch_sel : memory_sel;
-  assign adr_o = bus_master[1] ? prefetch_adr : memory_adr;
-
+  assign we_o = prefetch_stb ? memory_we_o : 1'b0;
+  assign stb_o = prefetch_stb | memory_stb;
+  assign sel_o = prefetch_stb ? prefetch_sel : memory_sel;
+  assign adr_o = prefetch_stb ? prefetch_adr : memory_adr;
 
   reg [XLEN-1:0] program_counter = 0;
   wire prefetch_initialized;
   wire prefetch_advance = ~prefetch_initialized | writeback_data_ready | prefetch_pc_write;
   wire prefetch_data_ready;
   wire [XLEN-1:0] prefetch_instruction;
-
-  wire prefetch_ctrl_req;
-  wire prefetch_ctrl_grant = bus_master[1];
 
   wire [XLEN-1:0] interrupt_pc;
   wire interrupt_pc_write;
@@ -182,8 +175,6 @@ module rv32im_no_pipe
     .advance_i(prefetch_advance),
     .data_ready_o(prefetch_data_ready),
     .instruction_o(prefetch_instruction),
-    .ctrl_req_o(prefetch_ctrl_req),
-    .ctrl_grant_i(prefetch_ctrl_grant),
     .master_dat_i(master_dat_i),
     .ack_i(ack_i),
     .adr_o(prefetch_adr),
@@ -361,13 +352,12 @@ module rv32im_no_pipe
   );
 
   wire memory_clear = stage4_clear;
-  wire memory_ctrl_grant = bus_master[0];
   wire [XLEN-1:0] memory_addr_in = rs1 + immediate;
   wire mem_busy;
   wire mem_err;
   wire mem_advance = stage4_advance & stage4_path[1];
 
-  wire mem_transaction_done = ack_i & memory_ctrl_grant & memory_ctrl_req;
+  wire mem_transaction_done = ack_i & memory_stb;
   reg mem_data_ready = 0;
   wire [XLEN-1:0] mem_data_out_raw;
 
@@ -392,10 +382,7 @@ module rv32im_no_pipe
     .err_i(err_i),
     .sel_o(memory_sel),
     .stb_o(memory_stb),
-    .we_o(memory_we_o),
-
-    .ctrl_grant_i(memory_ctrl_grant),
-    .ctrl_req_o(memory_ctrl_req)
+    .we_o(memory_we_o)
   );
 
   always @(posedge clk_i) begin

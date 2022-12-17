@@ -32,10 +32,7 @@ module rv32im_memory_nopipe
     input wire err_i,
     output reg [3:0] sel_o = 0,
     output reg stb_o = 0,
-    output reg we_o = 0,
-
-    input wire ctrl_grant_i,
-    output reg ctrl_req_o = 0
+    output reg we_o = 0
   );
 
   reg [3:0] sel;
@@ -71,13 +68,11 @@ module rv32im_memory_nopipe
       we_o <= 1'b0;
       busy_o <= 1'b0;
       err_o <= 1'b0;
-      ctrl_req_o <= 1'b0;
     end else begin
       case (mem_sm)
         default:
         begin
           if (data_ready_i) begin
-            ctrl_req_o <= 1'b1;
             adr_o <= addr_i[XLEN-1:2];
             sel_o <= sel;
             stb_o <= 1'b1;
@@ -88,20 +83,18 @@ module rv32im_memory_nopipe
         end
         2'b01:
         begin
-          if (ack_i & ctrl_grant_i) begin
+          if (ack_i) begin
             stb_o <= 1'b0;
             busy_o <= 1'b0;
             we_o <= 1'b0;
             data_o <= decoded_wb_input;
-            ctrl_req_o <= 1'b0;
             mem_sm <= 0;
-          end else if (err_i & ctrl_grant_i) begin
+          end else if (err_i) begin
             stb_o <= 1'b0;
             sel_o <= 0;
             we_o <= 1'b0;
             busy_o <= 1'b0;
             err_o <= 1'b1;
-            ctrl_req_o <= 1'b0;
             mem_sm <= 0;
           end
         end

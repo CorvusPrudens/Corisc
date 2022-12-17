@@ -1,8 +1,10 @@
 `ifndef RV32I_REGISTERS_GUARD
 `define RV32I_REGISTERS_GUARD
 
-`include "bram_dual_re.v"
-// `include "stack.v"
+// `include "bram_dual_re.v"
+`include "bram_dual_re_nowt.v"
+
+// TODO -- remove write-through for non-pipelined setup
 
 // NOTE -- address setup needs at least half a clock!
 module rv32im_registers
@@ -22,19 +24,12 @@ module rv32im_registers
 
     output wire [XLEN-1:0] rs1_o,
     output wire [XLEN-1:0] rs2_o
-    // output wire [XLEN-1:0] ras_o,
-
-    // input wire [XLEN-1:0] pc_i
-
-    // input wire ras_write_i,
-    // input wire push_ras_i,
-    // input wire pop_ras_i
   );
 
   // Register 0 can't be written to
   wire reg_write = rd_addr_i == 0 ? 1'b0 : write_i;
 
-  bram_dual_re #(
+  bram_dual_re_nowt #(
     .memSize_p(REG_BITS),
     .XLEN(XLEN)
   ) RS1 (
@@ -49,7 +44,7 @@ module rv32im_registers
     .data_o(rs1_o)
   );
 
-  bram_dual_re #(
+  bram_dual_re_nowt #(
     .memSize_p(REG_BITS),
     .XLEN(XLEN)
   ) RS2 (
@@ -63,45 +58,5 @@ module rv32im_registers
 
     .data_o(rs2_o)
   );
-
-  // wire stack_overflow;
-
-  // wire push_ras = push_ras_i & ras_write_i;
-  // wire pop_ras = pop_ras_i & data_ready_i;
-
-  // // TODO -- might want a reset here?
-  // stack #(
-  //   .XLEN(XLEN),
-  //   .SIZE(7) // 128 address ought to be way more than sufficient
-  // ) RAS (
-  //   .clk_i(clk_i),
-  //   .push_i(push_ras),
-  //   .pop_i(pop_ras),
-  //   .data_i(pc_i + 32'h04),
-  //   .data_o(ras_o),
-  //   .overflow_o(stack_overflow)
-  // );
-
-  `ifdef FORMAL
-    reg  timeValid_f;
-    initial timeValid_f = 0;
-    always @(posedge clk_i) timeValid_f <= 1;
-
-    // always @(*)
-    //     assume(rs1_addr_i == rs2_addr_i);
-
-    // // TODO -- how to detect two-clock delayed events?
-    // always @(posedge clk_i) begin
-    //   if (timeValid_f && $past(write_i))
-    //     assert(rs1_o == rs2_o);
-    // end
-
-    // This causes huge slowdowns
-    // always @(posedge clk_i) begin
-    //   if (timeValid_f & rd_addr_i == 0 & write_i)
-    //     assert(reg_write == 0);
-    // end
-
-  `endif
 
 endmodule`endif // RV32I_REGISTERS_GUARD
