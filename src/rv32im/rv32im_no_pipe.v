@@ -102,7 +102,7 @@ module rv32im_no_pipe
   // For the moment, if external control of the bus is taken,
   // the the state of the bus doesn't matter within this module
   assign master_dat_o = memory_dat_o;
-  assign we_o = prefetch_stb ? memory_we_o : 1'b0;
+  assign we_o = prefetch_stb ? 1'b0 : memory_we_o;
   assign stb_o = prefetch_stb | memory_stb;
   assign sel_o = prefetch_stb ? prefetch_sel : memory_sel;
   assign adr_o = prefetch_stb ? prefetch_adr : memory_adr;
