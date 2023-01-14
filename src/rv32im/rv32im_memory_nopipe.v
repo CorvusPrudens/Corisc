@@ -1,7 +1,9 @@
 `ifndef RV32IM_MEMORY_GUARD
 `define RV32IM_MEMORY_GUARD
 
-module rv32im_memory
+`include "wb_encode_decode.v"
+
+module rv32im_memory_nopipe
   #(
     parameter XLEN = 32
   )
@@ -12,31 +14,27 @@ module rv32im_memory
     input wire data_ready_i,
 
     input wire [XLEN-1:0] data_i,
-    output reg [XLEN-1:0] data_o,
+    output reg [XLEN-1:0] data_o = 0,
     input wire [XLEN-1:0] addr_i,
     input wire [1:0] word_size_i,
     input wire write_i,
-    output reg busy_o,
+    output reg busy_o = 0,
 
-    output reg err_o,
+    output reg err_o = 0,
 
     // Wishbone Master signals
-    input wire [XLEN-1:0] master_dat_i,
-    output reg [XLEN-1:0] master_dat_o,
+    input  wire [XLEN-1:0] master_dat_i,
+    output wire [XLEN-1:0] master_dat_o,
     input wire ack_i,
-    output reg [XLEN-1:2] adr_o, // XLEN sized address space with byte granularity
+    output reg [XLEN-1:2] adr_o = 0, // XLEN sized address space with byte granularity
                                   // NOTE -- the slave will only have a port as large as its address space
     // input wire stall_i,
     input wire err_i,
-    output reg [3:0] sel_o,
-    output reg stb_o,
-    output reg we_o
+    output reg [3:0] sel_o = 0,
+    output reg stb_o = 0,
+    output reg we_o = 0
   );
 
-  // NOTE -- misaligned addresses are silently ignored atm
-  // NOTE -- sel doesn't actually set the bit position for reads
-  // TODO -- make sel behavior align with spec
-  // (i.e. 4'b1000 means put a byte with offset 3 in the lowest 8 bits)
   reg [3:0] sel;
   always @(*) begin
     case (word_size_i)
@@ -46,33 +44,61 @@ module rv32im_memory
     endcase
   end
 
+  reg [XLEN-1:0] unencoded_wb_output = 0;
+  wire [XLEN-1:0] decoded_wb_input;
+
+  wb_encode_decode #(
+    .XLEN(XLEN)
+  ) WB_ENCODE_DECODE (
+    .sel_i(sel),
+    .master_dat_i(master_dat_i),
+    .unencoded_output_i(unencoded_wb_output),
+    .input_decoded_o(decoded_wb_input),
+    .master_dat_o(master_dat_o)
+  );
+
+  reg [1:0] mem_sm = 0;
+
   always @(posedge clk_i) begin
     if (clear_i) begin
+      mem_sm <= 0;
+
       stb_o <= 1'b0;
       sel_o <= 0;
       we_o <= 1'b0;
       busy_o <= 1'b0;
       err_o <= 1'b0;
-    end else if (data_ready_i & ~stb_o) begin
-      busy_o <= 1'b1;
-      adr_o <= addr_i[XLEN-1:2];
-      sel_o <= sel;
-      stb_o <= 1'b1;
-      master_dat_o <= data_i;
-      we_o <= write_i;
-    end else if (stb_o & err_i) begin
-      // an error occurred and the transaction is immediately cancelled
-      stb_o <= 1'b0;
-      sel_o <= 0;
-      we_o <= 1'b0;
-      busy_o <= 1'b0;
-      err_o <= 1'b1;
-    end else if (stb_o & ack_i) begin
-      // transaction complete
-      stb_o <= 1'b0;
-      busy_o <= 1'b0;
-      we_o <= 1'b0;
-      data_o <= master_dat_i;
+    end else begin
+      case (mem_sm)
+        default:
+        begin
+          if (data_ready_i) begin
+            adr_o <= addr_i[XLEN-1:2];
+            sel_o <= sel;
+            stb_o <= 1'b1;
+            unencoded_wb_output <= data_i;
+            we_o <= write_i;
+            mem_sm <= mem_sm + 1'b1;
+          end
+        end
+        2'b01:
+        begin
+          if (ack_i) begin
+            stb_o <= 1'b0;
+            busy_o <= 1'b0;
+            we_o <= 1'b0;
+            data_o <= decoded_wb_input;
+            mem_sm <= 0;
+          end else if (err_i) begin
+            stb_o <= 1'b0;
+            sel_o <= 0;
+            we_o <= 1'b0;
+            busy_o <= 1'b0;
+            err_o <= 1'b1;
+            mem_sm <= 0;
+          end
+        end
+      endcase
     end
   end
 

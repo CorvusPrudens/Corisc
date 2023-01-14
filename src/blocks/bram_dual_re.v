@@ -21,11 +21,11 @@ module bram_dual_re
   );
 
   reg [(XLEN-1):0] memory [2**memSize_p-1:0] /* synthesis syn_ramstyle = "no_rw_check" */;
-  reg [(XLEN-1):0] bram_out;
-  reg [(XLEN-1):0] writethrough;
+  reg [(XLEN-1):0] bram_out = 0;
+  reg [(XLEN-1):0] writethrough = 0;
 
   wire writethrough_condition = (waddr_i == raddr_i) && write_i;
-  reg writethrough_satisfied;
+  reg writethrough_satisfied = 0;
 
   assign data_o = writethrough_satisfied ? writethrough : bram_out;
 
@@ -58,7 +58,7 @@ module bram_dual_re
       //   assert(data_o == $past(data_i));
       // end
     end
-    
+
   `endif
 
 endmodule

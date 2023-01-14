@@ -16,9 +16,9 @@ module rv32im_alu
     input wire [XLEN-1:0] operand2_i,
     output reg [XLEN-1:0] result_o,
 
-    output reg equal_o,
-    output reg less_o,
-    output reg less_signed_o,
+    output reg equal_o = 0,
+    output reg less_o = 0,
+    output reg less_signed_o = 0,
 
     input wire clear_i
   );
@@ -34,15 +34,47 @@ module rv32im_alu
   localparam OP_SRL  = 4'b0101;
   localparam OP_SRA  = 4'b1101;
 
-  wire equal = operand1_i == operand2_i;
-  wire less = operand1_i < operand2_i;
-  wire signed [XLEN-1:0] operand1_signed = operand1_i;
-  wire signed [XLEN-1:0] operand2_signed = operand2_i;
-  wire less_signed = operand1_signed < operand2_signed;
+  // wire equal = operand1_i == operand2_i;
+  // wire less = operand1_i < operand2_i;
+  // wire signed [XLEN-1:0] operand1_signed = operand1_i;
+  // wire signed [XLEN-1:0] operand2_signed = operand2_i;
+  // wire less_signed = operand1_signed < operand2_signed;
 
-  wire [XLEN-1:0] sll = operand1_i << operand2_i[4:0];
-  wire [XLEN-1:0] srl = operand1_i >> operand2_i[4:0];
-  wire [XLEN-1:0] sra = operand1_signed >>> operand2_i[4:0];
+  // wire [XLEN-1:0] sll = operand1_i << operand2_i[4:0];
+  // wire [XLEN-1:0] srl = operand1_i >> operand2_i[4:0];
+  // wire [XLEN-1:0] sra = operand1_signed >>> operand2_i[4:0];
+
+  wire shift_condition = operation_i == OP_SLL;
+  wire arith_condition = operation_i == OP_SRA;
+
+  wire [31:0] shifter_in = shift_condition ?
+     {operand1_i[ 0], operand1_i[ 1], operand1_i[ 2], operand1_i[ 3], operand1_i[ 4], operand1_i[ 5],
+      operand1_i[ 6], operand1_i[ 7], operand1_i[ 8], operand1_i[ 9], operand1_i[10], operand1_i[11],
+      operand1_i[12], operand1_i[13], operand1_i[14], operand1_i[15], operand1_i[16], operand1_i[17],
+      operand1_i[18], operand1_i[19], operand1_i[20], operand1_i[21], operand1_i[22], operand1_i[23],
+      operand1_i[24], operand1_i[25], operand1_i[26], operand1_i[27], operand1_i[28], operand1_i[29],
+      operand1_i[30], operand1_i[31]} : operand1_i;
+
+   /* verilator lint_off WIDTH */
+   wire [31:0] shifter =
+               $signed({arith_condition & operand1_i[31], shifter_in}) >>> operand2_i[4:0];
+   /* verilator lint_on WIDTH */
+
+   wire [31:0] leftshift = {
+     shifter[ 0], shifter[ 1], shifter[ 2], shifter[ 3], shifter[ 4],
+     shifter[ 5], shifter[ 6], shifter[ 7], shifter[ 8], shifter[ 9],
+     shifter[10], shifter[11], shifter[12], shifter[13], shifter[14],
+     shifter[15], shifter[16], shifter[17], shifter[18], shifter[19],
+     shifter[20], shifter[21], shifter[22], shifter[23], shifter[24],
+     shifter[25], shifter[26], shifter[27], shifter[28], shifter[29],
+     shifter[30], shifter[31]};
+
+  // Use a single 33 bits subtract to do subtraction and all comparisons
+  // (trick borrowed from swapforth/J1)
+  wire [32:0] aluMinus = {1'b1, ~operand2_i} + {1'b0,operand1_i} + 33'b1;
+  wire        less_signed  = (operand1_i[31] ^ operand2_i[31]) ? operand1_i[31] : aluMinus[32];
+  wire        less = aluMinus[32];
+  wire        equal  = (aluMinus[31:0] == 0);
 
   // TODO -- this extra logic (if clear ... if data_ready_i) is necessary because I guess we depend on
   // passing zeros through the ALU for certain things? -- pls fix
@@ -53,15 +85,15 @@ module rv32im_alu
       case (operation_i)
         default: result_o <= 0;
         OP_ADD:  result_o <= operand1_i + operand2_i;
-        OP_SUB:  result_o <= operand1_i - operand2_i; 
+        OP_SUB:  result_o <= aluMinus[XLEN-1:0];
         OP_SLT:  result_o <= {{XLEN-1{1'b0}}, less_signed};
         OP_SLTU: result_o <= {{XLEN-1{1'b0}}, less};
         OP_AND:  result_o <= operand1_i & operand2_i;
         OP_OR:   result_o <= operand1_i | operand2_i;
         OP_XOR:  result_o <= operand1_i ^ operand2_i;
-        OP_SLL:  result_o <= sll;
-        OP_SRL:  result_o <= srl;
-        OP_SRA:  result_o <= sra;
+        OP_SLL:  result_o <= leftshift;
+        OP_SRL:  result_o <= shifter;
+        OP_SRA:  result_o <= shifter;
       endcase
     end
   end

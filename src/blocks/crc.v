@@ -19,7 +19,7 @@ module crc(
     assign data_o = (shift ^ 32'hFFFFFFFF) == 32'b0;
     wire xorbit = shift[31];
 
-    reg input_reg;
+    reg input_reg = 0;
     always @(posedge clk_i) begin
         input_reg <= data_i;
     end
@@ -28,7 +28,7 @@ module crc(
 
         if (reset_i) begin
             shift <= 32'b0;
-        end else if (clk_en_i & en_i) begin 
+        end else if (clk_en_i & en_i) begin
 
             // NOTE -- this could almost certainly be generated, but
             // I don't really know how to do that with verilog

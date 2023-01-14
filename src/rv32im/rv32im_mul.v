@@ -7,18 +7,18 @@ module rv32im_mul #(
     input wire clk_i,
     input wire reset_i,
     input wire start_i,
-    output reg busy_o,
-    output reg valid_o,
+    output reg busy_o = 0,
+    output reg valid_o = 0,
 
     input wire [XLEN-1:0] operand1_i,
     input wire [XLEN-1:0] operand2_i,
-    output reg [XLEN*2-1:0] product_o
+    output reg [XLEN*2-1:0] product_o = 0
   );
 
   localparam XLEN_FULL = XLEN*2;
-  reg [XLEN-1:0] operand1;
-  reg [XLEN-1:0] operand2;
-  reg [$clog2(XLEN):0] counter; // NOTE -- requires inputs to be powers of two!
+  reg [XLEN-1:0] operand1 = 0;
+  reg [XLEN-1:0] operand2 = 0;
+  reg [$clog2(XLEN):0] counter = 0; // NOTE -- requires inputs to be powers of two!
   wire [$clog2(XLEN):0] counter_p1 = counter + 1;
 
   always @(posedge clk_i) begin

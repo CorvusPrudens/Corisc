@@ -105,34 +105,34 @@ module rv32im
 
   assign we_o = instruction_cache_arbitor ? 1'b0 : wb_we;
 
-  rv32im_instruction_cache #(
-    .CACHE_LEN(6),
-    .LINE_LEN(4), // NOTE -- this is the bits for the word count, not byte count
-    .ILEN(ILEN),
-    .XLEN(XLEN),
-    .VTABLE_ADDRESS(VTABLE_ADDR)
-  ) RV32IM_INSTRUCTION_CACHE (
-    .clk_i(clk_i),
-    .reset_i(reset_i),
-    .advance_i(prefetch_ce),
-    .jump_i(prefetch_pc_write),
-    .busy_o(icache_busy),
-    .addr_i(prefetch_pc_write ? prefetch_pc_in : program_counter),
-    .instruction_o(prefetch_instruction),
-    .cache_invalid_o(cache_invalid),
-    .ctrl_req_o(icache_arb_req),
-    .ctrl_grant_i(instruction_cache_arbitor),
-    .interrupt_trigger_i(interrupt_trigger_i),
-    .vtable_offset_i(interrupt_vector_offset_i),
-    .vtable_pc_o(vtable_pc),
-    .vtable_pc_write(vtable_pc_write),
-    .master_dat_i(master_dat_i),
-    .ack_i(ack_i),
-    .adr_o(icache_adr_o),
-    .err_i(err_i),
-    .sel_o(icache_sel_o),
-    .stb_o(icache_stb_o)
-  );
+  // rv32im_instruction_cache #(
+  //   .CACHE_LEN(6),
+  //   .LINE_LEN(4), // NOTE -- this is the bits for the word count, not byte count
+  //   .ILEN(ILEN),
+  //   .XLEN(XLEN),
+  //   .VTABLE_ADDRESS(VTABLE_ADDR)
+  // ) RV32IM_INSTRUCTION_CACHE (
+  //   .clk_i(clk_i),
+  //   .reset_i(reset_i),
+  //   .advance_i(prefetch_ce),
+  //   .jump_i(prefetch_pc_write),
+  //   .busy_o(icache_busy),
+  //   .addr_i(prefetch_pc_write ? prefetch_pc_in : program_counter),
+  //   .instruction_o(prefetch_instruction),
+  //   .cache_invalid_o(cache_invalid),
+  //   .ctrl_req_o(icache_arb_req),
+  //   .ctrl_grant_i(instruction_cache_arbitor),
+  //   .interrupt_trigger_i(interrupt_trigger_i),
+  //   .vtable_offset_i(interrupt_vector_offset_i),
+  //   .vtable_pc_o(vtable_pc),
+  //   .vtable_pc_write(vtable_pc_write),
+  //   .master_dat_i(master_dat_i),
+  //   .ack_i(ack_i),
+  //   .adr_o(icache_adr_o),
+  //   .err_i(err_i),
+  //   .sel_o(icache_sel_o),
+  //   .stb_o(icache_stb_o)
+  // );
 
   assign prefetch_pc_write = jal_jump | jalr_jump | branch_jump | vtable_pc_write;
 

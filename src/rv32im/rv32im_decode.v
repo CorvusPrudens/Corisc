@@ -1,7 +1,7 @@
 `ifndef RV32IM_DECODE_GUARD
 `define RV32IM_DECODE_GUARD
 
-module rv32im_decode 
+module rv32im_decode
   #(
     parameter XLEN = 32,
     parameter ILEN = 32,
@@ -13,41 +13,41 @@ module rv32im_decode
     input wire [XLEN-1:0] instruction_i,
     input wire data_ready_i,
 
-    output reg [3:0] alu_operation_o,
-    output reg [2:0] word_size_o,
+    output reg [3:0] alu_operation_o = 0,
+    output reg [2:0] word_size_o = 0,
 
-    output reg [REG_BITS-1:0] rs1_addr_o,
-    output reg [REG_BITS-1:0] rs2_addr_o,
-    output reg [REG_BITS-1:0] rd_addr_o,
+    output reg [REG_BITS-1:0] rs1_addr_o = 0,
+    output reg [REG_BITS-1:0] rs2_addr_o = 0,
+    output reg [REG_BITS-1:0] rd_addr_o = 0,
 
-    output reg [XLEN-1:0] immediate_o,
-    output reg immediate_valid_o,
+    output reg [XLEN-1:0] immediate_o = 0,
+    output reg immediate_valid_o = 0,
 
     input wire [XLEN-1:0] pc_data_i,
-    output reg [XLEN-1:0] pc_data_o,
+    output reg [XLEN-1:0] pc_data_o = 0,
 
     input wire interrupt_trigger_i,
-    output reg mret_o,
-    output reg [XLEN-1:0] uepc_o,
+    output reg mret_o = 0,
+    output reg [XLEN-1:0] uepc_o = 0,
 
-    output reg jal_jump_o,
-    output reg [XLEN-1:0] pc_jal_data_o,
+    output reg jal_jump_o = 0,
+    output reg [XLEN-1:0] pc_jal_data_o = 0,
 
-    output reg jalr_o,
-    output reg branch_o,
-    output reg [2:0] branch_condition_o,
+    output reg jalr_o = 0,
+    output reg branch_o = 0,
+    output reg [2:0] branch_condition_o = 0,
     input wire clear_branch_stall_i,
 
-    output reg link_o,
-    output reg [XLEN-1:0] link_data_o,
+    output reg link_o = 0,
+    output reg [XLEN-1:0] link_data_o = 0,
 
-    output reg pop_ras_o,
-    output reg push_ras_o,
+    // output reg pop_ras_o = 0,
+    // output reg push_ras_o = 0,
 
-    output reg [2:0] stage4_path_o,
-    output reg memory_write_o,
+    output reg [2:0] stage4_path_o = 0,
+    output reg memory_write_o = 0,
 
-    output reg processing_jump
+    output reg processing_jump = 0
   );
 
   localparam OP_L     = 5'b00000;
@@ -55,7 +55,7 @@ module rv32im_decode
   localparam OP_AI    = 5'b00100; // arithmetic immediate
   localparam OP_AUIPC = 5'b00101;
   localparam OP_S     = 5'b01000;
-  localparam OP_A     = 5'b01100; // arithmetic 
+  localparam OP_A     = 5'b01100; // arithmetic
   localparam OP_LUI   = 5'b01101;
   localparam OP_B     = 5'b11000;
   localparam OP_JALR  = 5'b11001;
@@ -94,39 +94,6 @@ module rv32im_decode
   wire rs1_link = (rs1_addr == LINK_REGISTER) | (rs1_addr == LINK_REGISTER_ALT);
   wire rd_rs1_eq = rd_addr == rs1_addr;
 
-  reg  push_ras;
-  initial push_ras = 0;
-  reg  pop_ras;
-  initial pop_ras = 0;
-
-  wire jal_ras = (opcode[6:2] == OP_JAL);
-  wire jalr_ras = (opcode[6:2] == OP_JALR);
-
-  always @(*) begin
-    case ({rd_link & (jal_ras | jalr_ras), rs1_link & jalr_ras})
-      default: 
-        begin
-          pop_ras = 1'b0;
-          push_ras = 1'b0;
-        end
-      2'b01: 
-        begin
-          pop_ras = 1'b1;
-          push_ras = 1'b0;
-        end
-      2'b10:
-        begin
-          pop_ras = 1'b0;
-          push_ras = 1'b1;
-        end
-      2'b11:
-        begin
-          pop_ras = rd_rs1_eq ? 1'b1 : 1'b0;
-          push_ras = 1'b1;
-        end
-    endcase
-  end
-
   // Difference between AUIPC and LUI is bit 5
   wire [XLEN-1:0] upper_immediate = opcode[5] ? {u_immediate, 12'b0} : {u_immediate, 12'b0} + pc_data_i;
 
@@ -136,7 +103,7 @@ module rv32im_decode
       uepc_o <= pc_data_i;
 
   reg [5:0] instruction_encoding;
-  initial instruction_encoding = 0;
+  // initial instruction_encoding = 0;
   localparam R_TYPE = 6'b000001; // Register-register operations
   localparam I_TYPE = 6'b000010; // Immediate operations
   localparam S_TYPE = 6'b000100; // Stores
@@ -156,7 +123,7 @@ module rv32im_decode
       OP_AI:    instruction_encoding = I_TYPE; // arithmetic immediate
       OP_AUIPC: instruction_encoding = U_TYPE;
       OP_S:     instruction_encoding = S_TYPE;
-      OP_A:     instruction_encoding = R_TYPE; // arithmetic 
+      OP_A:     instruction_encoding = R_TYPE; // arithmetic
       OP_LUI:   instruction_encoding = U_TYPE;
       OP_B:     instruction_encoding = B_TYPE;
       OP_JALR:  instruction_encoding = I_TYPE;
@@ -187,10 +154,8 @@ module rv32im_decode
       memory_write_o <= 1'b0;
       link_o <= 1'b0;
       mret_o <= 1'b0;
-    end else if (data_ready_i) begin
 
-      pop_ras_o <= pop_ras;
-      push_ras_o <= push_ras;
+    end else if (data_ready_i) begin
 
       pc_data_o <= pc_data_i;
 
@@ -259,7 +224,7 @@ module rv32im_decode
             end else begin
               alu_operation_o <= {funct7[5] & (funct3 == 3'b101), funct3};
             end
-            
+
           end
         S_TYPE:
           begin
@@ -292,19 +257,19 @@ module rv32im_decode
             rs1_addr_o <= rs1_addr;
             rs2_addr_o <= rs2_addr;
             rd_addr_o <= 0;
-            immediate_o <= b_immediate; 
+            immediate_o <= b_immediate;
             alu_operation_o <= 4'b0000;
             branch_condition_o <= funct3;
           end
       endcase
 
-    end else if (clear_branch_stall_i) 
+    end else if (clear_branch_stall_i)
       branch_o <= 1'b0;
   end
 
   `ifdef FORMAL
 
-    reg  timeValid_f;
+    reg  timeValid_f = 0;
     initial timeValid_f = 0;
     always @(posedge clk_i) timeValid_f <= 1;
 
@@ -326,7 +291,7 @@ module rv32im_decode
       end
 
       if (timeValid_f & $past(timeValid_f) & $past(data_ready_i)) begin
-        
+
       end
 
     end

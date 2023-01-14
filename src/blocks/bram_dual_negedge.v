@@ -56,7 +56,7 @@ module bram_dual_negedge
       //   assert(data_o == $past(data_i));
       // end
     end
-    
+
   `endif
 
 endmodule

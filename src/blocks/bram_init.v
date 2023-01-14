@@ -13,7 +13,7 @@ module bram_init
     input wire [(dataWidth_p - 1):0] data_i,
     input wire [(memSize_p - 1):0]  addr_i,
 
-    output reg [(dataWidth_p - 1):0] data_o
+    output reg [(dataWidth_p - 1):0] data_o = 0
   );
 
   reg [(dataWidth_p - 1):0] memory [2**memSize_p-1:0];

@@ -21,11 +21,11 @@ module bram_init_dual
 
   initial if (initFile_p) $readmemh(initFile_p, memory);
 
-  reg [(dataWidth_p-1):0] bram_out;
-  reg [(dataWidth_p-1):0] writethrough;
+  reg [(dataWidth_p-1):0] bram_out = 0;
+  reg [(dataWidth_p-1):0] writethrough = 0;
 
   wire writethrough_condition = (waddr_i == raddr_i) && write_i;
-  reg writethrough_satisfied;
+  reg writethrough_satisfied = 0;
 
   assign data_o = writethrough_satisfied ? writethrough : bram_out;
 

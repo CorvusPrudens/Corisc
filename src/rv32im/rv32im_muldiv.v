@@ -16,9 +16,9 @@ module rv32im_muldiv #(
     input wire data_ready_i,
     input wire [XLEN-1:0] operand1_i,
     input wire [XLEN-1:0] operand2_i,
-    output reg [XLEN-1:0] result_o,
-    output reg data_ready_o,
-    output reg busy_o,
+    output reg [XLEN-1:0] result_o = 0,
+    output reg data_ready_o = 0,
+    output reg busy_o = 0,
     input wire writeback_ce_i
   );
 
@@ -85,7 +85,7 @@ module rv32im_muldiv #(
   localparam REMU   = 3'b111;
 
   // Extra cycles are taken in feeding data to each operation.
-  // I'm not too worried about it since this is so much faster than 
+  // I'm not too worried about it since this is so much faster than
   // software calculations anyway
   always @(posedge clk_i) begin
     if (clear_i) begin
@@ -129,7 +129,7 @@ module rv32im_muldiv #(
           end
         `else
         default: output_ready <= 1'b1; // errors silently passed
-        {2'b00, MUL}: 
+        {2'b00, MUL}:
           begin
             mul_outsign <= operand1[XLEN-1] ^ operand2[XLEN-1];
             mul_start <= 1'b1;
@@ -145,7 +145,7 @@ module rv32im_muldiv #(
               output_ready <= 1'b1;
             end
           end
-        {2'b00, MULH}: 
+        {2'b00, MULH}:
           begin
             mul_outsign <= operand1[XLEN-1] ^ operand2[XLEN-1];
             mul_start <= 1'b1;
@@ -161,7 +161,7 @@ module rv32im_muldiv #(
               output_ready <= 1'b1;
             end
           end
-        {2'b00, MULHU}: 
+        {2'b00, MULHU}:
           begin
             mul_outsign <= 1'b0;
             mul_start <= 1'b1;
@@ -177,7 +177,7 @@ module rv32im_muldiv #(
               output_ready <= 1'b1;
             end
           end
-        {2'b00, MULHSU}: 
+        {2'b00, MULHSU}:
           begin
             mul_outsign <= operand1[XLEN-1];
             mul_start <= 1'b1;
@@ -316,7 +316,7 @@ module rv32im_muldiv #(
     end
 
     // always @(*)
-    //   if (busy_o) 
+    //   if (busy_o)
     //     assume(~data_ready_i);
 
     always @(posedge clk_i) begin
@@ -326,7 +326,7 @@ module rv32im_muldiv #(
 
 
   `endif
-  
+
 endmodule
 
 `endif // RV32IM_MULDIV_GUARD
