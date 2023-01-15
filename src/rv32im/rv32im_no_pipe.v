@@ -266,7 +266,7 @@ module rv32im_no_pipe
       decode_data_ready <= 1'b0;
   end
 
-  wire registers_write = writeback_registers_write | jal_jump;
+  wire registers_write = writeback_registers_write | jalr_jump | jal_jump;
   reg [XLEN-1:0] writeback_data = 0;
 
   wire [XLEN-1:0] registers_data_i = (jal_jump | jalr_jump) ? program_counter + 32'b100 : writeback_data;
