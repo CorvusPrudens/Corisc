@@ -12,8 +12,7 @@ module rv32im_no_pipe
   #(
     parameter XLEN = 32,
     parameter ILEN = 32,
-    parameter REG_BITS = 5,
-    parameter INT_VECT_LEN = 8
+    parameter REG_BITS = 5
   )
   (
     input wire clk_i,
@@ -119,8 +118,6 @@ module rv32im_no_pipe
   wire jalr_jump = opfetch_jalr & ~stb_o;
   wire branch_jump = writeback_branch;
 
-  reg prefetch_advance_after_jump = 0;
-
   wire prefetch_pc_write = jal_jump | jalr_jump | branch_jump | interrupt_pc_write;
 
   wire [XLEN-1:0] jalr_base = rs1;
@@ -146,16 +143,6 @@ module rv32im_no_pipe
       end
     end else if (prefetch_pc_write) begin
       program_counter <= prefetch_pc_in;
-    end
-  end
-
-  always @(posedge clk_i) begin
-    if (reset_i) begin
-      prefetch_advance_after_jump <= 1'b0;
-    end else if (prefetch_pc_write) begin
-      prefetch_advance_after_jump <= 1'b1;
-    end else if (prefetch_data_ready) begin
-      prefetch_advance_after_jump <= 1'b0;
     end
   end
 
@@ -200,7 +187,6 @@ module rv32im_no_pipe
   wire [REG_BITS-1:0] rd_addr;
   wire [XLEN-1:0] immediate;
   wire immediate_valid;
-  wire [XLEN-1:0] irrelevant_pc;
 
   wire mret;
   wire [XLEN-1:0] uepc;
@@ -213,7 +199,6 @@ module rv32im_no_pipe
   wire [XLEN-1:0] link_data;
   wire [2:0] stage4_path;
   wire memory_write;
-  wire processing_jump;
 
   wire decode_advance = prefetch_data_ready;
 
@@ -236,7 +221,7 @@ module rv32im_no_pipe
     .immediate_o(immediate),
     .immediate_valid_o(immediate_valid),
     .pc_data_i(program_counter),
-    .pc_data_o(irrelevant_pc),
+    .pc_data_o(),
     .interrupt_trigger_i(save_uepc),
     .mret_o(mret),
     .uepc_o(uepc),
@@ -250,7 +235,7 @@ module rv32im_no_pipe
     .link_data_o(link_data),
     .stage4_path_o(stage4_path),
     .memory_write_o(memory_write),
-    .processing_jump(processing_jump)
+    .processing_jump()
   );
 
   reg decode_data_ready = 0;
@@ -309,7 +294,6 @@ module rv32im_no_pipe
 
   wire stage4_advance = opfetch_data_ready & ~opfetch_clear;
 
-  wire stage4_path_alu = stage4_path[0];
   reg [XLEN-1:0] stage4_result = 0;
   reg [XLEN-1:0] mem_data_out = 0;
   wire stage4_clear = reset_i | branch_jump;
@@ -353,7 +337,6 @@ module rv32im_no_pipe
 
   wire memory_clear = stage4_clear;
   wire [XLEN-1:0] memory_addr_in = rs1 + immediate;
-  wire mem_busy;
   wire mem_err;
   wire mem_advance = stage4_advance & stage4_path[1];
 
@@ -372,7 +355,7 @@ module rv32im_no_pipe
     .addr_i(memory_addr_in),
     .word_size_i(word_size[1:0]),
     .write_i(memory_write),
-    .busy_o(mem_busy),
+    .busy_o(),
     .err_o(mem_err),
 
     .master_dat_i(master_dat_i),
@@ -407,7 +390,6 @@ module rv32im_no_pipe
   wire muldiv_clear = stage4_clear;
   wire muldiv_advance = stage4_advance & stage4_path[2];
   wire muldiv_data_ready;
-  wire muldiv_busy;
 
   rv32im_muldiv #(
     .XLEN(XLEN)
@@ -420,7 +402,7 @@ module rv32im_no_pipe
     .operand2_i(rs2),
     .result_o(muldiv_result),
     .data_ready_o(muldiv_data_ready),
-    .busy_o(muldiv_busy),
+    .busy_o(),
     .writeback_ce_i(writeback_advance)
   );
 
