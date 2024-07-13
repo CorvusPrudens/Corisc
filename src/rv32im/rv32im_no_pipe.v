@@ -31,9 +31,14 @@ module rv32im_no_pipe
     output wire stb_o,
     output wire we_o,
 
-    input wire [XLEN-1:0] vtable_addr,
+    output wire [XLEN-1:0] pc_o,
+    output wire prefetch_ready_o,
 
-    output wire [13:0] debug_o
+    `ifdef SIM
+    output wire [XLEN-1:0] registers_o [2**REG_BITS-1:0],
+    `endif
+
+    input wire [XLEN-1:0] vtable_addr
   );
 
   // wire memory_ctrl_req;
@@ -112,6 +117,8 @@ module rv32im_no_pipe
   wire prefetch_data_ready;
   wire [XLEN-1:0] prefetch_instruction;
 
+  assign prefetch_ready_o = prefetch_data_ready;
+
   wire [XLEN-1:0] interrupt_pc;
   wire interrupt_pc_write;
 
@@ -124,7 +131,7 @@ module rv32im_no_pipe
   wire [XLEN-1:0] prefetch_pc_in;
   wire [XLEN-1:0] prefetch_jalr_pc = mret ? uepc : immediate + jalr_base;
 
-  assign debug_o = program_counter[15:2];
+  assign pc_o = program_counter;
 
   assign prefetch_pc_in = interrupt_pc_write ? interrupt_pc
     : branch_jump ? writeback_branch_data
@@ -270,6 +277,11 @@ module rv32im_no_pipe
     .rs1_addr_i(rs1_addr),
     .rs2_addr_i(rs2_addr),
     .rd_addr_i(rd_addr),
+
+    `ifdef SIM
+      .registers_o(registers_o),
+    `endif
+
     .rs1_o(rs1),
     .rs2_o(rs2)
   );

@@ -44,7 +44,7 @@ module uart (
     end
 
     case(TXstate)
-      4'b0000: if(TXstart_i)  TXstate <= 4'b0100;
+      4'b0000: if(TXstart_i) TXstate <= 4'b0100;
       4'b0100: if(tx_tick) TXstate <= 4'b1000; // start bit
       4'b1000: if(tx_tick) TXstate <= 4'b1001; // bit 0
       4'b1001: if(tx_tick) TXstate <= 4'b1010; // bit 1

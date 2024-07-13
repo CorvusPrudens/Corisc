@@ -17,11 +17,19 @@ module bram_dual_re_nowt
     input wire [(memSize_p - 1):0]  waddr_i,
     input wire [(memSize_p - 1):0]  raddr_i,
 
+    `ifdef SIM
+    output wire [(XLEN-1):0] memory_o [2**memSize_p-1:0],
+    `endif
+
     output wire [(XLEN - 1):0] data_o
   );
 
   reg [(XLEN-1):0] memory [2**memSize_p-1:0];
   reg [(XLEN-1):0] bram_out = 0;
+
+  `ifdef SIM
+    assign memory_o = memory;
+  `endif
 
   assign data_o = bram_out;
 

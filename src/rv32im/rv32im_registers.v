@@ -22,6 +22,10 @@ module rv32im_registers
     input wire [REG_BITS-1:0] rs2_addr_i,
     input wire [REG_BITS-1:0] rd_addr_i,
 
+    `ifdef SIM
+    output wire [XLEN-1:0] registers_o [2**REG_BITS-1:0],
+    `endif
+
     output wire [XLEN-1:0] rs1_o,
     output wire [XLEN-1:0] rs2_o
   );
@@ -41,6 +45,12 @@ module rv32im_registers
     .waddr_i(rd_addr_i),
     .raddr_i(rs1_addr_i),
 
+    `ifdef SIM
+      .memory_o(registers_o),
+    `else
+      .memory_o(),
+    `endif
+
     .data_o(rs1_o)
   );
 
@@ -55,6 +65,8 @@ module rv32im_registers
 
     .waddr_i(rd_addr_i),
     .raddr_i(rs2_addr_i),
+
+    .memory_o(),
 
     .data_o(rs2_o)
   );
