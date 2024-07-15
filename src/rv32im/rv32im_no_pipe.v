@@ -36,6 +36,9 @@ module rv32im_no_pipe
 
     `ifdef SIM
     output wire [XLEN-1:0] registers_o [2**REG_BITS-1:0],
+    output wire [XLEN-1:0] ras_data_o,
+    output wire pop_ras_o,
+    output wire push_ras_o,
     `endif
 
     input wire [XLEN-1:0] vtable_addr
@@ -211,6 +214,10 @@ module rv32im_no_pipe
 
   wire decode_clear = reset_i | jal_jump | jalr_jump | branch_jump;
 
+  `ifdef SIM
+    assign ras_data_o = link_data;
+  `endif
+
   rv32im_decode #(
     .XLEN(XLEN),
     .ILEN(ILEN),
@@ -240,6 +247,12 @@ module rv32im_no_pipe
     .clear_branch_stall_i(1'b0),
     .link_o(link),
     .link_data_o(link_data),
+
+    `ifdef SIM
+      .pop_ras_o(pop_ras_o),
+      .push_ras_o(push_ras_o),
+    `endif
+
     .stage4_path_o(stage4_path),
     .memory_write_o(memory_write),
     .processing_jump()
